@@ -1,0 +1,18 @@
+project_id = "brewlab"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+site_url = "brewlab://auth-callback"
+additional_redirect_urls = ["brewlab://auth-callback"]
+jwt_expiry = 3600
+enable_signup = true
+
+[functions.notify-brew-reminder]
+verify_jwt = false

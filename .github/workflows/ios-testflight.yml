@@ -1,0 +1,86 @@
+name: iOS · TestFlight
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'BrewLab/**'
+      - 'project.yml'
+      - 'Config/Secrets.xcconfig.example'
+      - 'Scripts/ci/**'
+      - '.github/workflows/ios-testflight.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: brewlab-ios-testflight
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Archive & upload
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      SCHEME: BrewLab
+      ARCHIVE_PATH: build/BrewLab.xcarchive
+      EXPORT_PATH: build/ipa
+      EXPORT_OPTIONS: Scripts/ci/ExportOptions.plist
+      APP_STORE_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+      APP_STORE_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+      APP_STORE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: xcodebuild -version
+      - run: sudo xcodebuild -downloadPlatform iOS || true
+      - run: brew install xcodegen
+      - name: Write Secrets.xcconfig
+        env:
+          IOS_SECRETS: ${{ secrets.IOS_SECRETS_XCCONFIG }}
+        run: |
+          test -n "${IOS_SECRETS}" || (echo "::error::IOS_SECRETS_XCCONFIG is empty" && exit 1)
+          mkdir -p Config
+          printf '%s\n' "$IOS_SECRETS" > Config/Secrets.xcconfig
+      - name: Write App Store Connect API key
+        env:
+          API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+        run: |
+          test -n "${API_KEY_P8}" || (echo "::error::APP_STORE_CONNECT_API_KEY_P8 is empty" && exit 1)
+          mkdir -p ~/.appstoreconnect/private_keys
+          printf '%s\n' "$API_KEY_P8" > "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_KEY_ID}.p8"
+          chmod 600 "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_KEY_ID}.p8"
+      - run: sed -i '' "s/CURRENT_PROJECT_VERSION: \"1\"/CURRENT_PROJECT_VERSION: \"${GITHUB_RUN_NUMBER}\"/" project.yml
+      - if: env.APP_STORE_TEAM_ID != ''
+        run: sed -i '' "s/DEVELOPMENT_TEAM: \"\"/DEVELOPMENT_TEAM: \"${APP_STORE_TEAM_ID}\"/" project.yml
+      - run: xcodegen generate
+      - run: xcodebuild -resolvePackageDependencies -project BrewLab.xcodeproj -scheme "$SCHEME"
+      - name: Archive
+        run: |
+          xcodebuild archive \
+            -project BrewLab.xcodeproj \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$ARCHIVE_PATH" \
+            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_KEY_ID}.p8" \
+            -authenticationKeyID "$APP_STORE_KEY_ID" \
+            -authenticationKeyIssuerID "$APP_STORE_ISSUER_ID" \
+            -allowProvisioningUpdates
+      - name: Export IPA
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_PATH" \
+            -exportOptionsPlist "$EXPORT_OPTIONS" \
+            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_KEY_ID}.p8" \
+            -authenticationKeyID "$APP_STORE_KEY_ID" \
+            -authenticationKeyIssuerID "$APP_STORE_ISSUER_ID" \
+            -allowProvisioningUpdates
+      - name: Upload to TestFlight
+        run: |
+          IPA=$(ls "$EXPORT_PATH"/*.ipa | head -1)
+          test -n "$IPA" || (echo "::error::No .ipa produced" && exit 1)
+          xcrun altool --upload-app --file "$IPA" --type ios --apiKey "$APP_STORE_KEY_ID" --apiIssuer "$APP_STORE_ISSUER_ID"

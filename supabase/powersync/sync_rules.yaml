@@ -1,0 +1,9 @@
+bucket_definitions:
+  user_data:
+    parameters: select request.user_id() as user_id
+    data:
+      - select * from profiles where id = bucket.user_id and deleted_at is null
+      - select * from beans where owner_id = bucket.user_id
+      - select * from brew_sessions where owner_id = bucket.user_id
+      - select * from brew_steps where owner_id = bucket.user_id
+      - select * from brew_reminders where owner_id = bucket.user_id
