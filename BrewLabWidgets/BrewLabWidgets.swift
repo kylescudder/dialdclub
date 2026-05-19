@@ -80,11 +80,11 @@ private enum QuickAction: String, CaseIterable, Identifiable {
     }
 
     var url: URL {
-        URL(string: "brewlab://shortcut/\(rawValue)")!
+        URL(string: "diald://shortcut/\(rawValue)")!
     }
 }
 
-private struct BrewLabQuickActionsWidgetView: View {
+private struct DialdQuickActionsWidgetView: View {
     @Environment(\.widgetFamily) private var family
     let entry: QuickActionsEntry
 
@@ -107,7 +107,7 @@ private struct BrewLabQuickActionsWidgetView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("BrewLab")
+            Text("Diald")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.7))
             Text("Coffee shortcuts")
@@ -137,7 +137,7 @@ private struct BrewLabQuickActionsWidgetView: View {
     }
 }
 
-private struct BrewLabDashboardWidgetView: View {
+private struct DialdDashboardWidgetView: View {
     @Environment(\.widgetFamily) private var family
     let entry: DashboardEntry
 
@@ -158,7 +158,7 @@ private struct BrewLabDashboardWidgetView: View {
 
     private func smallLayout(_ snapshot: BrewDashboardSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text("BrewLab")
+            Text("Diald")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.7))
             Text("\(snapshot.totalBrews)")
@@ -179,7 +179,7 @@ private struct BrewLabDashboardWidgetView: View {
     private func mediumLayout(_ snapshot: BrewDashboardSnapshot) -> some View {
         HStack(alignment: .center, spacing: 14) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("BrewLab")
+                Text("Diald")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.white.opacity(0.7))
                 Text(snapshot.latestTitle ?? "No recent brew")
@@ -222,7 +222,7 @@ private struct BrewLabDashboardWidgetView: View {
             Image(systemName: "cup.and.saucer.fill")
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(.white)
-            Text("BrewLab")
+            Text("Diald")
                 .font(.title3.weight(.bold))
                 .foregroundStyle(.white)
             Text("Log a brew to pin your latest recipe and stats here.")
@@ -271,12 +271,12 @@ private extension View {
     }
 }
 
-struct BrewLabQuickActionsWidget: Widget {
-    let kind = "BrewLabQuickActionsWidget"
+struct DialdQuickActionsWidget: Widget {
+    let kind = "DialdQuickActionsWidget"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: QuickActionsProvider()) { entry in
-            BrewLabQuickActionsWidgetView(entry: entry)
+            DialdQuickActionsWidgetView(entry: entry)
         }
         .configurationDisplayName("Brew Shortcuts")
         .description("Quickly log a brew or start an extraction timer.")
@@ -285,12 +285,12 @@ struct BrewLabQuickActionsWidget: Widget {
     }
 }
 
-struct BrewLabDashboardWidget: Widget {
+struct DialdDashboardWidget: Widget {
     let kind = WidgetSnapshotStore.dashboardWidgetKind
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: DashboardProvider()) { entry in
-            BrewLabDashboardWidgetView(entry: entry)
+            DialdDashboardWidgetView(entry: entry)
         }
         .configurationDisplayName("Brew Dashboard")
         .description("Keep your latest brew and extraction stats on your Home Screen.")
@@ -300,9 +300,9 @@ struct BrewLabDashboardWidget: Widget {
 }
 
 @main
-struct BrewLabWidgetsBundle: WidgetBundle {
+struct DialdWidgetsBundle: WidgetBundle {
     var body: some Widget {
-        BrewLabQuickActionsWidget()
-        BrewLabDashboardWidget()
+        DialdQuickActionsWidget()
+        DialdDashboardWidget()
     }
 }

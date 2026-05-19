@@ -2,7 +2,7 @@ import Foundation
 import OSLog
 
 enum Log {
-    private static let logger = Logger(subsystem: "com.brewlab.app", category: "app")
+    private static let logger = Logger(subsystem: "club.diald.app", category: "app")
 
     static func error(_ error: Error, category: String) {
         logger.error("[\(category, privacy: .public)] \(error.localizedDescription, privacy: .public)")

@@ -14,7 +14,7 @@ struct DashboardView: View {
                 .padding()
             }
             .background(Theme.Colors.background)
-            .navigationTitle("BrewLab")
+            .navigationTitle("Diald")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {

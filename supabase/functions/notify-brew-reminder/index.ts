@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
     return new Response('method not allowed', { status: 405 })
   }
 
-  const { user_id, title = 'BrewLab', body = 'Time to log a brew.' } = await req.json()
+  const { user_id, title = 'Diald', body = 'Time to log a brew.' } = await req.json()
   if (!user_id) {
     return Response.json({ error: 'missing user_id' }, { status: 400 })
   }

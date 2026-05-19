@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct BrewLabApp: App {
+struct DialdApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var services = AppServices()
 

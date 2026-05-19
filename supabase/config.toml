@@ -1,4 +1,4 @@
-project_id = "brewlab"
+project_id = "diald"
 
 [api]
 enabled = true
@@ -9,8 +9,8 @@ max_rows = 1000
 
 [auth]
 enabled = true
-site_url = "brewlab://auth-callback"
-additional_redirect_urls = ["brewlab://auth-callback"]
+site_url = "diald://auth-callback"
+additional_redirect_urls = ["diald://auth-callback"]
 jwt_expiry = 3600
 enable_signup = true
 

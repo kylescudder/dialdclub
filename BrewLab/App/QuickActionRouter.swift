@@ -7,7 +7,7 @@ enum AppQuickAction: String {
 
 @MainActor
 enum QuickActionRouter {
-    private static let pendingActionKey = "brewlab.pendingQuickAction"
+    private static let pendingActionKey = "diald.pendingQuickAction"
 
     private static var isReady = false
     private static var pendingAction: AppQuickAction?
@@ -25,7 +25,7 @@ enum QuickActionRouter {
     static func handle(url: URL, auth: AuthClient) {
         Log.breadcrumb("incoming url: \(url.absoluteString)", category: "deeplink")
 
-        if url.scheme == "brewlab", url.host == "shortcut",
+        if url.scheme == "diald", url.host == "shortcut",
            let actionName = url.pathComponents.last,
            let action = AppQuickAction(rawValue: actionName) {
             handle(action)
@@ -61,6 +61,6 @@ enum QuickActionRouter {
 }
 
 extension Notification.Name {
-    static let openLogBrew = Notification.Name("brewlab.openLogBrew")
-    static let openStartTimer = Notification.Name("brewlab.openStartTimer")
+    static let openLogBrew = Notification.Name("diald.openLogBrew")
+    static let openStartTimer = Notification.Name("diald.openStartTimer")
 }

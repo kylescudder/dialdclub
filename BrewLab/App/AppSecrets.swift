@@ -19,5 +19,5 @@ enum AppSecrets {
         Bundle.main.object(forInfoDictionaryKey: "SENTRY_DSN") as? String ?? ""
     }()
 
-    static let authRedirectURL = URL(string: "brewlab://auth-callback")!
+    static let authRedirectURL = URL(string: "diald://auth-callback")!
 }

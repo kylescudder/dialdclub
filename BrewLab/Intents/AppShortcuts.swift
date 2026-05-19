@@ -1,6 +1,6 @@
 import AppIntents
 
-struct BrewLabShortcuts: AppShortcutsProvider {
+struct DialdShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
             intent: LogBrewIntent(),

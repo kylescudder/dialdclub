@@ -2,7 +2,7 @@ import AppIntents
 
 struct LogBrewIntent: AppIntent {
     static var title: LocalizedStringResource = "Log Brew"
-    static var description = IntentDescription("Open BrewLab ready to record a coffee extraction.")
+    static var description = IntentDescription("Open Diald ready to record a coffee extraction.")
     static var openAppWhenRun = true
 
     @Parameter(title: "Method")
@@ -19,7 +19,7 @@ struct LogBrewIntent: AppIntent {
 
 struct StartExtractionTimerIntent: AppIntent {
     static var title: LocalizedStringResource = "Start Extraction Timer"
-    static var description = IntentDescription("Open BrewLab's extraction timer.")
+    static var description = IntentDescription("Open Diald's extraction timer.")
     static var openAppWhenRun = true
 
     func perform() async throws -> some IntentResult {

@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: brewlab-ios-testflight
+  group: diald-ios-testflight
   cancel-in-progress: false
 
 jobs:
@@ -24,8 +24,8 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 45
     env:
-      SCHEME: BrewLab
-      ARCHIVE_PATH: build/BrewLab.xcarchive
+      SCHEME: Diald
+      ARCHIVE_PATH: build/Diald.xcarchive
       EXPORT_PATH: build/ipa
       EXPORT_OPTIONS: Scripts/ci/ExportOptions.plist
       APP_STORE_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
@@ -56,11 +56,11 @@ jobs:
       - if: env.APP_STORE_TEAM_ID != ''
         run: sed -i '' "s/DEVELOPMENT_TEAM: \"\"/DEVELOPMENT_TEAM: \"${APP_STORE_TEAM_ID}\"/" project.yml
       - run: xcodegen generate
-      - run: xcodebuild -resolvePackageDependencies -project BrewLab.xcodeproj -scheme "$SCHEME"
+      - run: xcodebuild -resolvePackageDependencies -project Diald.xcodeproj -scheme "$SCHEME"
       - name: Archive
         run: |
           xcodebuild archive \
-            -project BrewLab.xcodeproj \
+            -project Diald.xcodeproj \
             -scheme "$SCHEME" \
             -configuration Release \
             -destination "generic/platform=iOS" \

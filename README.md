@@ -1,4 +1,4 @@
-# BrewLab
+# Diald
 
 Native iOS app for specialty coffee experiments: beans, extraction time, ratios, brew method, grind, temperature, tasting notes, reminders, and stats.
 
@@ -21,9 +21,9 @@ This is intentionally patterned after Deadwax Club:
 2. Fill SUPABASE_URL and SUPABASE_ANON_KEY.
 3. Run supabase db push.
 4. Run xcodegen generate.
-5. Open BrewLab.xcodeproj.
+5. Open Diald.xcodeproj.
 
-In Supabase Auth, enable Email, Apple, and Google. Set the redirect URL to brewlab://auth-callback.
+In Supabase Auth, enable Email, Apple, and Google. Set the redirect URL to diald://auth-callback.
 
 ## Backend
 
@@ -35,4 +35,4 @@ All user-owned tables use RLS and soft-delete tombstones.
 
 The first cut is a proper native scaffold with a usable brew logger, bean catalogue, stats view, auth, notifications, shortcuts, and backend schema. PowerSync rules are present, but the app currently talks directly to Supabase; wiring the local SQLite/PowerSync manager is the obvious next round.
 
-The app now also has a BrewLab Widgets extension. It includes a quick-action widget for logging a brew or opening the extraction timer, plus a dashboard widget backed by an app-group snapshot written whenever brew data refreshes.
+The app now also has a Diald Widgets extension. It includes a quick-action widget for logging a brew or opening the extraction timer, plus a dashboard widget backed by an app-group snapshot written whenever brew data refreshes.

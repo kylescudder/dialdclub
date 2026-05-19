@@ -17,7 +17,7 @@ struct SignInView: View {
                     Image(systemName: "cup.and.saucer.fill")
                         .font(.system(size: 52))
                         .foregroundStyle(Theme.Colors.green)
-                    Text("BrewLab")
+                    Text("Diald")
                         .font(.largeTitle.bold())
                     Text("Track extractions, beans, recipes, and the tiny changes that actually matter.")
                         .font(.callout)

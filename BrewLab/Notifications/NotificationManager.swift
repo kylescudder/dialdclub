@@ -51,7 +51,7 @@ final class NotificationManager: NSObject, ObservableObject {
             "user_id": userID.uuidString.lowercased(),
             "apns_token": token,
             "device_name": UIDevice.current.name,
-            "bundle_id": Bundle.main.bundleIdentifier ?? "com.brewlab.app",
+            "bundle_id": Bundle.main.bundleIdentifier ?? "club.diald.app",
             "environment": Self.apnsEnvironment
         ]
         do {
@@ -66,7 +66,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
     func scheduleLocalReminder(at date: Date) async {
         let content = UNMutableNotificationContent()
-        content.title = "BrewLab"
+        content.title = "Diald"
         content.body = "Log the morning cup before the variables evaporate."
         content.sound = .default
         let components = Calendar.current.dateComponents([.hour, .minute], from: date)

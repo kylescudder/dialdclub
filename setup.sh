@@ -20,4 +20,4 @@ if [ "$missing" -eq 1 ]; then
 fi
 
 xcodegen generate
-echo "generated BrewLab.xcodeproj"
+echo "generated Diald.xcodeproj"

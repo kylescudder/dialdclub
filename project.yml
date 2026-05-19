@@ -1,6 +1,6 @@
-name: BrewLab
+name: Diald
 options:
-  bundleIdPrefix: com.brewlab
+  bundleIdPrefix: club.diald
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
@@ -27,7 +27,7 @@ packages:
     from: 8.40.0
 
 targets:
-  BrewLab:
+  Diald:
     type: application
     platform: iOS
     deploymentTarget: "17.0"
@@ -39,19 +39,19 @@ targets:
     info:
       path: BrewLab/Info.plist
       properties:
-        CFBundleDisplayName: BrewLab
+        CFBundleDisplayName: Diald
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen:
           UIColorName: ""
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
-        NSCameraUsageDescription: BrewLab uses the camera to photograph bean bags and brew setups.
-        NSPhotoLibraryAddUsageDescription: BrewLab saves bean and brew photos you choose to export.
+        NSCameraUsageDescription: Diald uses the camera to photograph bean bags and brew setups.
+        NSPhotoLibraryAddUsageDescription: Diald saves bean and brew photos you choose to export.
         CFBundleURLTypes:
           - CFBundleURLSchemes:
-              - brewlab
-            CFBundleURLName: com.brewlab.auth
+              - diald
+            CFBundleURLName: club.diald.auth
         ITSAppUsesNonExemptEncryption: false
         UIBackgroundModes:
           - remote-notification
@@ -68,7 +68,7 @@ targets:
         SENTRY_DSN: $(SENTRY_DSN)
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.brewlab.app
+        PRODUCT_BUNDLE_IDENTIFIER: club.diald.app
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: NO
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
@@ -84,10 +84,10 @@ targets:
         product: Lottie
       - package: Sentry
         product: Sentry
-      - target: BrewLabWidgets
+      - target: DialdWidgets
         embed: true
 
-  BrewLabWidgets:
+  DialdWidgets:
     type: app-extension
     platform: iOS
     deploymentTarget: "17.0"
@@ -97,14 +97,14 @@ targets:
     info:
       path: BrewLabWidgets/Info.plist
       properties:
-        CFBundleDisplayName: BrewLab Widgets
+        CFBundleDisplayName: Diald Widgets
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.brewlab.app.widgets
+        PRODUCT_BUNDLE_IDENTIFIER: club.diald.app.widgets
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: NO
         CODE_SIGN_ENTITLEMENTS: BrewLabWidgets/BrewLabWidgets.entitlements
