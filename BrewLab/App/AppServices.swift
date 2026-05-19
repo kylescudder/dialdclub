@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 import SwiftUI
+import WidgetKit
 
 @MainActor
 final class AppServices: ObservableObject {
@@ -41,8 +42,29 @@ final class AppServices: ObservableObject {
 
     func refreshAll() async {
         await beans.refresh()
+        await refreshBrewData()
+        await notifications.registerIfAuthorized()
+    }
+
+    func refreshBrewData() async {
         await brews.refresh()
         await stats.refresh()
-        await notifications.registerIfAuthorized()
+        publishWidgetSnapshot()
+    }
+
+    func publishWidgetSnapshot() {
+        let latest = brews.brews.first
+        WidgetSnapshotStore.saveDashboard(
+            totalBrews: stats.stats.totalBrews,
+            averageRating: stats.stats.averageRating,
+            averageExtractionSeconds: stats.stats.averageExtractionSeconds,
+            favouriteMethodLabel: stats.stats.favouriteMethod?.label,
+            latestTitle: latest?.title,
+            latestMethodLabel: latest?.method.label,
+            latestExtractionSeconds: latest?.extractionSeconds,
+            latestRating: latest?.rating,
+            latestBrewedAt: latest?.brewedAt
+        )
+        WidgetCenter.shared.reloadTimelines(ofKind: WidgetSnapshotStore.dashboardWidgetKind)
     }
 }

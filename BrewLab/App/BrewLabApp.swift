@@ -11,7 +11,7 @@ struct BrewLabApp: App {
                 .environmentObject(services)
                 .task { await services.bootstrap() }
                 .onOpenURL { url in
-                    QuickActionRouter.shared.handle(url: url)
+                    QuickActionRouter.handle(url: url, auth: services.auth)
                 }
         }
     }

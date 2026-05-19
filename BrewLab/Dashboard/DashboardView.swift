@@ -49,7 +49,10 @@ struct DashboardView: View {
                     BrewRowView(brew: brew)
                         .swipeActions {
                             Button(role: .destructive) {
-                                Task { await services.brews.softDelete(brew) }
+                                Task {
+                                    await services.brews.softDelete(brew)
+                                    await services.refreshBrewData()
+                                }
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }

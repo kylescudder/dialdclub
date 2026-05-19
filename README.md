@@ -11,6 +11,7 @@ This is intentionally patterned after Deadwax Club:
 - Lottie loading animation
 - AppIntents and Shortcuts for logging brews and starting the timer
 - Local notifications plus APNs token upload for server-side reminders
+- WidgetKit extension with Home Screen quick actions and a brew stats widget
 - TestFlight GitHub Actions workflow
 - PowerSync-compatible sync rules for an offline-first follow-up
 
@@ -33,3 +34,5 @@ All user-owned tables use RLS and soft-delete tombstones.
 ## Current scope
 
 The first cut is a proper native scaffold with a usable brew logger, bean catalogue, stats view, auth, notifications, shortcuts, and backend schema. PowerSync rules are present, but the app currently talks directly to Supabase; wiring the local SQLite/PowerSync manager is the obvious next round.
+
+The app now also has a BrewLab Widgets extension. It includes a quick-action widget for logging a brew or opening the extraction timer, plus a dashboard widget backed by an app-group snapshot written whenever brew data refreshes.

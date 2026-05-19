@@ -84,6 +84,29 @@ final class AuthClient: ObservableObject {
         }
     }
 
+    private var lastHandledCallback: (url: String, at: Date)?
+
+    func handle(callbackURL url: URL) async {
+        let now = Date()
+        if let last = lastHandledCallback,
+           last.url == url.absoluteString,
+           now.timeIntervalSince(last.at) < 5 {
+            Log.breadcrumb("auth callback ignored (duplicate within 5s)", category: "auth.callback")
+            return
+        }
+        lastHandledCallback = (url.absoluteString, now)
+
+        do {
+            try await supabase.auth.session(from: url)
+            let session = try await supabase.auth.session
+            state = .signedIn(session.user.id, session.user.email)
+            Log.breadcrumb("auth callback session established", category: "auth.callback")
+        } catch {
+            lastError = "Couldn't finish from this link: \(error.localizedDescription)"
+            Log.error(error, category: "auth.callback")
+        }
+    }
+
     func signInWithGoogle() async {
         do {
             try await supabase.auth.signInWithOAuth(

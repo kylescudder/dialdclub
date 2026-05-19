@@ -1,12 +1,15 @@
 import SwiftUI
 
 struct AddBrewView: View {
+    var startTimerOnAppear = false
+
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var services: AppServices
     @State private var draft = BrewDraft()
     @State private var isRunning = false
     @State private var startedAt: Date?
     @State private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @State private var hasAppliedInitialTimerState = false
 
     var body: some View {
         NavigationStack {
@@ -65,6 +68,12 @@ struct AddBrewView: View {
                 }
             }
             .navigationTitle("Log brew")
+            .onAppear {
+                guard startTimerOnAppear, !hasAppliedInitialTimerState else { return }
+                hasAppliedInitialTimerState = true
+                draft.extractionSeconds = 1
+                if !isRunning { toggleTimer() }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -73,7 +82,7 @@ struct AddBrewView: View {
                     Button("Save") {
                         Task {
                             await services.brews.create(draft)
-                            await services.stats.refresh()
+                            await services.refreshBrewData()
                             dismiss()
                         }
                     }

@@ -84,3 +84,28 @@ targets:
         product: Lottie
       - package: Sentry
         product: Sentry
+      - target: BrewLabWidgets
+        embed: true
+
+  BrewLabWidgets:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: BrewLabWidgets
+      - path: BrewLab/Widgets/WidgetSnapshotStore.swift
+    info:
+      path: BrewLabWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: BrewLab Widgets
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.brewlab.app.widgets
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
+        CODE_SIGN_ENTITLEMENTS: BrewLabWidgets/BrewLabWidgets.entitlements
+        SKIP_INSTALL: YES

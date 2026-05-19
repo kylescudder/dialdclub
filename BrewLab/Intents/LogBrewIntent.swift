@@ -12,14 +12,7 @@ struct LogBrewIntent: AppIntent {
     var extractionSeconds: Int?
 
     func perform() async throws -> some IntentResult {
-        var components = URLComponents(string: "brewlab://log-brew")!
-        components.queryItems = [
-            method.map { URLQueryItem(name: "method", value: $0) },
-            extractionSeconds.map { URLQueryItem(name: "seconds", value: String($0)) }
-        ].compactMap { $0 }
-        if let url = components.url {
-            await MainActor.run { QuickActionRouter.shared.handle(url: url) }
-        }
+        await MainActor.run { QuickActionRouter.handle(.logBrew) }
         return .result()
     }
 }
@@ -30,7 +23,7 @@ struct StartExtractionTimerIntent: AppIntent {
     static var openAppWhenRun = true
 
     func perform() async throws -> some IntentResult {
-        await MainActor.run { QuickActionRouter.shared.handle(url: URL(string: "brewlab://timer")!) }
+        await MainActor.run { QuickActionRouter.handle(.startTimer) }
         return .result()
     }
 }
