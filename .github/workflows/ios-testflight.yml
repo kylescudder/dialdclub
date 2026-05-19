@@ -52,9 +52,11 @@ jobs:
           mkdir -p ~/.appstoreconnect/private_keys
           printf '%s\n' "$API_KEY_P8" > "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_KEY_ID}.p8"
           chmod 600 "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_KEY_ID}.p8"
-      - run: sed -i '' "s/CURRENT_PROJECT_VERSION: \"1\"/CURRENT_PROJECT_VERSION: \"${GITHUB_RUN_NUMBER}\"/" project.yml
+      - run: |
+          sed -i '' "s/CURRENT_PROJECT_VERSION: \"1\"/CURRENT_PROJECT_VERSION: \"${GITHUB_RUN_NUMBER}\"/" project.yml
       - if: env.APP_STORE_TEAM_ID != ''
-        run: sed -i '' "s/DEVELOPMENT_TEAM: \"\"/DEVELOPMENT_TEAM: \"${APP_STORE_TEAM_ID}\"/" project.yml
+        run: |
+          sed -i '' "s/DEVELOPMENT_TEAM: \"\"/DEVELOPMENT_TEAM: \"${APP_STORE_TEAM_ID}\"/" project.yml
       - run: xcodegen generate
       - run: xcodebuild -resolvePackageDependencies -project Diald.xcodeproj -scheme "$SCHEME"
       - name: Archive
