@@ -32,12 +32,12 @@ targets:
     platform: iOS
     deploymentTarget: "17.0"
     sources:
-      - path: BrewLab
+      - path: Diald
     resources:
-      - path: BrewLab/Resources
+      - path: Diald/Resources
         optional: true
     info:
-      path: BrewLab/Info.plist
+      path: Diald/Info.plist
       properties:
         CFBundleDisplayName: Diald
         CFBundleShortVersionString: $(MARKETING_VERSION)
@@ -73,7 +73,7 @@ targets:
         SUPPORTS_MACCATALYST: NO
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         SWIFT_EMIT_LOC_STRINGS: YES
-        CODE_SIGN_ENTITLEMENTS: BrewLab/BrewLab.entitlements
+        CODE_SIGN_ENTITLEMENTS: Diald/Diald.entitlements
     configFiles:
       Debug: Config/Secrets.xcconfig
       Release: Config/Secrets.xcconfig
@@ -92,10 +92,10 @@ targets:
     platform: iOS
     deploymentTarget: "17.0"
     sources:
-      - path: BrewLabWidgets
-      - path: BrewLab/Widgets/WidgetSnapshotStore.swift
+      - path: DialdWidgets
+      - path: Diald/Widgets/WidgetSnapshotStore.swift
     info:
-      path: BrewLabWidgets/Info.plist
+      path: DialdWidgets/Info.plist
       properties:
         CFBundleDisplayName: Diald Widgets
         CFBundleShortVersionString: $(MARKETING_VERSION)
@@ -107,5 +107,5 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: club.diald.app.widgets
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: NO
-        CODE_SIGN_ENTITLEMENTS: BrewLabWidgets/BrewLabWidgets.entitlements
+        CODE_SIGN_ENTITLEMENTS: DialdWidgets/DialdWidgets.entitlements
         SKIP_INSTALL: YES
