@@ -68,7 +68,7 @@ targets:
         SENTRY_DSN: $(SENTRY_DSN)
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: club.diald.app
+        PRODUCT_BUNDLE_IDENTIFIER: club.diald
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: NO
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
@@ -104,7 +104,7 @@ targets:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: club.diald.app.widgets
+        PRODUCT_BUNDLE_IDENTIFIER: club.diald.widgets
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: NO
         CODE_SIGN_ENTITLEMENTS: DialdWidgets/DialdWidgets.entitlements

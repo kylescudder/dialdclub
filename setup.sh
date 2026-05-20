@@ -131,7 +131,7 @@ cat <<'EOF'
 
 Local setup is finished. The remaining work needs Apple Developer access:
 
-  1. Register App ID club.diald.app with Sign in with Apple,
+  1. Register App ID club.diald with Sign in with Apple,
      Push Notifications, App Groups, and Associated Domains if you add web links.
   2. Create APNs/Auth keys as needed for Apple sign-in and server-side reminders.
   3. Supabase -> Authentication -> Providers: enable Email, Apple, and Google.

@@ -14,7 +14,7 @@ struct BrewDashboardSnapshot: Codable, Hashable {
 }
 
 enum WidgetSnapshotStore {
-    static let appGroupID = "group.club.diald.app"
+    static let appGroupID = "group.club.diald"
     static let dashboardWidgetKind = "DialdDashboardWidget"
 
     private static let dashboardKey = "diald.widget.dashboard"

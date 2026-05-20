@@ -51,7 +51,7 @@ final class NotificationManager: NSObject, ObservableObject {
             "user_id": userID.uuidString.lowercased(),
             "apns_token": token,
             "device_name": UIDevice.current.name,
-            "bundle_id": Bundle.main.bundleIdentifier ?? "club.diald.app",
+            "bundle_id": Bundle.main.bundleIdentifier ?? "club.diald",
             "environment": Self.apnsEnvironment
         ]
         do {
