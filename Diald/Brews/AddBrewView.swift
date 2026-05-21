@@ -31,7 +31,7 @@ struct AddBrewView: View {
 
                 Section("Variables") {
                     Stepper(value: $draft.doseGrams, in: 5...40, step: 0.5) {
-                        LabeledContent("Dose", value: "\(draft.doseGrams, specifier: "%.1f")g")
+                        LabeledContent("Dose", value: String(format: "%.1fg", draft.doseGrams))
                     }
                     OptionalDoubleField(title: "Yield", suffix: "g", value: $draft.yieldGrams)
                     OptionalDoubleField(title: "Water", suffix: "g", value: $draft.waterGrams)

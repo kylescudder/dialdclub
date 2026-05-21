@@ -4,15 +4,18 @@ import SwiftUI
 struct DialdApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var services = AppServices()
+    @AppStorage("appearance") private var appearance: Appearance = .system
+
+    init() {
+        AppBootstrap.configureSentry()
+    }
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(services)
-                .task { await services.bootstrap() }
-                .onOpenURL { url in
-                    QuickActionRouter.handle(url: url, auth: services.auth)
-                }
+                .preferredColorScheme(appearance.colorScheme)
+                .tint(Theme.Colors.accent)
         }
     }
 }
