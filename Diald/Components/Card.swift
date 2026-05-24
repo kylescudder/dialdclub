@@ -7,9 +7,9 @@ struct Card<Content: View>: View {
         content
             .padding(Theme.Spacing.md)
             .background(Theme.Colors.surface)
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
                     .stroke(Theme.Colors.line)
             }
     }

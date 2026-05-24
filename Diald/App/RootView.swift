@@ -2,43 +2,66 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject private var services: AppServices
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         Group {
             switch services.auth.state {
-            case .loading:
+            case .unknown:
                 LoadingView()
             case .signedOut:
-                SignInView()
+                NavigationStack { SignInView() }
             case .signedIn:
-                MainTabView()
+                if services.auth.isPasswordRecovery {
+                    NavigationStack { SignInView() }
+                } else {
+                    MainTabView()
+                }
             }
         }
+        .task { await services.auth.bootstrap() }
+        .onOpenURL { url in handle(url: url) }
+        .onAppear { QuickActionRouter.activate() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                QuickActionRouter.activate()
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { services.auth.isPasswordRecovery },
+            set: { services.auth.isPasswordRecovery = $0 }
+        )) {
+            ResetPasswordSheet()
+                .presentationDetents([.medium, .large])
+        }
+    }
+
+    private func handle(url: URL) {
+        QuickActionRouter.handle(url: url, auth: services.auth)
     }
 }
 
-private struct MainTabView: View {
+struct MainTabView: View {
     @State private var selection: MainTab = .today
     @State private var showingAddBrew = false
     @State private var startTimerOnOpen = false
 
     var body: some View {
         TabView(selection: $selection) {
-            DashboardView()
+            NavigationStack { DashboardView() }
                 .tabItem { Label("Today", systemImage: "timer") }
                 .tag(MainTab.today)
-            BeansView()
+            NavigationStack { BeansView() }
                 .tabItem { Label("Beans", systemImage: "leaf") }
                 .tag(MainTab.beans)
-            StatsView()
+            NavigationStack { StatsView() }
                 .tabItem { Label("Stats", systemImage: "chart.xyaxis.line") }
                 .tag(MainTab.stats)
-            SettingsView()
+            NavigationStack { SettingsView() }
                 .tabItem { Label("Settings", systemImage: "gearshape") }
                 .tag(MainTab.settings)
         }
         .tint(Theme.Colors.green)
-        .onAppear { QuickActionRouter.activate() }
         .sheet(isPresented: $showingAddBrew) {
             AddBrewView(startTimerOnAppear: startTimerOnOpen)
         }

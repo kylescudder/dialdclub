@@ -5,52 +5,50 @@ struct BeansView: View {
     @State private var showingAddBean = false
 
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(services.beans.beans) { bean in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(bean.displayName)
-                            .font(.headline)
-                        Text([bean.origin, bean.process, bean.roastLevel?.label].compactMap { $0 }.joined(separator: " • "))
-                            .font(.subheadline)
+        List {
+            ForEach(services.beans.beans) { bean in
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(bean.displayName)
+                        .font(.headline)
+                    Text([bean.origin, bean.process, bean.roastLevel?.label].compactMap { $0 }.joined(separator: " • "))
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.Colors.muted)
+                    if let notes = bean.tastingNotes, !notes.isEmpty {
+                        Text(notes)
+                            .font(.footnote)
                             .foregroundStyle(Theme.Colors.muted)
-                        if let notes = bean.tastingNotes, !notes.isEmpty {
-                            Text(notes)
-                                .font(.footnote)
-                                .foregroundStyle(Theme.Colors.muted)
-                        }
                     }
-                    .padding(.vertical, 4)
-                    .swipeActions {
-                        Button(role: .destructive) {
-                            Task { await services.beans.softDelete(bean) }
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
+                }
+                .padding(.vertical, 4)
+                .swipeActions {
+                    Button(role: .destructive) {
+                        Task { await services.beans.softDelete(bean) }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
                     }
                 }
             }
-            .overlay {
-                if services.beans.beans.isEmpty {
-                    ContentUnavailableView(
-                        "No beans",
-                        systemImage: "leaf",
-                        description: Text("Add the coffee you are experimenting with.")
-                    )
+        }
+        .overlay {
+            if services.beans.beans.isEmpty {
+                ContentUnavailableView(
+                    "No beans",
+                    systemImage: "leaf",
+                    description: Text("Add the coffee you are experimenting with.")
+                )
+            }
+        }
+        .navigationTitle("Beans")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showingAddBean = true } label: {
+                    Image(systemName: "plus")
                 }
             }
-            .navigationTitle("Beans")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingAddBean = true } label: {
-                        Image(systemName: "plus")
-                    }
-                }
-            }
-            .refreshable { await services.beans.refresh() }
-            .sheet(isPresented: $showingAddBean) {
-                AddBeanView()
-            }
+        }
+        .refreshable { await services.beans.refresh() }
+        .sheet(isPresented: $showingAddBean) {
+            AddBeanView()
         }
     }
 }

@@ -1,9 +1,10 @@
 import AppIntents
+import Foundation
 
 struct LogBrewIntent: AppIntent {
-    static var title: LocalizedStringResource = "Log Brew"
-    static var description = IntentDescription("Open Diald ready to record a coffee extraction.")
-    static var openAppWhenRun = true
+    static let title: LocalizedStringResource = "Log Brew"
+    static let description = IntentDescription("Open Diald ready to record a coffee extraction.")
+    static let openAppWhenRun: Bool = true
 
     @Parameter(title: "Method")
     var method: String?
@@ -11,19 +12,21 @@ struct LogBrewIntent: AppIntent {
     @Parameter(title: "Extraction seconds")
     var extractionSeconds: Int?
 
+    @MainActor
     func perform() async throws -> some IntentResult {
-        await MainActor.run { QuickActionRouter.handle(.logBrew) }
+        QuickActionRouter.handle(.logBrew)
         return .result()
     }
 }
 
 struct StartExtractionTimerIntent: AppIntent {
-    static var title: LocalizedStringResource = "Start Extraction Timer"
-    static var description = IntentDescription("Open Diald's extraction timer.")
-    static var openAppWhenRun = true
+    static let title: LocalizedStringResource = "Start Extraction Timer"
+    static let description = IntentDescription("Open Diald's extraction timer.")
+    static let openAppWhenRun: Bool = true
 
+    @MainActor
     func perform() async throws -> some IntentResult {
-        await MainActor.run { QuickActionRouter.handle(.startTimer) }
+        QuickActionRouter.handle(.startTimer)
         return .result()
     }
 }

@@ -292,7 +292,7 @@ struct DialdDashboardWidget: Widget {
         StaticConfiguration(kind: kind, provider: DashboardProvider()) { entry in
             DialdDashboardWidgetView(entry: entry)
         }
-        .configurationDisplayName("Brew Dashboard")
+        .configurationDisplayName("Dial-in Board")
         .description("Keep your latest brew and extraction stats on your Home Screen.")
         .supportedFamilies([.systemSmall, .systemMedium])
         .contentMarginsDisabled()

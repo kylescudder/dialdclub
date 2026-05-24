@@ -1,0 +1,810 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		027D25FEFCAB279E96327E2B /* DialdWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3F6E347815B62002D567DD50 /* DialdWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		10A28E2E3E6CC5CE764254E8 /* Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 248CFA8C47711BAD5EC90A6E /* Profile.swift */; };
+		1DCD16CFB13181D19CFD0AEF /* AppSecrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 166435808A6604046D32F66C /* AppSecrets.swift */; };
+		1FFB07EEF110DB377A9E70DC /* DialdWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 308597B0F7C868725BB514A8 /* DialdWidgets.swift */; };
+		2220EEB3B789CDEBEC845152 /* StatsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EF764040DF1A62E63BD8939 /* StatsRepository.swift */; };
+		26D07BD72D2BBB784471B72C /* WidgetSnapshotStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E29C56EBA81F824045EEB075 /* WidgetSnapshotStore.swift */; };
+		28BD0C3149B3ABA49A64C78C /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8630D0CDC438D9CF83DECC /* StatsView.swift */; };
+		290094BF436A6B970DF9237C /* AppShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2115E2BA2ED0872809A62F0 /* AppShortcuts.swift */; };
+		37A709EFE16AD00049CFE9A2 /* BeansRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77FAC76FC66D3645834D3BE2 /* BeansRepository.swift */; };
+		414567B137FCD234BDF7CFDC /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 89E5BBAD9FBBE3AB5BE88197 /* Lottie */; };
+		4E13C205C32167856F50326E /* LogBrewIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF853FC104CE77CFDAD71AA0 /* LogBrewIntent.swift */; };
+		4E8DDCA7A44537F2645CC8D0 /* QuickActionRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6F5E1109841750402E8B828 /* QuickActionRouter.swift */; };
+		4F57F88031C0AE36B635C45D /* ForgotPasswordSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42B71EEC96E1626BB2351647 /* ForgotPasswordSheet.swift */; };
+		514E57331DA9BD840321A1A2 /* AppBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F2F6D86B3CC12F4AE6B859 /* AppBootstrap.swift */; };
+		52A756C95559A018E9DA1B3B /* Card.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94D7EFFB80CC77D73304DB80 /* Card.swift */; };
+		5B906BB95AFEA5C044115396 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3B8C9A6F46A28CD43E8B4228 /* Assets.xcassets */; };
+		5BAE0BCC67F390F47F5ACCA8 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCB19BCEE34B3AE98CE1DE00 /* SettingsView.swift */; };
+		5E9EA08ADD4823422514B183 /* BeansView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E923EA077BFA3EDCC460ACA3 /* BeansView.swift */; };
+		5EEBB8322D8F0ED14769657D /* Bean.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F47027C8329B3FF6BCEB168 /* Bean.swift */; };
+		5F47DC7854A5B14DE43DD2BD /* BrewStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = D07C0B8093825B8368FF205B /* BrewStats.swift */; };
+		63491FE0F04B4A16885350E4 /* brew_spinner.lottie.json in Resources */ = {isa = PBXBuildFile; fileRef = 2EE26909E8E7DB940D3E737F /* brew_spinner.lottie.json */; };
+		65AEDF8B133A2F312EE39387 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14C5EFBF223882132528FE94 /* AppDelegate.swift */; };
+		70AA610F26505FB4CBF35569 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D59A8EDE30791D4AA3778D66 /* RootView.swift */; };
+		80D5FDA4BA6A130AFD83CB0E /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 92D9CF84AC1B2C9CD187E627 /* Sentry */; };
+		8455AC0919D98A11B2ABDFB0 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C12CA09F724446F8155A56 /* Logger.swift */; };
+		8A8A8194EBF27083A8E84CA9 /* BrewSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CC8FAE0DA76BCB8B4163AFE /* BrewSession.swift */; };
+		8D4FB12D0A00C18725613899 /* GoogleSignIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7939C9691DF3F762810DA33E /* GoogleSignIn.swift */; };
+		995DDE1E67F3775E3622E20E /* AppleSignInButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61CF8EBD6A91A60B6123A350 /* AppleSignInButton.swift */; };
+		9B9ABCA5A87C438FA20EC5D1 /* LottieAnimationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED6B9FF13087310C4FA7C70 /* LottieAnimationView.swift */; };
+		9F17C447B53F7035B4F2866B /* ResetPasswordSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE87DA0BE806ADCCF8893D55 /* ResetPasswordSheet.swift */; };
+		A0FABF80AA377C39633AA06E /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 388BBAB63331FDC2D7519B53 /* DashboardView.swift */; };
+		A2D10B8ABC61DAD6D2458ED8 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 683AADA608864C369AF6338F /* Theme.swift */; };
+		A3621BCEFF2DE921678A3B6E /* AppearanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D2C64027A10D6E3B22B9B8 /* AppearanceManager.swift */; };
+		A48558413F92C0445607F075 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 4E32E127F1A87E50733EA76C /* Supabase */; };
+		B427ECEFC18543EA555F5191 /* BrewsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 502685BA790320B0F386E5AD /* BrewsRepository.swift */; };
+		BEEE3FE53F7053801C6251D0 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81AB8D4E471B4F3BDF4D86F3 /* SignInView.swift */; };
+		BF78838952957F974A39D530 /* SignUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 785A6B49073D4A54CFECCF4F /* SignUpView.swift */; };
+		BFB339494FE40789F35BE8E9 /* DialdApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E4066920D22B5F4CE678401 /* DialdApp.swift */; };
+		CD9727839073DCE8422EC1B4 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BC89A197C5AA39885E475A8 /* LoadingView.swift */; };
+		D11075510B199062738BC283 /* WidgetSnapshotStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E29C56EBA81F824045EEB075 /* WidgetSnapshotStore.swift */; };
+		D375D3E6C4753232EFEB5614 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8468406FF6DBFC8BF049B49 /* NotificationManager.swift */; };
+		D5B499A05108A6C177E7656D /* AuthClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 608CFA18670C62A07B2E0B05 /* AuthClient.swift */; };
+		E565A4F9AA0809B31529EE6E /* PrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A6084A2DDE67354DA41E50D /* PrimaryButton.swift */; };
+		E746AB95C2546415938249D3 /* ProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AF40806E3497CF32D9E5E84 /* ProfileRepository.swift */; };
+		F974D4F01AA65F41CD0E975C /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7597DCF427E2B38E5ADABCEC /* Extensions.swift */; };
+		FCCAC767C1A8AAD04FAA73CD /* AddBrewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBDABE0B2894F123829C0AAE /* AddBrewView.swift */; };
+		FFCD9FD9F3206752FBD022C3 /* AppServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB00AB001B4E84932725171 /* AppServices.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C2D1B7C984189E5D6DE4F750 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 95C3FFBBB76C7393732F9C65 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 460BBC8FEC8241D5456E6772;
+			remoteInfo = DialdWidgets;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		1C0746AF168D6B09DC8B76B2 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				027D25FEFCAB279E96327E2B /* DialdWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		14C5EFBF223882132528FE94 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		166435808A6604046D32F66C /* AppSecrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSecrets.swift; sourceTree = "<group>"; };
+		248CFA8C47711BAD5EC90A6E /* Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Profile.swift; sourceTree = "<group>"; };
+		2E4066920D22B5F4CE678401 /* DialdApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialdApp.swift; sourceTree = "<group>"; };
+		2EE26909E8E7DB940D3E737F /* brew_spinner.lottie.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = brew_spinner.lottie.json; sourceTree = "<group>"; };
+		308597B0F7C868725BB514A8 /* DialdWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialdWidgets.swift; sourceTree = "<group>"; };
+		388BBAB63331FDC2D7519B53 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		3B8C9A6F46A28CD43E8B4228 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		3BC89A197C5AA39885E475A8 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
+		3E8630D0CDC438D9CF83DECC /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
+		3F6E347815B62002D567DD50 /* DialdWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = DialdWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		42B71EEC96E1626BB2351647 /* ForgotPasswordSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgotPasswordSheet.swift; sourceTree = "<group>"; };
+		4AF40806E3497CF32D9E5E84 /* ProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileRepository.swift; sourceTree = "<group>"; };
+		4EF764040DF1A62E63BD8939 /* StatsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsRepository.swift; sourceTree = "<group>"; };
+		502685BA790320B0F386E5AD /* BrewsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrewsRepository.swift; sourceTree = "<group>"; };
+		608CFA18670C62A07B2E0B05 /* AuthClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthClient.swift; sourceTree = "<group>"; };
+		61CF8EBD6A91A60B6123A350 /* AppleSignInButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInButton.swift; sourceTree = "<group>"; };
+		683AADA608864C369AF6338F /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		7939C9691DF3F762810DA33E /* GoogleSignIn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleSignIn.swift; sourceTree = "<group>"; };
+		7597DCF427E2B38E5ADABCEC /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		77FAC76FC66D3645834D3BE2 /* BeansRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeansRepository.swift; sourceTree = "<group>"; };
+		785A6B49073D4A54CFECCF4F /* SignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
+		81AB8D4E471B4F3BDF4D86F3 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
+		87F2F6D86B3CC12F4AE6B859 /* AppBootstrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBootstrap.swift; sourceTree = "<group>"; };
+		8A6084A2DDE67354DA41E50D /* PrimaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimaryButton.swift; sourceTree = "<group>"; };
+		8ECBDC460237C584486EFD5F /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
+		94D7EFFB80CC77D73304DB80 /* Card.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Card.swift; sourceTree = "<group>"; };
+		9CC8FAE0DA76BCB8B4163AFE /* BrewSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrewSession.swift; sourceTree = "<group>"; };
+		9E66B048C6FC06E5A31EE518 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		9F47027C8329B3FF6BCEB168 /* Bean.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bean.swift; sourceTree = "<group>"; };
+		A8468406FF6DBFC8BF049B49 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
+		AED6B9FF13087310C4FA7C70 /* LottieAnimationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LottieAnimationView.swift; sourceTree = "<group>"; };
+		AF853FC104CE77CFDAD71AA0 /* LogBrewIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogBrewIntent.swift; sourceTree = "<group>"; };
+		B6F5E1109841750402E8B828 /* QuickActionRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionRouter.swift; sourceTree = "<group>"; };
+		B8C12CA09F724446F8155A56 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
+		BBE273008948A348B101173A /* DialdWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DialdWidgets.entitlements; sourceTree = "<group>"; };
+		BCB19BCEE34B3AE98CE1DE00 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		BFD8CFBDF9D9B734D64EBB28 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		C0370A814EE56E0C8EE0928E /* Diald.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Diald.entitlements; sourceTree = "<group>"; };
+		CCB00AB001B4E84932725171 /* AppServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppServices.swift; sourceTree = "<group>"; };
+		D4D2C64027A10D6E3B22B9B8 /* AppearanceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceManager.swift; sourceTree = "<group>"; };
+		D07C0B8093825B8368FF205B /* BrewStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrewStats.swift; sourceTree = "<group>"; };
+		D1D0A5D68D1AE56FBFFDB391 /* Diald.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Diald.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D59A8EDE30791D4AA3778D66 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		E2115E2BA2ED0872809A62F0 /* AppShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShortcuts.swift; sourceTree = "<group>"; };
+		E29C56EBA81F824045EEB075 /* WidgetSnapshotStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotStore.swift; sourceTree = "<group>"; };
+		E923EA077BFA3EDCC460ACA3 /* BeansView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeansView.swift; sourceTree = "<group>"; };
+		EE87DA0BE806ADCCF8893D55 /* ResetPasswordSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResetPasswordSheet.swift; sourceTree = "<group>"; };
+		FBDABE0B2894F123829C0AAE /* AddBrewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBrewView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B0BA5111FB12FEB83E300B14 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A48558413F92C0445607F075 /* Supabase in Frameworks */,
+				414567B137FCD234BDF7CFDC /* Lottie in Frameworks */,
+				80D5FDA4BA6A130AFD83CB0E /* Sentry in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		039EDC575E1FBD3D9411449C /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				9F47027C8329B3FF6BCEB168 /* Bean.swift */,
+				9CC8FAE0DA76BCB8B4163AFE /* BrewSession.swift */,
+				D07C0B8093825B8368FF205B /* BrewStats.swift */,
+				248CFA8C47711BAD5EC90A6E /* Profile.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		05B9B1F42C809CFCA998E563 = {
+			isa = PBXGroup;
+			children = (
+				53D94BC96CA6D9703FE1D6C2 /* Config */,
+				DB65283FF108B1441E7C5B0B /* Diald */,
+				F576B701DF60800240BA9C48 /* DialdWidgets */,
+				9AC31202A1C49F930134268A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		30F3B1E851E1FF433DE01B94 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				D4D2C64027A10D6E3B22B9B8 /* AppearanceManager.swift */,
+				4AF40806E3497CF32D9E5E84 /* ProfileRepository.swift */,
+				BCB19BCEE34B3AE98CE1DE00 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		3C55263B1945F0ACE7F7A882 /* Stats */ = {
+			isa = PBXGroup;
+			children = (
+				4EF764040DF1A62E63BD8939 /* StatsRepository.swift */,
+				3E8630D0CDC438D9CF83DECC /* StatsView.swift */,
+			);
+			path = Stats;
+			sourceTree = "<group>";
+		};
+		4B26E67EC455098308B2546E /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				3B8C9A6F46A28CD43E8B4228 /* Assets.xcassets */,
+				E12996FAB8BC684A40170C7E /* Animations */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		53D94BC96CA6D9703FE1D6C2 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				8ECBDC460237C584486EFD5F /* Secrets.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		757DCF7765FB8EE00132A9AE /* Logging */ = {
+			isa = PBXGroup;
+			children = (
+				B8C12CA09F724446F8155A56 /* Logger.swift */,
+			);
+			path = Logging;
+			sourceTree = "<group>";
+		};
+		8619EC9948DE7566C633F4D5 /* Beans */ = {
+			isa = PBXGroup;
+			children = (
+				77FAC76FC66D3645834D3BE2 /* BeansRepository.swift */,
+				E923EA077BFA3EDCC460ACA3 /* BeansView.swift */,
+			);
+			path = Beans;
+			sourceTree = "<group>";
+		};
+		9AC31202A1C49F930134268A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D1D0A5D68D1AE56FBFFDB391 /* Diald.app */,
+				3F6E347815B62002D567DD50 /* DialdWidgets.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A6E50E445163DC703E159AE1 /* Brews */ = {
+			isa = PBXGroup;
+			children = (
+				FBDABE0B2894F123829C0AAE /* AddBrewView.swift */,
+				502685BA790320B0F386E5AD /* BrewsRepository.swift */,
+			);
+			path = Brews;
+			sourceTree = "<group>";
+		};
+		B5D90666A176FE336532EC43 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				61CF8EBD6A91A60B6123A350 /* AppleSignInButton.swift */,
+				608CFA18670C62A07B2E0B05 /* AuthClient.swift */,
+				42B71EEC96E1626BB2351647 /* ForgotPasswordSheet.swift */,
+				7939C9691DF3F762810DA33E /* GoogleSignIn.swift */,
+				EE87DA0BE806ADCCF8893D55 /* ResetPasswordSheet.swift */,
+				81AB8D4E471B4F3BDF4D86F3 /* SignInView.swift */,
+				785A6B49073D4A54CFECCF4F /* SignUpView.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		B9C028C39A0DBADE51550011 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				14C5EFBF223882132528FE94 /* AppDelegate.swift */,
+				87F2F6D86B3CC12F4AE6B859 /* AppBootstrap.swift */,
+				166435808A6604046D32F66C /* AppSecrets.swift */,
+				CCB00AB001B4E84932725171 /* AppServices.swift */,
+				2E4066920D22B5F4CE678401 /* DialdApp.swift */,
+				B6F5E1109841750402E8B828 /* QuickActionRouter.swift */,
+				D59A8EDE30791D4AA3778D66 /* RootView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		C64E4691DF6EF36FF4BF0C58 /* Dashboard */ = {
+			isa = PBXGroup;
+			children = (
+				388BBAB63331FDC2D7519B53 /* DashboardView.swift */,
+			);
+			path = Dashboard;
+			sourceTree = "<group>";
+		};
+		CD0A7D5218F88FF9DCE241AD /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				94D7EFFB80CC77D73304DB80 /* Card.swift */,
+				3BC89A197C5AA39885E475A8 /* LoadingView.swift */,
+				AED6B9FF13087310C4FA7C70 /* LottieAnimationView.swift */,
+				8A6084A2DDE67354DA41E50D /* PrimaryButton.swift */,
+				683AADA608864C369AF6338F /* Theme.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		CD41360970B1CC9D6091277A /* Notifications */ = {
+			isa = PBXGroup;
+			children = (
+				A8468406FF6DBFC8BF049B49 /* NotificationManager.swift */,
+			);
+			path = Notifications;
+			sourceTree = "<group>";
+		};
+		DB65283FF108B1441E7C5B0B /* Diald */ = {
+			isa = PBXGroup;
+			children = (
+				C0370A814EE56E0C8EE0928E /* Diald.entitlements */,
+				7597DCF427E2B38E5ADABCEC /* Extensions.swift */,
+				BFD8CFBDF9D9B734D64EBB28 /* Info.plist */,
+				B9C028C39A0DBADE51550011 /* App */,
+				B5D90666A176FE336532EC43 /* Auth */,
+				8619EC9948DE7566C633F4D5 /* Beans */,
+				A6E50E445163DC703E159AE1 /* Brews */,
+				CD0A7D5218F88FF9DCE241AD /* Components */,
+				C64E4691DF6EF36FF4BF0C58 /* Dashboard */,
+				F43562E1FE0192EDA3FA4A72 /* Intents */,
+				757DCF7765FB8EE00132A9AE /* Logging */,
+				039EDC575E1FBD3D9411449C /* Models */,
+				CD41360970B1CC9D6091277A /* Notifications */,
+				4B26E67EC455098308B2546E /* Resources */,
+				30F3B1E851E1FF433DE01B94 /* Settings */,
+				3C55263B1945F0ACE7F7A882 /* Stats */,
+				EFA805DEAAFA7C882FEAC48B /* Widgets */,
+			);
+			path = Diald;
+			sourceTree = "<group>";
+		};
+		E12996FAB8BC684A40170C7E /* Animations */ = {
+			isa = PBXGroup;
+			children = (
+				2EE26909E8E7DB940D3E737F /* brew_spinner.lottie.json */,
+			);
+			path = Animations;
+			sourceTree = "<group>";
+		};
+		EFA805DEAAFA7C882FEAC48B /* Widgets */ = {
+			isa = PBXGroup;
+			children = (
+				E29C56EBA81F824045EEB075 /* WidgetSnapshotStore.swift */,
+			);
+			path = Widgets;
+			sourceTree = "<group>";
+		};
+		F43562E1FE0192EDA3FA4A72 /* Intents */ = {
+			isa = PBXGroup;
+			children = (
+				E2115E2BA2ED0872809A62F0 /* AppShortcuts.swift */,
+				AF853FC104CE77CFDAD71AA0 /* LogBrewIntent.swift */,
+			);
+			path = Intents;
+			sourceTree = "<group>";
+		};
+		F576B701DF60800240BA9C48 /* DialdWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				BBE273008948A348B101173A /* DialdWidgets.entitlements */,
+				308597B0F7C868725BB514A8 /* DialdWidgets.swift */,
+				9E66B048C6FC06E5A31EE518 /* Info.plist */,
+			);
+			path = DialdWidgets;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		460BBC8FEC8241D5456E6772 /* DialdWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9ABB819CEE85A1A355316869 /* Build configuration list for PBXNativeTarget "DialdWidgets" */;
+			buildPhases = (
+				D8B25602155C874963336BC8 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = DialdWidgets;
+			packageProductDependencies = (
+			);
+			productName = DialdWidgets;
+			productReference = 3F6E347815B62002D567DD50 /* DialdWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		B0C17C45ECA30674C28FB2C9 /* Diald */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DE04CA30DADB209B6AEA5D1B /* Build configuration list for PBXNativeTarget "Diald" */;
+			buildPhases = (
+				121123C77A3A14EE511992E0 /* Sources */,
+				0DA6C46C8A9C8EC35BBA27E2 /* Resources */,
+				B0BA5111FB12FEB83E300B14 /* Frameworks */,
+				1C0746AF168D6B09DC8B76B2 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E2B4307925F05898E04E8234 /* PBXTargetDependency */,
+			);
+			name = Diald;
+			packageProductDependencies = (
+				4E32E127F1A87E50733EA76C /* Supabase */,
+				89E5BBAD9FBBE3AB5BE88197 /* Lottie */,
+				92D9CF84AC1B2C9CD187E627 /* Sentry */,
+			);
+			productName = Diald;
+			productReference = D1D0A5D68D1AE56FBFFDB391 /* Diald.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		95C3FFBBB76C7393732F9C65 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					460BBC8FEC8241D5456E6772 = {
+						DevelopmentTeam = "";
+					};
+					B0C17C45ECA30674C28FB2C9 = {
+						DevelopmentTeam = "";
+					};
+				};
+			};
+			buildConfigurationList = A12B09C79BE39CA825780628 /* Build configuration list for PBXProject "Diald" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 05B9B1F42C809CFCA998E563;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				1DB6615F95EBB4B10E62F097 /* XCRemoteSwiftPackageReference "lottie-ios" */,
+				D2A52FD3E8EA733C126F3DB3 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
+				80400C14B63ABA2A889C20F3 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 9AC31202A1C49F930134268A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B0C17C45ECA30674C28FB2C9 /* Diald */,
+				460BBC8FEC8241D5456E6772 /* DialdWidgets */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0DA6C46C8A9C8EC35BBA27E2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5B906BB95AFEA5C044115396 /* Assets.xcassets in Resources */,
+				63491FE0F04B4A16885350E4 /* brew_spinner.lottie.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		121123C77A3A14EE511992E0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FCCAC767C1A8AAD04FAA73CD /* AddBrewView.swift in Sources */,
+				65AEDF8B133A2F312EE39387 /* AppDelegate.swift in Sources */,
+				514E57331DA9BD840321A1A2 /* AppBootstrap.swift in Sources */,
+				1DCD16CFB13181D19CFD0AEF /* AppSecrets.swift in Sources */,
+				FFCD9FD9F3206752FBD022C3 /* AppServices.swift in Sources */,
+				A3621BCEFF2DE921678A3B6E /* AppearanceManager.swift in Sources */,
+				290094BF436A6B970DF9237C /* AppShortcuts.swift in Sources */,
+				995DDE1E67F3775E3622E20E /* AppleSignInButton.swift in Sources */,
+				D5B499A05108A6C177E7656D /* AuthClient.swift in Sources */,
+				5EEBB8322D8F0ED14769657D /* Bean.swift in Sources */,
+				37A709EFE16AD00049CFE9A2 /* BeansRepository.swift in Sources */,
+				5E9EA08ADD4823422514B183 /* BeansView.swift in Sources */,
+				8A8A8194EBF27083A8E84CA9 /* BrewSession.swift in Sources */,
+				5F47DC7854A5B14DE43DD2BD /* BrewStats.swift in Sources */,
+				B427ECEFC18543EA555F5191 /* BrewsRepository.swift in Sources */,
+				52A756C95559A018E9DA1B3B /* Card.swift in Sources */,
+				A0FABF80AA377C39633AA06E /* DashboardView.swift in Sources */,
+				BFB339494FE40789F35BE8E9 /* DialdApp.swift in Sources */,
+				F974D4F01AA65F41CD0E975C /* Extensions.swift in Sources */,
+				4F57F88031C0AE36B635C45D /* ForgotPasswordSheet.swift in Sources */,
+				8D4FB12D0A00C18725613899 /* GoogleSignIn.swift in Sources */,
+				CD9727839073DCE8422EC1B4 /* LoadingView.swift in Sources */,
+				4E13C205C32167856F50326E /* LogBrewIntent.swift in Sources */,
+				8455AC0919D98A11B2ABDFB0 /* Logger.swift in Sources */,
+				9B9ABCA5A87C438FA20EC5D1 /* LottieAnimationView.swift in Sources */,
+				D375D3E6C4753232EFEB5614 /* NotificationManager.swift in Sources */,
+				E565A4F9AA0809B31529EE6E /* PrimaryButton.swift in Sources */,
+				E746AB95C2546415938249D3 /* ProfileRepository.swift in Sources */,
+				10A28E2E3E6CC5CE764254E8 /* Profile.swift in Sources */,
+				4E8DDCA7A44537F2645CC8D0 /* QuickActionRouter.swift in Sources */,
+				70AA610F26505FB4CBF35569 /* RootView.swift in Sources */,
+				5BAE0BCC67F390F47F5ACCA8 /* SettingsView.swift in Sources */,
+				BEEE3FE53F7053801C6251D0 /* SignInView.swift in Sources */,
+				BF78838952957F974A39D530 /* SignUpView.swift in Sources */,
+				9F17C447B53F7035B4F2866B /* ResetPasswordSheet.swift in Sources */,
+				2220EEB3B789CDEBEC845152 /* StatsRepository.swift in Sources */,
+				28BD0C3149B3ABA49A64C78C /* StatsView.swift in Sources */,
+				A2D10B8ABC61DAD6D2458ED8 /* Theme.swift in Sources */,
+				26D07BD72D2BBB784471B72C /* WidgetSnapshotStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D8B25602155C874963336BC8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1FFB07EEF110DB377A9E70DC /* DialdWidgets.swift in Sources */,
+				D11075510B199062738BC283 /* WidgetSnapshotStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E2B4307925F05898E04E8234 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 460BBC8FEC8241D5456E6772 /* DialdWidgets */;
+			targetProxy = C2D1B7C984189E5D6DE4F750 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		26E276180AFB5B5AF5317C1A /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8ECBDC460237C584486EFD5F /* Secrets.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Diald/Diald.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Diald/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = club.diald;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		3CE53FD203F19633B8300C6D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+		489D57BFB92A32216DFB89AC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = DialdWidgets/DialdWidgets.entitlements;
+				INFOPLIST_FILE = DialdWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = club.diald.widgets;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		521A7B78BC8741F1725F8FF5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = DialdWidgets/DialdWidgets.entitlements;
+				INFOPLIST_FILE = DialdWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = club.diald.widgets;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		83EEDF2FBE06B11E9B25E53D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8ECBDC460237C584486EFD5F /* Secrets.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Diald/Diald.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Diald/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = club.diald;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		FE6B827E8A16252FF923E020 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		9ABB819CEE85A1A355316869 /* Build configuration list for PBXNativeTarget "DialdWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				521A7B78BC8741F1725F8FF5 /* Debug */,
+				489D57BFB92A32216DFB89AC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A12B09C79BE39CA825780628 /* Build configuration list for PBXProject "Diald" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3CE53FD203F19633B8300C6D /* Debug */,
+				FE6B827E8A16252FF923E020 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DE04CA30DADB209B6AEA5D1B /* Build configuration list for PBXNativeTarget "Diald" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				83EEDF2FBE06B11E9B25E53D /* Debug */,
+				26E276180AFB5B5AF5317C1A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		1DB6615F95EBB4B10E62F097 /* XCRemoteSwiftPackageReference "lottie-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.5.0;
+			};
+		};
+		80400C14B63ABA2A889C20F3 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.20.0;
+			};
+		};
+		D2A52FD3E8EA733C126F3DB3 /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/getsentry/sentry-cocoa";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.40.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4E32E127F1A87E50733EA76C /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 80400C14B63ABA2A889C20F3 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+		89E5BBAD9FBBE3AB5BE88197 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1DB6615F95EBB4B10E62F097 /* XCRemoteSwiftPackageReference "lottie-ios" */;
+			productName = Lottie;
+		};
+		92D9CF84AC1B2C9CD187E627 /* Sentry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D2A52FD3E8EA733C126F3DB3 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = Sentry;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 95C3FFBBB76C7393732F9C65 /* Project object */;
+}

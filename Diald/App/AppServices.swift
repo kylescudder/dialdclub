@@ -10,6 +10,7 @@ final class AppServices: ObservableObject {
     let brews: BrewsRepository
     let stats: StatsRepository
     let notifications: NotificationManager
+    let profile: ProfileRepository
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -19,13 +20,16 @@ final class AppServices: ObservableObject {
         self.beans = BeansRepository(auth: auth)
         self.brews = BrewsRepository(auth: auth)
         self.stats = StatsRepository(auth: auth)
-        self.notifications = NotificationManager(auth: auth)
+        self.notifications = NotificationManager.shared
+        self.profile = ProfileRepository(auth: auth)
 
-        for child: any ObservableObject in [auth, beans, brews, stats, notifications] {
+        for child: any ObservableObject in [auth, beans, brews, stats, notifications, profile] {
             (child.objectWillChange as? ObservableObjectPublisher)?
                 .sink { [weak self] in self?.objectWillChange.send() }
                 .store(in: &cancellables)
         }
+
+        NotificationManager.shared.bind(auth: auth)
 
         auth.$state
             .removeDuplicates()
@@ -36,14 +40,12 @@ final class AppServices: ObservableObject {
             .store(in: &cancellables)
     }
 
-    func bootstrap() async {
-        await auth.restoreSession()
-    }
-
     func refreshAll() async {
+        await profile.refresh()
         await beans.refresh()
         await refreshBrewData()
         await notifications.registerIfAuthorized()
+        await notifications.refreshLocalReminderState()
     }
 
     func refreshBrewData() async {
