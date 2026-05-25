@@ -76,19 +76,6 @@ struct SettingsView: View {
                 Text("Set different brew reminder times for office days, weekends, or any weekly routine.")
             }
 
-            Section("Account") {
-                if case let .signedIn(_, email) = services.auth.state, let email {
-                    LabeledContent("Signed in as", value: email)
-                }
-                Button("Sign out", role: .destructive) {
-                    showSignOutConfirm = true
-                }
-                Button("Delete account", role: .destructive) {
-                    showDeleteConfirm = true
-                }
-                .disabled(isDeleting)
-            }
-
             Section {
                 LabeledContent(
                     "Plan",
@@ -115,6 +102,19 @@ struct SettingsView: View {
                 Text("Subscription")
             } footer: {
                 Text("Free accounts can log up to \(AppServices.freeExtractionLimit) extractions. Manage subscription opens Apple's system sheet, where you can cancel or change the subscription.")
+            }
+
+            Section("Account") {
+                if case let .signedIn(_, email) = services.auth.state, let email {
+                    LabeledContent("Signed in as", value: email)
+                }
+                Button("Sign out", role: .destructive) {
+                    showSignOutConfirm = true
+                }
+                Button("Delete account", role: .destructive) {
+                    showDeleteConfirm = true
+                }
+                .disabled(isDeleting)
             }
 
             Section("About") {
