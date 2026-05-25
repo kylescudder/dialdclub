@@ -45,6 +45,36 @@ jobs:
           test -n "${IOS_SECRETS}" || (echo "::error::IOS_SECRETS_XCCONFIG is empty" && exit 1)
           mkdir -p Config
           printf '%s\n' "$IOS_SECRETS" > Config/Secrets.xcconfig
+      - name: Validate Supabase secrets
+        run: |
+          value_for() {
+            awk -F= -v key="$1" '$1 ~ "^[[:space:]]*" key "[[:space:]]*$" {
+              v=$2
+              for (i=3; i<=NF; i++) v=v "=" $i
+              gsub(/^[ \t]+|[ \t]+$/, "", v)
+              print v
+            }' Config/Secrets.xcconfig
+          }
+
+          supabase_url="$(value_for SUPABASE_URL)"
+          supabase_key="$(value_for SUPABASE_ANON_KEY)"
+          resolved_supabase_url="$(printf '%s' "$supabase_url" | sed 's#/[$]()#/#g')"
+
+          case "$resolved_supabase_url" in
+            ""|*\$"("*|*your-project.supabase.co*|*placeholder.supabase.co*)
+              echo "::error::SUPABASE_URL is missing, unresolved, or still a placeholder"
+              exit 1
+              ;;
+          esac
+
+          case "$supabase_key" in
+            ""|*\$"("*|*your-supabase-anon-key*)
+              echo "::error::SUPABASE_ANON_KEY is missing, unresolved, or still a placeholder"
+              exit 1
+              ;;
+          esac
+
+          test "${#supabase_key}" -gt 40 || (echo "::error::SUPABASE_ANON_KEY is unexpectedly short" && exit 1)
       - name: Write App Store Connect API key
         env:
           API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
@@ -68,10 +98,35 @@ jobs:
             -configuration Release \
             -destination "generic/platform=iOS" \
             -archivePath "$ARCHIVE_PATH" \
+            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_KEY_ID}.p8" \
             -authenticationKeyID "$APP_STORE_KEY_ID" \
             -authenticationKeyIssuerID "$APP_STORE_ISSUER_ID" \
             -allowProvisioningUpdates
+      - name: Validate archived app auth config
+        run: |
+          app_plist="$ARCHIVE_PATH/Products/Applications/Diald.app/Info.plist"
+          test -f "$app_plist" || (echo "::error::Archived app Info.plist not found" && exit 1)
+
+          supabase_url="$(plutil -extract SUPABASE_URL raw -o - "$app_plist")"
+          supabase_key="$(plutil -extract SUPABASE_ANON_KEY raw -o - "$app_plist")"
+
+          case "$supabase_url" in
+            ""|*\$"("*|*your-project.supabase.co*|*placeholder.supabase.co*)
+              echo "::error::Archived app has missing, unresolved, or placeholder SUPABASE_URL"
+              exit 1
+              ;;
+          esac
+
+          case "$supabase_key" in
+            ""|*\$"("*|*your-supabase-anon-key*)
+              echo "::error::Archived app has missing, unresolved, or placeholder SUPABASE_ANON_KEY"
+              exit 1
+              ;;
+          esac
+
+          test "${#supabase_key}" -gt 40 || (echo "::error::Archived app SUPABASE_ANON_KEY is unexpectedly short" && exit 1)
       - name: Export IPA
         run: |
           xcodebuild -exportArchive \

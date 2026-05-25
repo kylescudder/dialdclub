@@ -19,6 +19,7 @@ final class AuthClient: ObservableObject {
     let supabase: SupabaseClient
     private var stateTask: Task<Void, Never>?
     private var pendingAppleNonce: String?
+    private let configurationError = AppSecrets.supabaseConfigurationError
 
     init() {
         supabase = SupabaseClient(
@@ -39,6 +40,12 @@ final class AuthClient: ObservableObject {
     }
 
     func bootstrap() async {
+        if let configurationError {
+            Log.error(AppConfigurationError(message: configurationError), category: "auth.configuration")
+            apply(session: nil)
+            return
+        }
+
         do {
             let session = try await supabase.auth.session
             apply(session: session)
@@ -58,6 +65,13 @@ final class AuthClient: ObservableObject {
         }
     }
 
+    private func ensureSupabaseConfigured(category: String) -> Bool {
+        guard let configurationError else { return true }
+        lastError = "Auth isn't configured for this build. Please install the latest build."
+        Log.error(AppConfigurationError(message: configurationError), category: category)
+        return false
+    }
+
     private func apply(session: Session?) {
         if let session, !session.isExpired {
             state = .signedIn(session.user.id, session.user.email)
@@ -70,6 +84,7 @@ final class AuthClient: ObservableObject {
 
     func signIn(email: String, password: String) async {
         lastError = nil
+        guard ensureSupabaseConfigured(category: "auth.signIn.configuration") else { return }
         do {
             _ = try await supabase.auth.signIn(email: email, password: password)
             AuthClient.clearPendingRecoveryFlag()
@@ -86,6 +101,7 @@ final class AuthClient: ObservableObject {
 
     func signUp(email: String, password: String, username: String) async -> SignUpResult? {
         lastError = nil
+        guard ensureSupabaseConfigured(category: "auth.signUp.configuration") else { return nil }
         do {
             let response = try await supabase.auth.signUp(
                 email: email,
@@ -154,6 +170,7 @@ final class AuthClient: ObservableObject {
 
     func sendPasswordReset(email: String) async -> Bool {
         lastError = nil
+        guard ensureSupabaseConfigured(category: "auth.resetPassword.configuration") else { return false }
         do {
             try await supabase.auth.resetPasswordForEmail(email, redirectTo: AppSecrets.authRedirectURL)
             UserDefaults.standard.set(
@@ -184,6 +201,7 @@ final class AuthClient: ObservableObject {
 
     func updatePassword(newPassword: String) async -> Bool {
         lastError = nil
+        guard ensureSupabaseConfigured(category: "auth.updatePassword.configuration") else { return false }
         do {
             _ = try await supabase.auth.update(user: UserAttributes(password: newPassword))
             isPasswordRecovery = false
@@ -200,6 +218,8 @@ final class AuthClient: ObservableObject {
     private var lastHandledCallback: (url: String, at: Date)?
 
     func handle(callbackURL url: URL) async {
+        guard ensureSupabaseConfigured(category: "auth.callback.configuration") else { return }
+
         let now = Date()
         if let last = lastHandledCallback,
            last.url == url.absoluteString,
@@ -245,6 +265,7 @@ final class AuthClient: ObservableObject {
 
     func signInWithGoogle() async {
         lastError = nil
+        guard ensureSupabaseConfigured(category: "auth.google.configuration") else { return }
         do {
             let url = try supabase.auth.getOAuthSignInURL(
                 provider: .google,
@@ -268,6 +289,11 @@ final class AuthClient: ObservableObject {
     }
 
     func completeAppleSignIn(result: Result<ASAuthorization, Error>) async {
+        guard ensureSupabaseConfigured(category: "auth.apple.configuration") else {
+            pendingAppleNonce = nil
+            return
+        }
+
         do {
             let authorization = try result.get()
             guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
@@ -293,6 +319,12 @@ final class AuthClient: ObservableObject {
         }
         pendingAppleNonce = nil
     }
+}
+
+private struct AppConfigurationError: LocalizedError {
+    let message: String
+
+    var errorDescription: String? { message }
 }
 
 enum AppleNonce {
