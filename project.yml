@@ -34,6 +34,7 @@ schemes:
     run:
       config: Debug
       executable: Diald
+      storeKitConfiguration: Diald/Resources/StoreKit/Diald.storekit
 
 targets:
   Diald:

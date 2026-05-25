@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var isDeleting = false
     @State private var successCount = 0
     @State private var errorCount = 0
+    @State private var showPaywall = false
 
     var body: some View {
         Form {
@@ -88,6 +89,34 @@ struct SettingsView: View {
                 .disabled(isDeleting)
             }
 
+            Section {
+                LabeledContent(
+                    "Plan",
+                    value: services.billing.isSubscribed ? "Supporter Monthly" : "Free"
+                )
+                if services.billing.isSubscribed {
+                    Button("Manage subscription") {
+                        Task { await services.billing.manageSubscriptions() }
+                    }
+                } else {
+                    Button("Upgrade to Supporter Monthly") {
+                        showPaywall = true
+                    }
+                }
+                Button("Restore purchases") {
+                    Task { await services.billing.restorePurchases() }
+                }
+                if let message = services.billing.lastError {
+                    Text(message)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+            } header: {
+                Text("Subscription")
+            } footer: {
+                Text("Free accounts can log up to \(AppServices.freeExtractionLimit) extractions. Manage subscription opens Apple's system sheet, where you can cancel or change the subscription.")
+            }
+
             Section("About") {
                 LabeledContent("Version", value: appVersion)
                 Link("View Diald on GitHub", destination: URL(string: "https://github.com/kylescudder/dialdclub")!)
@@ -127,6 +156,9 @@ struct SettingsView: View {
         } message: { Text($0) }
         .sensoryFeedback(.success, trigger: successCount)
         .sensoryFeedback(.error, trigger: errorCount)
+        .sheet(isPresented: $showPaywall) {
+            SubscriptionPaywallView()
+        }
     }
 
     private var appVersion: String {
