@@ -12,6 +12,7 @@ This is intentionally patterned after Deadwax Club:
 - AppIntents and Shortcuts for logging brews and starting the timer
 - Local notifications plus APNs token upload for server-side reminders
 - WidgetKit extension with Home Screen quick actions and a brew stats widget
+- StoreKit subscription gating: 5 free extractions, then Supporter Monthly for unlimited logging
 - TestFlight GitHub Actions workflow
 - PowerSync-compatible sync rules for an offline-first follow-up
 
@@ -35,6 +36,14 @@ Manual version:
 6. Open `Diald.xcodeproj`.
 
 In Supabase Auth, enable Email, Apple, and Google. Set the redirect URL to diald://auth-callback.
+
+### In-app subscriptions
+
+Diald uses StoreKit for the `club.diald.supporter.monthly` auto-renewable subscription. The bundled StoreKit configuration file lets simulator builds load the product locally; App Store Connect is still the source for TestFlight/App Store pricing.
+
+1. In App Store Connect, create an auto-renewable subscription with product ID `club.diald.supporter.monthly`.
+2. Set the UK monthly price to GBP 1.99 or the nearest App Store pricing equivalent.
+3. Deploy `supabase/functions/iap-sync-transaction` and optionally configure App Store Server Notifications V2 to call `supabase/functions/iap-app-store-notifications`.
 
 ## Backend
 

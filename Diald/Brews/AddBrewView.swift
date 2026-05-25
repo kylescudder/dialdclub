@@ -10,6 +10,7 @@ struct AddBrewView: View {
     @State private var startedAt: Date?
     @State private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     @State private var hasAppliedInitialTimerState = false
+    @State private var showPaywall = false
 
     var body: some View {
         NavigationStack {
@@ -81,12 +82,13 @@ struct AddBrewView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         Task {
-                            await services.brews.create(draft)
-                            await services.refreshBrewData()
-                            dismiss()
+                            await save()
                         }
                     }
                 }
+            }
+            .sheet(isPresented: $showPaywall) {
+                SubscriptionPaywallView()
             }
         }
     }
@@ -98,6 +100,16 @@ struct AddBrewView: View {
             startedAt = Date().addingTimeInterval(TimeInterval(-draft.extractionSeconds))
             isRunning = true
         }
+    }
+
+    private func save() async {
+        guard await services.canCreateNewExtraction() else {
+            showPaywall = true
+            return
+        }
+        await services.brews.create(draft)
+        await services.refreshBrewData()
+        dismiss()
     }
 }
 

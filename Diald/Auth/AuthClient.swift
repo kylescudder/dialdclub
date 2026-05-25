@@ -39,6 +39,14 @@ final class AuthClient: ObservableObject {
         if case let .signedIn(id, _) = state { id } else { nil }
     }
 
+    func currentAccessToken() async -> String? {
+        do {
+            return try await supabase.auth.session.accessToken
+        } catch {
+            return nil
+        }
+    }
+
     func bootstrap() async {
         if let configurationError {
             Log.error(AppConfigurationError(message: configurationError), category: "auth.configuration")

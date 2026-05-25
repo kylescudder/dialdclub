@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		006B9953DD760095FFCBE596 /* BillingRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA6519338E32E30E55FD2146 /* BillingRepository.swift */; };
 		027D25FEFCAB279E96327E2B /* DialdWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3F6E347815B62002D567DD50 /* DialdWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		10A28E2E3E6CC5CE764254E8 /* Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 248CFA8C47711BAD5EC90A6E /* Profile.swift */; };
 		1DCD16CFB13181D19CFD0AEF /* AppSecrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 166435808A6604046D32F66C /* AppSecrets.swift */; };
@@ -24,6 +25,7 @@
 		514E042603637693C13FEA2C /* SignUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 272F40C5EF1847F8CD30FB92 /* SignUpView.swift */; };
 		52A0139DA0302FB819FBCBB9 /* ResetPasswordSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6C39EC420CD657C25E24DF0 /* ResetPasswordSheet.swift */; };
 		52A756C95559A018E9DA1B3B /* Card.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94D7EFFB80CC77D73304DB80 /* Card.swift */; };
+		5341189D82949A712D03AD0A /* Diald.storekit in Resources */ = {isa = PBXBuildFile; fileRef = FDC0B52EC7F5A8C4B28D4210 /* Diald.storekit */; };
 		5B906BB95AFEA5C044115396 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3B8C9A6F46A28CD43E8B4228 /* Assets.xcassets */; };
 		5BAE0BCC67F390F47F5ACCA8 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCB19BCEE34B3AE98CE1DE00 /* SettingsView.swift */; };
 		5E9EA08ADD4823422514B183 /* BeansView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E923EA077BFA3EDCC460ACA3 /* BeansView.swift */; };
@@ -32,6 +34,7 @@
 		63491FE0F04B4A16885350E4 /* brew_spinner.lottie.json in Resources */ = {isa = PBXBuildFile; fileRef = 2EE26909E8E7DB940D3E737F /* brew_spinner.lottie.json */; };
 		65AEDF8B133A2F312EE39387 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14C5EFBF223882132528FE94 /* AppDelegate.swift */; };
 		70AA610F26505FB4CBF35569 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D59A8EDE30791D4AA3778D66 /* RootView.swift */; };
+		75C957185E6C6C66B4F17E77 /* SubscriptionPaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D7A8BFA441591730FDE85BB /* SubscriptionPaywallView.swift */; };
 		80D5FDA4BA6A130AFD83CB0E /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 92D9CF84AC1B2C9CD187E627 /* Sentry */; };
 		8455AC0919D98A11B2ABDFB0 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C12CA09F724446F8155A56 /* Logger.swift */; };
 		8A8A8194EBF27083A8E84CA9 /* BrewSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CC8FAE0DA76BCB8B4163AFE /* BrewSession.swift */; };
@@ -83,6 +86,7 @@
 
 /* Begin PBXFileReference section */
 		06B4EA1993E45EDB7EF6017D /* AppearanceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceManager.swift; sourceTree = "<group>"; };
+		0D7A8BFA441591730FDE85BB /* SubscriptionPaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionPaywallView.swift; sourceTree = "<group>"; };
 		0F1993113FAAED7E2FB5CD9A /* AppBootstrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBootstrap.swift; sourceTree = "<group>"; };
 		14C5EFBF223882132528FE94 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		166435808A6604046D32F66C /* AppSecrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSecrets.swift; sourceTree = "<group>"; };
@@ -123,6 +127,7 @@
 		BCB19BCEE34B3AE98CE1DE00 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		BFD8CFBDF9D9B734D64EBB28 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C0370A814EE56E0C8EE0928E /* Diald.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Diald.entitlements; sourceTree = "<group>"; };
+		CA6519338E32E30E55FD2146 /* BillingRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillingRepository.swift; sourceTree = "<group>"; };
 		CCB00AB001B4E84932725171 /* AppServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppServices.swift; sourceTree = "<group>"; };
 		D07C0B8093825B8368FF205B /* BrewStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrewStats.swift; sourceTree = "<group>"; };
 		D1D0A5D68D1AE56FBFFDB391 /* Diald.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Diald.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -132,6 +137,7 @@
 		E6C39EC420CD657C25E24DF0 /* ResetPasswordSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResetPasswordSheet.swift; sourceTree = "<group>"; };
 		E923EA077BFA3EDCC460ACA3 /* BeansView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeansView.swift; sourceTree = "<group>"; };
 		FBDABE0B2894F123829C0AAE /* AddBrewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBrewView.swift; sourceTree = "<group>"; };
+		FDC0B52EC7F5A8C4B28D4210 /* Diald.storekit */ = {isa = PBXFileReference; path = Diald.storekit; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -194,6 +200,7 @@
 				3B8C9A6F46A28CD43E8B4228 /* Assets.xcassets */,
 				533A6CE638F60DDB59DC46AA /* Diald.icon */,
 				E12996FAB8BC684A40170C7E /* Animations */,
+				F3C98AED6B50881FA1670C04 /* StoreKit */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -204,6 +211,15 @@
 				8ECBDC460237C584486EFD5F /* Secrets.xcconfig */,
 			);
 			path = Config;
+			sourceTree = "<group>";
+		};
+		6766BAA9473146EB35E8ECA1 /* Billing */ = {
+			isa = PBXGroup;
+			children = (
+				CA6519338E32E30E55FD2146 /* BillingRepository.swift */,
+				0D7A8BFA441591730FDE85BB /* SubscriptionPaywallView.swift */,
+			);
+			path = Billing;
 			sourceTree = "<group>";
 		};
 		757DCF7765FB8EE00132A9AE /* Logging */ = {
@@ -306,6 +322,7 @@
 				B9C028C39A0DBADE51550011 /* App */,
 				B5D90666A176FE336532EC43 /* Auth */,
 				8619EC9948DE7566C633F4D5 /* Beans */,
+				6766BAA9473146EB35E8ECA1 /* Billing */,
 				A6E50E445163DC703E159AE1 /* Brews */,
 				CD0A7D5218F88FF9DCE241AD /* Components */,
 				C64E4691DF6EF36FF4BF0C58 /* Dashboard */,
@@ -335,6 +352,14 @@
 				E29C56EBA81F824045EEB075 /* WidgetSnapshotStore.swift */,
 			);
 			path = Widgets;
+			sourceTree = "<group>";
+		};
+		F3C98AED6B50881FA1670C04 /* StoreKit */ = {
+			isa = PBXGroup;
+			children = (
+				FDC0B52EC7F5A8C4B28D4210 /* Diald.storekit */,
+			);
+			path = StoreKit;
 			sourceTree = "<group>";
 		};
 		F43562E1FE0192EDA3FA4A72 /* Intents */ = {
@@ -449,6 +474,7 @@
 			files = (
 				5B906BB95AFEA5C044115396 /* Assets.xcassets in Resources */,
 				B955EF3BA34652A07FE51C2A /* Diald.icon in Resources */,
+				5341189D82949A712D03AD0A /* Diald.storekit in Resources */,
 				63491FE0F04B4A16885350E4 /* brew_spinner.lottie.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -472,6 +498,7 @@
 				5EEBB8322D8F0ED14769657D /* Bean.swift in Sources */,
 				37A709EFE16AD00049CFE9A2 /* BeansRepository.swift in Sources */,
 				5E9EA08ADD4823422514B183 /* BeansView.swift in Sources */,
+				006B9953DD760095FFCBE596 /* BillingRepository.swift in Sources */,
 				8A8A8194EBF27083A8E84CA9 /* BrewSession.swift in Sources */,
 				5F47DC7854A5B14DE43DD2BD /* BrewStats.swift in Sources */,
 				B427ECEFC18543EA555F5191 /* BrewsRepository.swift in Sources */,
@@ -497,6 +524,7 @@
 				514E042603637693C13FEA2C /* SignUpView.swift in Sources */,
 				2220EEB3B789CDEBEC845152 /* StatsRepository.swift in Sources */,
 				28BD0C3149B3ABA49A64C78C /* StatsView.swift in Sources */,
+				75C957185E6C6C66B4F17E77 /* SubscriptionPaywallView.swift in Sources */,
 				A2D10B8ABC61DAD6D2458ED8 /* Theme.swift in Sources */,
 				26D07BD72D2BBB784471B72C /* WidgetSnapshotStore.swift in Sources */,
 			);
