@@ -26,6 +26,15 @@ packages:
     url: https://github.com/getsentry/sentry-cocoa
     from: 8.40.0
 
+schemes:
+  Diald:
+    build:
+      targets:
+        Diald: all
+    run:
+      config: Debug
+      executable: Diald
+
 targets:
   Diald:
     type: application
