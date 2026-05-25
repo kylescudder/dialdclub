@@ -84,6 +84,11 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         SWIFT_EMIT_LOC_STRINGS: YES
         CODE_SIGN_ENTITLEMENTS: Diald/Diald.entitlements
+      configs:
+        Release:
+          CODE_SIGN_IDENTITY: Apple Distribution
+          CODE_SIGN_STYLE: Manual
+          PROVISIONING_PROFILE_SPECIFIER: Diald App Store
     configFiles:
       Debug: Config/Secrets.xcconfig
       Release: Config/Secrets.xcconfig
@@ -119,3 +124,8 @@ targets:
         SUPPORTS_MACCATALYST: NO
         CODE_SIGN_ENTITLEMENTS: DialdWidgets/DialdWidgets.entitlements
         SKIP_INSTALL: YES
+      configs:
+        Release:
+          CODE_SIGN_IDENTITY: Apple Distribution
+          CODE_SIGN_STYLE: Manual
+          PROVISIONING_PROFILE_SPECIFIER: Diald Widgets App Store
