@@ -15,12 +15,14 @@
 		26D07BD72D2BBB784471B72C /* WidgetSnapshotStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E29C56EBA81F824045EEB075 /* WidgetSnapshotStore.swift */; };
 		28BD0C3149B3ABA49A64C78C /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8630D0CDC438D9CF83DECC /* StatsView.swift */; };
 		290094BF436A6B970DF9237C /* AppShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2115E2BA2ED0872809A62F0 /* AppShortcuts.swift */; };
+		2BBCED9B008C6BF9B9261C77 /* AppearanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B4EA1993E45EDB7EF6017D /* AppearanceManager.swift */; };
+		2E73D5C53CCE4E211047F2C4 /* AppBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F1993113FAAED7E2FB5CD9A /* AppBootstrap.swift */; };
 		37A709EFE16AD00049CFE9A2 /* BeansRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77FAC76FC66D3645834D3BE2 /* BeansRepository.swift */; };
 		414567B137FCD234BDF7CFDC /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 89E5BBAD9FBBE3AB5BE88197 /* Lottie */; };
 		4E13C205C32167856F50326E /* LogBrewIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF853FC104CE77CFDAD71AA0 /* LogBrewIntent.swift */; };
 		4E8DDCA7A44537F2645CC8D0 /* QuickActionRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6F5E1109841750402E8B828 /* QuickActionRouter.swift */; };
-		4F57F88031C0AE36B635C45D /* ForgotPasswordSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42B71EEC96E1626BB2351647 /* ForgotPasswordSheet.swift */; };
-		514E57331DA9BD840321A1A2 /* AppBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F2F6D86B3CC12F4AE6B859 /* AppBootstrap.swift */; };
+		514E042603637693C13FEA2C /* SignUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 272F40C5EF1847F8CD30FB92 /* SignUpView.swift */; };
+		52A0139DA0302FB819FBCBB9 /* ResetPasswordSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6C39EC420CD657C25E24DF0 /* ResetPasswordSheet.swift */; };
 		52A756C95559A018E9DA1B3B /* Card.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94D7EFFB80CC77D73304DB80 /* Card.swift */; };
 		5B906BB95AFEA5C044115396 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3B8C9A6F46A28CD43E8B4228 /* Assets.xcassets */; };
 		5BAE0BCC67F390F47F5ACCA8 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCB19BCEE34B3AE98CE1DE00 /* SettingsView.swift */; };
@@ -33,24 +35,23 @@
 		80D5FDA4BA6A130AFD83CB0E /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 92D9CF84AC1B2C9CD187E627 /* Sentry */; };
 		8455AC0919D98A11B2ABDFB0 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C12CA09F724446F8155A56 /* Logger.swift */; };
 		8A8A8194EBF27083A8E84CA9 /* BrewSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CC8FAE0DA76BCB8B4163AFE /* BrewSession.swift */; };
-		8D4FB12D0A00C18725613899 /* GoogleSignIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7939C9691DF3F762810DA33E /* GoogleSignIn.swift */; };
 		995DDE1E67F3775E3622E20E /* AppleSignInButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61CF8EBD6A91A60B6123A350 /* AppleSignInButton.swift */; };
 		9B9ABCA5A87C438FA20EC5D1 /* LottieAnimationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED6B9FF13087310C4FA7C70 /* LottieAnimationView.swift */; };
-		9F17C447B53F7035B4F2866B /* ResetPasswordSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE87DA0BE806ADCCF8893D55 /* ResetPasswordSheet.swift */; };
 		A0FABF80AA377C39633AA06E /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 388BBAB63331FDC2D7519B53 /* DashboardView.swift */; };
 		A2D10B8ABC61DAD6D2458ED8 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 683AADA608864C369AF6338F /* Theme.swift */; };
-		A3621BCEFF2DE921678A3B6E /* AppearanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D2C64027A10D6E3B22B9B8 /* AppearanceManager.swift */; };
 		A48558413F92C0445607F075 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 4E32E127F1A87E50733EA76C /* Supabase */; };
 		B427ECEFC18543EA555F5191 /* BrewsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 502685BA790320B0F386E5AD /* BrewsRepository.swift */; };
+		B955EF3BA34652A07FE51C2A /* Diald.icon in Resources */ = {isa = PBXBuildFile; fileRef = 533A6CE638F60DDB59DC46AA /* Diald.icon */; };
+		BBAE84FC0DC5C4AFF3B3BFC7 /* GoogleSignIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86296A4803EB5685C9198525 /* GoogleSignIn.swift */; };
 		BEEE3FE53F7053801C6251D0 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81AB8D4E471B4F3BDF4D86F3 /* SignInView.swift */; };
-		BF78838952957F974A39D530 /* SignUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 785A6B49073D4A54CFECCF4F /* SignUpView.swift */; };
 		BFB339494FE40789F35BE8E9 /* DialdApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E4066920D22B5F4CE678401 /* DialdApp.swift */; };
 		CD9727839073DCE8422EC1B4 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BC89A197C5AA39885E475A8 /* LoadingView.swift */; };
 		D11075510B199062738BC283 /* WidgetSnapshotStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E29C56EBA81F824045EEB075 /* WidgetSnapshotStore.swift */; };
+		D320378148012EBF878207A3 /* ForgotPasswordSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D7355DA42576D8B1E597E61 /* ForgotPasswordSheet.swift */; };
 		D375D3E6C4753232EFEB5614 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8468406FF6DBFC8BF049B49 /* NotificationManager.swift */; };
 		D5B499A05108A6C177E7656D /* AuthClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 608CFA18670C62A07B2E0B05 /* AuthClient.swift */; };
 		E565A4F9AA0809B31529EE6E /* PrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A6084A2DDE67354DA41E50D /* PrimaryButton.swift */; };
-		E746AB95C2546415938249D3 /* ProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AF40806E3497CF32D9E5E84 /* ProfileRepository.swift */; };
+		E5ACE4FA337948A7AC4E3A18 /* ProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50FF6AB783F17112B700ABBE /* ProfileRepository.swift */; };
 		F974D4F01AA65F41CD0E975C /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7597DCF427E2B38E5ADABCEC /* Extensions.swift */; };
 		FCCAC767C1A8AAD04FAA73CD /* AddBrewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBDABE0B2894F123829C0AAE /* AddBrewView.swift */; };
 		FFCD9FD9F3206752FBD022C3 /* AppServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB00AB001B4E84932725171 /* AppServices.swift */; };
@@ -81,30 +82,32 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		06B4EA1993E45EDB7EF6017D /* AppearanceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceManager.swift; sourceTree = "<group>"; };
+		0F1993113FAAED7E2FB5CD9A /* AppBootstrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBootstrap.swift; sourceTree = "<group>"; };
 		14C5EFBF223882132528FE94 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		166435808A6604046D32F66C /* AppSecrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSecrets.swift; sourceTree = "<group>"; };
 		248CFA8C47711BAD5EC90A6E /* Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Profile.swift; sourceTree = "<group>"; };
+		272F40C5EF1847F8CD30FB92 /* SignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
 		2E4066920D22B5F4CE678401 /* DialdApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialdApp.swift; sourceTree = "<group>"; };
 		2EE26909E8E7DB940D3E737F /* brew_spinner.lottie.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = brew_spinner.lottie.json; sourceTree = "<group>"; };
 		308597B0F7C868725BB514A8 /* DialdWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialdWidgets.swift; sourceTree = "<group>"; };
 		388BBAB63331FDC2D7519B53 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		3B8C9A6F46A28CD43E8B4228 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3BC89A197C5AA39885E475A8 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
+		3D7355DA42576D8B1E597E61 /* ForgotPasswordSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgotPasswordSheet.swift; sourceTree = "<group>"; };
 		3E8630D0CDC438D9CF83DECC /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
 		3F6E347815B62002D567DD50 /* DialdWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = DialdWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		42B71EEC96E1626BB2351647 /* ForgotPasswordSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgotPasswordSheet.swift; sourceTree = "<group>"; };
-		4AF40806E3497CF32D9E5E84 /* ProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileRepository.swift; sourceTree = "<group>"; };
 		4EF764040DF1A62E63BD8939 /* StatsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsRepository.swift; sourceTree = "<group>"; };
 		502685BA790320B0F386E5AD /* BrewsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrewsRepository.swift; sourceTree = "<group>"; };
+		50FF6AB783F17112B700ABBE /* ProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileRepository.swift; sourceTree = "<group>"; };
+		533A6CE638F60DDB59DC46AA /* Diald.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = Diald.icon; sourceTree = "<group>"; };
 		608CFA18670C62A07B2E0B05 /* AuthClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthClient.swift; sourceTree = "<group>"; };
 		61CF8EBD6A91A60B6123A350 /* AppleSignInButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInButton.swift; sourceTree = "<group>"; };
 		683AADA608864C369AF6338F /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
-		7939C9691DF3F762810DA33E /* GoogleSignIn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleSignIn.swift; sourceTree = "<group>"; };
 		7597DCF427E2B38E5ADABCEC /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		77FAC76FC66D3645834D3BE2 /* BeansRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeansRepository.swift; sourceTree = "<group>"; };
-		785A6B49073D4A54CFECCF4F /* SignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
 		81AB8D4E471B4F3BDF4D86F3 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
-		87F2F6D86B3CC12F4AE6B859 /* AppBootstrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBootstrap.swift; sourceTree = "<group>"; };
+		86296A4803EB5685C9198525 /* GoogleSignIn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleSignIn.swift; sourceTree = "<group>"; };
 		8A6084A2DDE67354DA41E50D /* PrimaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimaryButton.swift; sourceTree = "<group>"; };
 		8ECBDC460237C584486EFD5F /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		94D7EFFB80CC77D73304DB80 /* Card.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Card.swift; sourceTree = "<group>"; };
@@ -121,14 +124,13 @@
 		BFD8CFBDF9D9B734D64EBB28 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C0370A814EE56E0C8EE0928E /* Diald.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Diald.entitlements; sourceTree = "<group>"; };
 		CCB00AB001B4E84932725171 /* AppServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppServices.swift; sourceTree = "<group>"; };
-		D4D2C64027A10D6E3B22B9B8 /* AppearanceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceManager.swift; sourceTree = "<group>"; };
 		D07C0B8093825B8368FF205B /* BrewStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrewStats.swift; sourceTree = "<group>"; };
 		D1D0A5D68D1AE56FBFFDB391 /* Diald.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Diald.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D59A8EDE30791D4AA3778D66 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		E2115E2BA2ED0872809A62F0 /* AppShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShortcuts.swift; sourceTree = "<group>"; };
 		E29C56EBA81F824045EEB075 /* WidgetSnapshotStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotStore.swift; sourceTree = "<group>"; };
+		E6C39EC420CD657C25E24DF0 /* ResetPasswordSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResetPasswordSheet.swift; sourceTree = "<group>"; };
 		E923EA077BFA3EDCC460ACA3 /* BeansView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeansView.swift; sourceTree = "<group>"; };
-		EE87DA0BE806ADCCF8893D55 /* ResetPasswordSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResetPasswordSheet.swift; sourceTree = "<group>"; };
 		FBDABE0B2894F123829C0AAE /* AddBrewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBrewView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -170,8 +172,8 @@
 		30F3B1E851E1FF433DE01B94 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
-				D4D2C64027A10D6E3B22B9B8 /* AppearanceManager.swift */,
-				4AF40806E3497CF32D9E5E84 /* ProfileRepository.swift */,
+				06B4EA1993E45EDB7EF6017D /* AppearanceManager.swift */,
+				50FF6AB783F17112B700ABBE /* ProfileRepository.swift */,
 				BCB19BCEE34B3AE98CE1DE00 /* SettingsView.swift */,
 			);
 			path = Settings;
@@ -190,6 +192,7 @@
 			isa = PBXGroup;
 			children = (
 				3B8C9A6F46A28CD43E8B4228 /* Assets.xcassets */,
+				533A6CE638F60DDB59DC46AA /* Diald.icon */,
 				E12996FAB8BC684A40170C7E /* Animations */,
 			);
 			path = Resources;
@@ -243,11 +246,11 @@
 			children = (
 				61CF8EBD6A91A60B6123A350 /* AppleSignInButton.swift */,
 				608CFA18670C62A07B2E0B05 /* AuthClient.swift */,
-				42B71EEC96E1626BB2351647 /* ForgotPasswordSheet.swift */,
-				7939C9691DF3F762810DA33E /* GoogleSignIn.swift */,
-				EE87DA0BE806ADCCF8893D55 /* ResetPasswordSheet.swift */,
+				3D7355DA42576D8B1E597E61 /* ForgotPasswordSheet.swift */,
+				86296A4803EB5685C9198525 /* GoogleSignIn.swift */,
+				E6C39EC420CD657C25E24DF0 /* ResetPasswordSheet.swift */,
 				81AB8D4E471B4F3BDF4D86F3 /* SignInView.swift */,
-				785A6B49073D4A54CFECCF4F /* SignUpView.swift */,
+				272F40C5EF1847F8CD30FB92 /* SignUpView.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -255,8 +258,8 @@
 		B9C028C39A0DBADE51550011 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				0F1993113FAAED7E2FB5CD9A /* AppBootstrap.swift */,
 				14C5EFBF223882132528FE94 /* AppDelegate.swift */,
-				87F2F6D86B3CC12F4AE6B859 /* AppBootstrap.swift */,
 				166435808A6604046D32F66C /* AppSecrets.swift */,
 				CCB00AB001B4E84932725171 /* AppServices.swift */,
 				2E4066920D22B5F4CE678401 /* DialdApp.swift */,
@@ -445,6 +448,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5B906BB95AFEA5C044115396 /* Assets.xcassets in Resources */,
+				B955EF3BA34652A07FE51C2A /* Diald.icon in Resources */,
 				63491FE0F04B4A16885350E4 /* brew_spinner.lottie.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -457,12 +461,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				FCCAC767C1A8AAD04FAA73CD /* AddBrewView.swift in Sources */,
+				2E73D5C53CCE4E211047F2C4 /* AppBootstrap.swift in Sources */,
 				65AEDF8B133A2F312EE39387 /* AppDelegate.swift in Sources */,
-				514E57331DA9BD840321A1A2 /* AppBootstrap.swift in Sources */,
 				1DCD16CFB13181D19CFD0AEF /* AppSecrets.swift in Sources */,
 				FFCD9FD9F3206752FBD022C3 /* AppServices.swift in Sources */,
-				A3621BCEFF2DE921678A3B6E /* AppearanceManager.swift in Sources */,
 				290094BF436A6B970DF9237C /* AppShortcuts.swift in Sources */,
+				2BBCED9B008C6BF9B9261C77 /* AppearanceManager.swift in Sources */,
 				995DDE1E67F3775E3622E20E /* AppleSignInButton.swift in Sources */,
 				D5B499A05108A6C177E7656D /* AuthClient.swift in Sources */,
 				5EEBB8322D8F0ED14769657D /* Bean.swift in Sources */,
@@ -475,22 +479,22 @@
 				A0FABF80AA377C39633AA06E /* DashboardView.swift in Sources */,
 				BFB339494FE40789F35BE8E9 /* DialdApp.swift in Sources */,
 				F974D4F01AA65F41CD0E975C /* Extensions.swift in Sources */,
-				4F57F88031C0AE36B635C45D /* ForgotPasswordSheet.swift in Sources */,
-				8D4FB12D0A00C18725613899 /* GoogleSignIn.swift in Sources */,
+				D320378148012EBF878207A3 /* ForgotPasswordSheet.swift in Sources */,
+				BBAE84FC0DC5C4AFF3B3BFC7 /* GoogleSignIn.swift in Sources */,
 				CD9727839073DCE8422EC1B4 /* LoadingView.swift in Sources */,
 				4E13C205C32167856F50326E /* LogBrewIntent.swift in Sources */,
 				8455AC0919D98A11B2ABDFB0 /* Logger.swift in Sources */,
 				9B9ABCA5A87C438FA20EC5D1 /* LottieAnimationView.swift in Sources */,
 				D375D3E6C4753232EFEB5614 /* NotificationManager.swift in Sources */,
 				E565A4F9AA0809B31529EE6E /* PrimaryButton.swift in Sources */,
-				E746AB95C2546415938249D3 /* ProfileRepository.swift in Sources */,
 				10A28E2E3E6CC5CE764254E8 /* Profile.swift in Sources */,
+				E5ACE4FA337948A7AC4E3A18 /* ProfileRepository.swift in Sources */,
 				4E8DDCA7A44537F2645CC8D0 /* QuickActionRouter.swift in Sources */,
+				52A0139DA0302FB819FBCBB9 /* ResetPasswordSheet.swift in Sources */,
 				70AA610F26505FB4CBF35569 /* RootView.swift in Sources */,
 				5BAE0BCC67F390F47F5ACCA8 /* SettingsView.swift in Sources */,
 				BEEE3FE53F7053801C6251D0 /* SignInView.swift in Sources */,
-				BF78838952957F974A39D530 /* SignUpView.swift in Sources */,
-				9F17C447B53F7035B4F2866B /* ResetPasswordSheet.swift in Sources */,
+				514E042603637693C13FEA2C /* SignUpView.swift in Sources */,
 				2220EEB3B789CDEBEC845152 /* StatsRepository.swift in Sources */,
 				28BD0C3149B3ABA49A64C78C /* StatsView.swift in Sources */,
 				A2D10B8ABC61DAD6D2458ED8 /* Theme.swift in Sources */,
@@ -522,7 +526,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 8ECBDC460237C584486EFD5F /* Secrets.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Diald;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Diald/Diald.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
@@ -650,7 +654,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 8ECBDC460237C584486EFD5F /* Secrets.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Diald;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Diald/Diald.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
