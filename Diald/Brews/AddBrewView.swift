@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AddBrewView: View {
     var startTimerOnAppear = false
+    var brewToEdit: BrewSession?
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var services: AppServices
@@ -11,6 +12,12 @@ struct AddBrewView: View {
     @State private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     @State private var hasAppliedInitialTimerState = false
     @State private var showPaywall = false
+
+    init(startTimerOnAppear: Bool = false, brewToEdit: BrewSession? = nil) {
+        self.startTimerOnAppear = startTimerOnAppear
+        self.brewToEdit = brewToEdit
+        _draft = State(initialValue: brewToEdit.map(BrewDraft.init(brew:)) ?? BrewDraft())
+    }
 
     var body: some View {
         NavigationStack {
@@ -28,6 +35,7 @@ struct AddBrewView: View {
                             Text(bean.displayName).tag(Optional(bean.id))
                         }
                     }
+                    DatePicker("Brewed at", selection: $draft.brewedAt)
                 }
 
                 Section("Variables") {
@@ -68,7 +76,7 @@ struct AddBrewView: View {
                         .lineLimit(3...6)
                 }
             }
-            .navigationTitle("Log brew")
+            .navigationTitle(brewToEdit == nil ? "Log brew" : "Edit brew")
             .onAppear {
                 guard startTimerOnAppear, !hasAppliedInitialTimerState else { return }
                 hasAppliedInitialTimerState = true
@@ -85,6 +93,7 @@ struct AddBrewView: View {
                             await save()
                         }
                     }
+                    .disabled(!canSave)
                 }
             }
             .sheet(isPresented: $showPaywall) {
@@ -103,13 +112,24 @@ struct AddBrewView: View {
     }
 
     private func save() async {
-        guard await services.canCreateNewExtraction() else {
-            showPaywall = true
-            return
+        guard canSave else { return }
+        if let brewToEdit {
+            await services.brews.update(brewToEdit, with: draft)
+        } else {
+            guard await services.canCreateNewExtraction() else {
+                showPaywall = true
+                return
+            }
+            await services.brews.create(draft)
         }
-        await services.brews.create(draft)
         await services.refreshBrewData()
         dismiss()
+    }
+
+    private var canSave: Bool {
+        !draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && draft.doseGrams > 0
+            && draft.extractionSeconds > 0
     }
 }
 
