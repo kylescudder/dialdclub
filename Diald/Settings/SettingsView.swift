@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var isDeleting = false
     @State private var successCount = 0
     @State private var errorCount = 0
+    @State private var showPaywall = false
 
     var body: some View {
         Form {
@@ -75,6 +76,34 @@ struct SettingsView: View {
                 Text("Set different brew reminder times for office days, weekends, or any weekly routine.")
             }
 
+            Section {
+                LabeledContent(
+                    "Plan",
+                    value: services.billing.isSubscribed ? "Supporter Monthly" : "Free"
+                )
+                if services.billing.isSubscribed {
+                    Button("Manage subscription") {
+                        Task { await services.billing.manageSubscriptions() }
+                    }
+                } else {
+                    Button("Upgrade to Supporter Monthly") {
+                        showPaywall = true
+                    }
+                }
+                Button("Restore purchases") {
+                    Task { await services.billing.restorePurchases() }
+                }
+                if let message = services.billing.lastError {
+                    Text(message)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+            } header: {
+                Text("Subscription")
+            } footer: {
+                Text("Free accounts can log up to \(AppServices.freeExtractionLimit) extractions. Manage subscription opens Apple's system sheet, where you can cancel or change the subscription.")
+            }
+
             Section("Account") {
                 if case let .signedIn(_, email) = services.auth.state, let email {
                     LabeledContent("Signed in as", value: email)
@@ -127,6 +156,9 @@ struct SettingsView: View {
         } message: { Text($0) }
         .sensoryFeedback(.success, trigger: successCount)
         .sensoryFeedback(.error, trigger: errorCount)
+        .sheet(isPresented: $showPaywall) {
+            SubscriptionPaywallView()
+        }
     }
 
     private var appVersion: String {

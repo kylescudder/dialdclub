@@ -11,6 +11,7 @@ struct AddBrewView: View {
     @State private var startedAt: Date?
     @State private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     @State private var hasAppliedInitialTimerState = false
+    @State private var showPaywall = false
 
     init(startTimerOnAppear: Bool = false, brewToEdit: BrewSession? = nil) {
         self.startTimerOnAppear = startTimerOnAppear
@@ -95,6 +96,9 @@ struct AddBrewView: View {
                     .disabled(!canSave)
                 }
             }
+            .sheet(isPresented: $showPaywall) {
+                SubscriptionPaywallView()
+            }
         }
     }
 
@@ -112,6 +116,10 @@ struct AddBrewView: View {
         if let brewToEdit {
             await services.brews.update(brewToEdit, with: draft)
         } else {
+            guard await services.canCreateNewExtraction() else {
+                showPaywall = true
+                return
+            }
             await services.brews.create(draft)
         }
         await services.refreshBrewData()

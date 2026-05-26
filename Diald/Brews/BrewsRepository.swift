@@ -154,6 +154,27 @@ final class BrewsRepository: ObservableObject {
         }
     }
 
+    func createdExtractionCount() async -> Int {
+        guard let userID = auth.currentUserID else { return 0 }
+        struct Row: Decodable {
+            let id: UUID
+        }
+        do {
+            let rows: [Row] = try await auth.supabase
+                .from("brew_sessions")
+                .select("id")
+                .eq("owner_id", value: userID.uuidString.lowercased())
+                .is("deleted_at", value: nil)
+                .limit(AppServices.freeExtractionLimit + 1)
+                .execute()
+                .value
+            return rows.count
+        } catch {
+            Log.error(error, category: "brews.count")
+            return brews.count
+        }
+    }
+
     func softDelete(_ brew: BrewSession) async {
         do {
             try await auth.supabase
