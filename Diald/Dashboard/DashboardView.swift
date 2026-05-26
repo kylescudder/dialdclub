@@ -10,67 +10,11 @@ struct DashboardView: View {
 
     var body: some View {
         List {
-            if showingFilters || filters.isActive {
-                Section {
-                    BrewFilterView(filters: $filters, beans: services.beans.beans)
-                }
-            }
-
-            Section {
-                if filteredBrews.isEmpty {
-                    ContentUnavailableView(
-                        emptyTitle,
-                        systemImage: filters.isActive ? "line.3.horizontal.decrease.circle" : "cup.and.saucer",
-                        description: Text(emptyDescription)
-                    )
-                    .listRowBackground(Color.clear)
-                } else {
-                    ForEach(filteredBrews) { brew in
-                        BrewRowView(brew: brew, beanName: beanName(for: brew))
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                brewToEdit = brew
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    brewPendingDeletion = brew
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                            .swipeActions(edge: .leading) {
-                                Button {
-                                    brewToEdit = brew
-                                } label: {
-                                    Label("Edit", systemImage: "pencil")
-                                }
-                                .tint(Theme.Colors.green)
-                            }
-                            .contextMenu {
-                                Button {
-                                    brewToEdit = brew
-                                } label: {
-                                    Label("Edit", systemImage: "pencil")
-                                }
-                                Button(role: .destructive) {
-                                    brewPendingDeletion = brew
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                    }
-                }
-            } header: {
-                HStack {
-                    Text("Recent brews")
-                    Spacer()
-                    if filters.isActive {
-                        Text("\(filteredBrews.count) of \(services.brews.brews.count)")
-                    }
-                }
-            }
+            filterSection
+            brewsSection
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
         .background(Theme.Colors.background)
         .navigationTitle("Diald")
         .toolbar {
@@ -120,6 +64,78 @@ struct DashboardView: View {
         }
     }
 
+    @ViewBuilder
+    private var filterSection: some View {
+        if showingFilters || filters.isActive {
+            Section {
+                BrewFilterView(filters: $filters, beans: services.beans.beans)
+            } header: {
+                BrewSectionHeader(title: "Filters")
+            }
+        }
+    }
+
+    private var brewsSection: some View {
+        Section {
+            if filteredBrews.isEmpty {
+                ContentUnavailableView(
+                    emptyTitle,
+                    systemImage: filters.isActive ? "line.3.horizontal.decrease.circle" : "cup.and.saucer",
+                    description: Text(emptyDescription)
+                )
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .listRowBackground(Color.clear)
+            } else {
+                ForEach(filteredBrews) { brew in
+                    BrewRowView(brew: brew, beanName: beanName(for: brew))
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            brewToEdit = brew
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                brewPendingDeletion = brew
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                            .tint(.red)
+                        }
+                        .swipeActions(edge: .leading) {
+                            Button {
+                                brewToEdit = brew
+                            } label: {
+                                Label("Edit", systemImage: "pencil")
+                            }
+                            .tint(Theme.Colors.accent)
+                        }
+                        .contextMenu {
+                            Button {
+                                brewToEdit = brew
+                            } label: {
+                                Label("Edit", systemImage: "pencil")
+                            }
+                            Button(role: .destructive) {
+                                brewPendingDeletion = brew
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                        .listRowBackground(Theme.Colors.surface)
+                }
+            }
+        } header: {
+            HStack {
+                BrewSectionHeader(title: "Recent brews")
+                Spacer()
+                if filters.isActive {
+                    Text("\(filteredBrews.count) of \(services.brews.brews.count)")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+            }
+        }
+    }
+
     private var filteredBrews: [BrewSession] {
         services.brews.brews.filter { filters.matches($0) }
     }
@@ -142,42 +158,59 @@ struct DashboardView: View {
     }
 }
 
+private struct BrewSectionHeader: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(Theme.Colors.accent)
+            .textCase(.uppercase)
+    }
+}
+
 private struct BrewRowView: View {
     let brew: BrewSession
     let beanName: String?
 
     var body: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(alignment: .center, spacing: Theme.Spacing.md) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(brew.title)
-                    .font(.headline)
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .lineLimit(1)
                 Text(detailText)
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.Colors.muted)
+                    .footnoteSecondary()
+                    .lineLimit(1)
                 if let beanName {
                     Text(beanName)
-                        .font(.footnote)
-                        .foregroundStyle(Theme.Colors.muted)
+                        .font(.caption2)
+                        .foregroundStyle(Theme.Colors.textTertiary)
+                        .lineLimit(1)
                 }
                 if let notes = brew.notes, !notes.isEmpty {
                     Text(notes)
-                        .font(.footnote)
-                        .foregroundStyle(Theme.Colors.muted)
+                        .captionSecondary()
                         .lineLimit(2)
                 }
             }
-            Spacer()
-            VStack(alignment: .trailing) {
+            Spacer(minLength: Theme.Spacing.sm)
+            VStack(alignment: .trailing, spacing: Theme.Spacing.xs) {
                 Text(brew.timeText)
-                    .font(.title3.monospacedDigit().bold())
+                    .font(.callout.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(Theme.Colors.textPrimary)
                 if let rating = brew.rating {
                     Text("\(rating)/5")
                         .font(.caption)
                         .foregroundStyle(Theme.Colors.amber)
                 }
             }
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Theme.Colors.textTertiary)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, Theme.Spacing.xs)
     }
 
     private var detailText: String {
@@ -223,6 +256,7 @@ private struct BrewFilterView: View {
             Button("Clear filters") {
                 filters = BrewFilters()
             }
+            .foregroundStyle(Theme.Colors.accent)
         }
     }
 }
