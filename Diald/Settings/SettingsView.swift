@@ -104,6 +104,14 @@ struct SettingsView: View {
                 Text("Free accounts can log up to \(AppServices.freeExtractionLimit) extractions. Manage subscription opens Apple's system sheet, where you can cancel or change the subscription.")
             }
 
+            Section("AI provider") {
+                NavigationLink("OpenAI / Anthropic access") {
+                    AIProviderSettingsView()
+                }
+                LabeledContent("Selected", value: services.aiSettings.provider.label)
+                LabeledContent("API key", value: services.aiSettings.hasActiveAPIKey ? "Configured" : "Not configured")
+            }
+
             Section("Account") {
                 if case let .signedIn(_, email) = services.auth.state, let email {
                     LabeledContent("Signed in as", value: email)

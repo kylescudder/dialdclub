@@ -198,7 +198,7 @@ struct BrewDraft {
     var waterGrams: Double?
     var grindSetting = ""
     var waterTemperatureC: Double? = 93
-    var extractionSeconds = 30
+    var extractionSeconds = 0
     var rating: Int? = 4
     var notes = ""
     var brewedAt = Date()

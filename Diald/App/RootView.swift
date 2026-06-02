@@ -57,6 +57,9 @@ struct MainTabView: View {
             NavigationStack { StatsView() }
                 .tabItem { Label("Stats", systemImage: "chart.xyaxis.line") }
                 .tag(MainTab.stats)
+            NavigationStack { AnalyseView() }
+                .tabItem { Label("Analyse", systemImage: "sparkles") }
+                .tag(MainTab.analyse)
             NavigationStack { SettingsView() }
                 .tabItem { Label("Settings", systemImage: "gearshape") }
                 .tag(MainTab.settings)
@@ -79,5 +82,5 @@ struct MainTabView: View {
 }
 
 private enum MainTab: Hashable {
-    case today, beans, stats, settings
+    case today, beans, stats, analyse, settings
 }

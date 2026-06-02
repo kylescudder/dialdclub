@@ -14,6 +14,8 @@ final class AppServices: ObservableObject {
     let stats: StatsRepository
     let notifications: NotificationManager
     let profile: ProfileRepository
+    let aiSettings: AISettingsStore
+    let analysis: AnalysisClient
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -27,8 +29,11 @@ final class AppServices: ObservableObject {
         self.stats = StatsRepository(auth: auth)
         self.notifications = NotificationManager.shared
         self.profile = ProfileRepository(auth: auth)
+        let aiSettings = AISettingsStore()
+        self.aiSettings = aiSettings
+        self.analysis = AnalysisClient(settings: aiSettings)
 
-        for child: any ObservableObject in [auth, billing, beans, brews, stats, notifications, profile] {
+        for child: any ObservableObject in [auth, billing, beans, brews, stats, notifications, profile, aiSettings, analysis] {
             (child.objectWillChange as? ObservableObjectPublisher)?
                 .sink { [weak self] in self?.objectWillChange.send() }
                 .store(in: &cancellables)
