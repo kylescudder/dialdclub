@@ -1,7 +1,7 @@
 ---
 interface Props {
   title: string;
-  updated: string;
+  updated?: string;
 }
 
 const { title, updated } = Astro.props;
@@ -11,7 +11,7 @@ const { title, updated } = Astro.props;
   <article class="legal">
     <p class="kicker">Diald Club</p>
     <h1>{title}</h1>
-    <p class="updated">Last updated: {updated}</p>
+    {updated && <p class="updated">Last updated: {updated}</p>}
     <slot />
   </article>
 </main>
