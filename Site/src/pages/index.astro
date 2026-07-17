@@ -1,5 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import Footer from "../components/Footer.astro";
+import Header from "../components/Header.astro";
 import HomePage from "../components/HomePage.astro";
 
 const navLinks = [
@@ -23,9 +25,11 @@ const footerLinks = [
   title="Diald Club - promotional site variations"
   description="Five promotional site directions for Diald Club, a focused coffee tracking app for repeatable brews."
   ogTitle="Diald Club"
-  navLinks={navLinks}
-  footerLabel="Five promotional directions for Diald Club"
-  footerLinks={footerLinks}
 >
+  <Header navLinks={navLinks} />
   <HomePage />
+  <Footer
+    footerLabel="Five promotional directions for Diald Club"
+    footerLinks={footerLinks}
+  />
 </BaseLayout>

@@ -1,5 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import Footer from "../components/Footer.astro";
+import Header from "../components/Header.astro";
 import TermsOfUse from "../components/TermsOfUse.astro";
 
 const navLinks = [
@@ -12,7 +14,8 @@ const navLinks = [
   title="Terms of Use - Diald Club"
   description="Terms of Use for the Diald Club coffee tracking app."
   bodyClass="legal-page"
-  navLinks={navLinks}
 >
+  <Header navLinks={navLinks} />
   <TermsOfUse />
+  <Footer />
 </BaseLayout>
