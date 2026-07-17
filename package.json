@@ -4,8 +4,6 @@
   "scripts": {
     "build": "bun install --cwd Site && cd Site && bun run build",
     "dev": "bun install --cwd Site && cd Site && bun run dev",
-    "preview": "bun install --cwd Site && cd Site && bun run preview",
-    "site": "bun run dev",
-    "start": "bun run dev"
+    "preview": "bun install --cwd Site && cd Site && bun run preview"
   }
 }
