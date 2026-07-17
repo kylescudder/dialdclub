@@ -1,62 +1,18 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import TermsOfUse from "../components/TermsOfUse.astro";
 
 const navLinks = [
-    { href: "/#support", label: "Support", class: "nav-word" },
-    { href: "/privacy", label: "Privacy", class: "nav-word" },
+  { href: "/#support", label: "Support", class: "nav-word" },
+  { href: "/privacy", label: "Privacy", class: "nav-word" },
 ];
 ---
 
 <BaseLayout
-    title="Terms of Use - Diald Club"
-    description="Terms of Use for the Diald Club coffee tracking app."
-    bodyClass="legal-page"
-    navLinks={navLinks}
+  title="Terms of Use - Diald Club"
+  description="Terms of Use for the Diald Club coffee tracking app."
+  bodyClass="legal-page"
+  navLinks={navLinks}
 >
-    <main class="legal-shell">
-        <article class="legal">
-            <p class="kicker">Diald Club</p>
-            <h1>Terms of Use</h1>
-            <p class="updated">Last updated: 4 July 2026</p>
-
-            <p>These Terms of Use apply to your use of the Diald Club iOS app and website. By using Diald, you agree to these terms and to Apple's standard End User License Agreement (EULA) for apps distributed through the App Store.</p>
-
-            <h2>Apple standard EULA</h2>
-            <p>Diald uses Apple's standard EULA. You can review it at <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/">apple.com/legal/internet-services/itunes/dev/stdeula/</a>.</p>
-
-            <h2>Subscriptions</h2>
-            <p>Diald offers an optional auto-renewable subscription named Supporter Monthly. Subscription pricing and duration are shown in the app before purchase and are confirmed by Apple's purchase sheet.</p>
-            <ul>
-                <li>Payment is charged to your Apple ID after purchase confirmation.</li>
-                <li>The subscription renews automatically unless canceled at least 24 hours before the end of the current period.</li>
-                <li>Your Apple ID account is charged for renewal within 24 hours before the end of the current period.</li>
-                <li>You can manage or cancel your subscription in your App Store account settings.</li>
-                <li>Canceling a subscription stops future renewal; it does not remove access already paid for during the current period.</li>
-            </ul>
-
-            <h2>Accounts and your content</h2>
-            <p>You are responsible for keeping your account secure and for the beans, brews, recipes, steps, ratings, notes, reminders, and other content you add to Diald. Do not upload, enter, or share content that you do not have the right to use.</p>
-
-            <h2>Free and paid access</h2>
-            <p>Diald may limit some features for free accounts, including the number of brew extractions that can be logged. Paid subscription access unlocks the features described in the app at the time of purchase.</p>
-
-            <h2>AI features</h2>
-            <p>AI analysis is optional and requires you to provide your own API key for the provider you choose. You are responsible for your use of that provider, including any provider charges, limits, terms, and privacy practices. AI output may be incomplete or inaccurate and should be treated as guidance rather than professional advice.</p>
-
-            <h2>Acceptable use</h2>
-            <p>Do not misuse the service, interfere with its operation, attempt unauthorized access, reverse engineer protected service components, or use Diald to violate laws or the rights of others.</p>
-
-            <h2>Third-party services</h2>
-            <p>Diald uses third-party services including Supabase for authentication and data storage, Apple services for App Store purchases and notifications, Google and Apple for sign-in when selected, and OpenAI or Anthropic when you choose to run AI analysis. Your use of those services may also be governed by their own terms and policies.</p>
-
-            <h2>Service changes</h2>
-            <p>We may change, suspend, or discontinue features as the app evolves. We will not intentionally remove paid access during a paid subscription period except where required for security, legal, or platform compliance reasons.</p>
-
-            <h2>Changes to these terms</h2>
-            <p>We may update these terms from time to time. When we do, we will revise the "Last updated" date above. Continued use of the app after changes take effect constitutes acceptance of the updated terms.</p>
-
-            <h2>Contact us</h2>
-            <p>If you have questions about these terms, contact us at <a href="mailto:kyle@kylescudder.co.uk">kyle@kylescudder.co.uk</a>.</p>
-        </article>
-    </main>
+  <TermsOfUse />
 </BaseLayout>

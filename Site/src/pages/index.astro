@@ -1,151 +1,31 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import HomePage from "../components/HomePage.astro";
 
 const navLinks = [
-    { href: "#barista-ledger", label: "01" },
-    { href: "#midnight-calibration", label: "02" },
-    { href: "#origin-fieldnotes", label: "03" },
-    { href: "#espresso-brutalist", label: "04" },
-    { href: "#slow-bar-luxe", label: "05" },
-    { href: "#support", label: "Support", class: "nav-word" },
+  { href: "#barista-ledger", label: "01" },
+  { href: "#midnight-calibration", label: "02" },
+  { href: "#origin-fieldnotes", label: "03" },
+  { href: "#espresso-brutalist", label: "04" },
+  { href: "#slow-bar-luxe", label: "05" },
+  { href: "#support", label: "Support", class: "nav-word" },
 ];
 
 const footerLinks = [
-    { href: "#support", label: "Support" },
-    { href: "/privacy", label: "Privacy" },
-    { href: "/terms", label: "Terms" },
-    { href: "https://github.com/kylescudder/dialdclub", label: "GitHub" },
+  { href: "#support", label: "Support" },
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
+  { href: "https://github.com/kylescudder/dialdclub", label: "GitHub" },
 ];
 ---
 
 <BaseLayout
-    title="Diald Club - promotional site variations"
-    description="Five promotional site directions for Diald Club, a focused coffee tracking app for repeatable brews."
-    ogTitle="Diald Club"
-    navLinks={navLinks}
-    footerLabel="Five promotional directions for Diald Club"
-    footerLinks={footerLinks}
+  title="Diald Club - promotional site variations"
+  description="Five promotional site directions for Diald Club, a focused coffee tracking app for repeatable brews."
+  ogTitle="Diald Club"
+  navLinks={navLinks}
+  footerLabel="Five promotional directions for Diald Club"
+  footerLinks={footerLinks}
 >
-    <main>
-        <section class="variant variant-ledger" id="barista-ledger" aria-labelledby="ledger-title">
-            <div class="variant-copy">
-                <p class="kicker">Variation 01 / Barista ledger</p>
-                <h1 id="ledger-title">Dial in every bag without decoding old notes.</h1>
-                <p class="lede">Diald turns beans, recipes, brew sessions, and reminders into a clean coffee log that makes the next cup easier to repeat.</p>
-                <div class="button-row">
-                    <a class="button button-dark" href="https://github.com/kylescudder/dialdclub">View project</a>
-                    <a class="button button-line" href="#midnight-calibration">Next variation</a>
-                </div>
-            </div>
-            <div class="ledger-board" aria-hidden="true">
-                <div class="ledger-card led-a"><span>18.0g</span><strong>V60</strong><small>Guji / 2:42 / bright</small></div>
-                <div class="ledger-card led-b"><span>36g out</span><strong>Espresso</strong><small>House / 29s / syrupy</small></div>
-                <div class="ledger-card led-c"><span>1:16</span><strong>Chemex</strong><small>Kenya / 4:08 / floral</small></div>
-                <div class="phone phone-paper">
-                    <div class="phone-top">Diald</div>
-                    <div class="score">92</div>
-                    <div class="mini-chart"><i></i><i></i><i></i><i></i><i></i></div>
-                    <p>Best cup this week<br />Ethiopia Guji, 18g in</p>
-                </div>
-            </div>
-        </section>
-
-        <section class="variant variant-midnight" id="midnight-calibration" aria-labelledby="midnight-title">
-            <div class="calibration-grid" aria-hidden="true">
-                <span></span><span></span><span></span><span></span><span></span><span></span>
-            </div>
-            <div class="variant-copy">
-                <p class="kicker">Variation 02 / Midnight calibration</p>
-                <h2 id="midnight-title">A cockpit for serious brew experiments.</h2>
-                <p class="lede">Track grind, temperature, ratio, yield, and tasting notes in seconds. See the pattern before the bag disappears.</p>
-                <div class="button-row">
-                    <a class="button button-acid" href="https://github.com/kylescudder/dialdclub">Open GitHub</a>
-                    <a class="button button-glass" href="#origin-fieldnotes">Compare</a>
-                </div>
-            </div>
-            <div class="radar-panel" aria-hidden="true">
-                <div class="radar-sweep"></div>
-                <div class="radar-center"><strong>1:16</strong><span>balanced</span></div>
-                <div class="readout readout-a">Temp 94C</div>
-                <div class="readout readout-b">Grind 22</div>
-                <div class="readout readout-c">Drawdown 2:48</div>
-            </div>
-        </section>
-
-        <section class="variant variant-fieldnotes" id="origin-fieldnotes" aria-labelledby="fieldnotes-title">
-            <div class="origin-map" aria-hidden="true">
-                <span class="pin pin-a"></span>
-                <span class="pin pin-b"></span>
-                <span class="pin pin-c"></span>
-                <div class="map-line line-a"></div>
-                <div class="map-line line-b"></div>
-            </div>
-            <div class="variant-copy">
-                <p class="kicker">Variation 03 / Origin fieldnotes</p>
-                <h2 id="fieldnotes-title">Beans remembered by more than a bag label.</h2>
-                <p class="lede">Keep roaster, origin, process, roast date, recipe changes, and cup notes connected from first brew to final dose.</p>
-                <div class="button-row">
-                    <a class="button button-earth" href="https://github.com/kylescudder/dialdclub">See source</a>
-                    <a class="button button-quiet" href="#espresso-brutalist">Next</a>
-                </div>
-            </div>
-            <div class="fieldnote-stack" aria-hidden="true">
-                <article><b>Natural</b><span>Ethiopia / blueberry / tea</span></article>
-                <article><b>Washed</b><span>Kenya / currant / citrus</span></article>
-                <article><b>Honey</b><span>Costa Rica / caramel / pear</span></article>
-            </div>
-        </section>
-
-        <section class="variant variant-brutalist" id="espresso-brutalist" aria-labelledby="brutalist-title">
-            <div class="stamp" aria-hidden="true">DIALD</div>
-            <div class="variant-copy">
-                <p class="kicker">Variation 04 / Espresso brutalist</p>
-                <h2 id="brutalist-title">Stop guessing. Pull, log, adjust, repeat.</h2>
-                <p class="lede">A sharp, no-nonsense presentation for espresso people who want fast entries, visible deltas, and fewer mystery shots.</p>
-                <div class="button-row">
-                    <a class="button button-block" href="https://github.com/kylescudder/dialdclub">GitHub</a>
-                    <a class="button button-outline-heavy" href="#slow-bar-luxe">View 05</a>
-                </div>
-            </div>
-            <div class="shot-table" aria-hidden="true">
-                <div><span>IN</span><b>18.5</b></div>
-                <div><span>OUT</span><b>42.0</b></div>
-                <div><span>TIME</span><b>31s</b></div>
-                <div><span>NOTE</span><b>+FINER</b></div>
-            </div>
-        </section>
-
-        <section class="variant variant-luxe" id="slow-bar-luxe" aria-labelledby="luxe-title">
-            <div class="variant-copy">
-                <p class="kicker">Variation 05 / Slow bar luxe</p>
-                <h2 id="luxe-title">A calmer way to collect better cups.</h2>
-                <p class="lede">For a polished App Store-feeling site: tactile, premium, and quiet, with the product framed as a daily coffee ritual.</p>
-                <div class="button-row">
-                    <a class="button button-gold" href="https://github.com/kylescudder/dialdclub">View project</a>
-                    <a class="button button-silk" href="#barista-ledger">Back to top</a>
-                </div>
-            </div>
-            <div class="luxe-stage" aria-hidden="true">
-                <img class="app-icon" src="/assets/diald-icon.png" alt="" />
-                <div class="luxe-phone">
-                    <span>Diald Club</span>
-                    <strong>Morning recipe saved</strong>
-                    <p>V60 / 20g / 320g / 3:04</p>
-                </div>
-            </div>
-        </section>
-
-        <section class="support-section" id="support" aria-labelledby="support-title">
-            <div>
-                <p class="kicker">Support / App Store compliance</p>
-                <h2 id="support-title">Help, privacy, and terms for Diald Club.</h2>
-                <p class="lede">Questions, account requests, subscription issues, bug reports, and feedback are handled by email. Include the email address on your Diald account and a short description of what you need help with.</p>
-            </div>
-            <div class="support-actions">
-                <a class="button button-gold" href="mailto:kyle@kylescudder.co.uk?subject=Diald%20Club%20Support">Email support</a>
-                <a class="button button-silk" href="/privacy">Privacy policy</a>
-                <a class="button button-silk" href="/terms">Terms of Use</a>
-            </div>
-        </section>
-    </main>
+  <HomePage />
 </BaseLayout>

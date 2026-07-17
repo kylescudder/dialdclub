@@ -1,0 +1,36 @@
+---
+import VariationIntro from "./VariationIntro.astro";
+---
+
+<section
+  class="variant variant-fieldnotes"
+  id="origin-fieldnotes"
+  aria-labelledby="fieldnotes-title"
+>
+  <div class="origin-map" aria-hidden="true">
+    <span class="pin pin-a"></span>
+    <span class="pin pin-b"></span>
+    <span class="pin pin-c"></span>
+    <div class="map-line line-a"></div>
+    <div class="map-line line-b"></div>
+  </div>
+  <VariationIntro
+    kicker="Variation 03 / Origin fieldnotes"
+    title="Beans remembered by more than a bag label."
+    titleId="fieldnotes-title"
+    lede="Keep roaster, origin, process, roast date, recipe changes, and cup notes connected from first brew to final dose."
+    buttons={[
+      {
+        href: "https://github.com/kylescudder/dialdclub",
+        label: "See source",
+        class: "button-earth",
+      },
+      { href: "#espresso-brutalist", label: "Next", class: "button-quiet" },
+    ]}
+  />
+  <div class="fieldnote-stack" aria-hidden="true">
+    <article><b>Natural</b><span>Ethiopia / blueberry / tea</span></article>
+    <article><b>Washed</b><span>Kenya / currant / citrus</span></article>
+    <article><b>Honey</b><span>Costa Rica / caramel / pear</span></article>
+  </div>
+</section>

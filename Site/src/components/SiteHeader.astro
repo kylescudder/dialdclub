@@ -1,0 +1,33 @@
+---
+export interface NavLink {
+  href: string;
+  label: string;
+  class?: string;
+}
+
+interface Props {
+  navLinks?: NavLink[];
+}
+
+const { navLinks = [] } = Astro.props;
+---
+
+<header class="site-header">
+  <a class="brand-link" href="/" aria-label="Diald Club home">
+    <span class="logo" aria-hidden="true"
+      ><img src="/assets/diald-icon.png" alt="" /></span
+    >
+    <span class="wordmark">Diald Club</span>
+  </a>
+  {
+    navLinks.length > 0 && (
+      <nav class="variant-nav" aria-label="Site links">
+        {navLinks.map((link) => (
+          <a class={link.class} href={link.href}>
+            {link.label}
+          </a>
+        ))}
+      </nav>
+    )
+  }
+</header>

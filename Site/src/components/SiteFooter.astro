@@ -1,0 +1,30 @@
+---
+import type { NavLink } from "./SiteHeader.astro";
+
+interface Props {
+  footerLabel?: string;
+  footerLinks?: NavLink[];
+}
+
+const {
+  footerLabel = "Diald Club",
+  footerLinks = [
+    { href: "/#support", label: "Support" },
+    { href: "/privacy", label: "Privacy" },
+    { href: "/terms", label: "Terms" },
+  ],
+} = Astro.props;
+---
+
+<footer>
+  <span>{footerLabel}</span>
+  <span class="footer-links">
+    {
+      footerLinks.map((link) => (
+        <a class={link.class} href={link.href}>
+          {link.label}
+        </a>
+      ))
+    }
+  </span>
+</footer>
