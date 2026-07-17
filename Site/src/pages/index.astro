@@ -1,24 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import Footer from "../components/Footer.astro";
-import Header from "../components/Header.astro";
 import HomePage from "../components/HomePage.astro";
-
-const navLinks = [
-  { href: "#barista-ledger", label: "01" },
-  { href: "#midnight-calibration", label: "02" },
-  { href: "#origin-fieldnotes", label: "03" },
-  { href: "#espresso-brutalist", label: "04" },
-  { href: "#slow-bar-luxe", label: "05" },
-  { href: "#support", label: "Support", class: "nav-word" },
-];
-
-const footerLinks = [
-  { href: "#support", label: "Support" },
-  { href: "/privacy", label: "Privacy" },
-  { href: "/terms", label: "Terms" },
-  { href: "https://github.com/kylescudder/dialdclub", label: "GitHub" },
-];
 ---
 
 <BaseLayout
@@ -26,10 +8,5 @@ const footerLinks = [
   description="Five promotional site directions for Diald Club, a focused coffee tracking app for repeatable brews."
   ogTitle="Diald Club"
 >
-  <Header navLinks={navLinks} />
   <HomePage />
-  <Footer
-    footerLabel="Five promotional directions for Diald Club"
-    footerLinks={footerLinks}
-  />
 </BaseLayout>

@@ -9,7 +9,27 @@ interface Props {
   navLinks?: NavLink[];
 }
 
-const { navLinks = [] } = Astro.props;
+const path = Astro.url.pathname;
+const defaultNavLinks = path.startsWith("/privacy")
+  ? [
+      { href: "/#support", label: "Support", class: "nav-word" },
+      { href: "/terms", label: "Terms", class: "nav-word" },
+    ]
+  : path.startsWith("/terms")
+    ? [
+        { href: "/#support", label: "Support", class: "nav-word" },
+        { href: "/privacy", label: "Privacy", class: "nav-word" },
+      ]
+    : [
+        { href: "#barista-ledger", label: "01" },
+        { href: "#midnight-calibration", label: "02" },
+        { href: "#origin-fieldnotes", label: "03" },
+        { href: "#espresso-brutalist", label: "04" },
+        { href: "#slow-bar-luxe", label: "05" },
+        { href: "#support", label: "Support", class: "nav-word" },
+      ];
+
+const { navLinks = defaultNavLinks } = Astro.props;
 ---
 
 <header class="site-header">

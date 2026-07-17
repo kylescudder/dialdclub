@@ -1,13 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import Footer from "../components/Footer.astro";
-import Header from "../components/Header.astro";
 import PrivacyPolicy from "../components/PrivacyPolicy.astro";
-
-const navLinks = [
-  { href: "/#support", label: "Support", class: "nav-word" },
-  { href: "/terms", label: "Terms", class: "nav-word" },
-];
 ---
 
 <BaseLayout
@@ -15,7 +8,5 @@ const navLinks = [
   description="Privacy policy for the Diald Club coffee tracking app."
   bodyClass="legal-page"
 >
-  <Header navLinks={navLinks} />
   <PrivacyPolicy />
-  <Footer />
 </BaseLayout>
