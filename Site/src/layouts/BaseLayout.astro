@@ -1,9 +1,9 @@
 ---
 import "../styles/global.css";
 import DocumentHead from "../components/DocumentHead.astro";
-import SiteFooter from "../components/SiteFooter.astro";
-import SiteHeader from "../components/SiteHeader.astro";
-import type { NavLink } from "../components/SiteHeader.astro";
+import Footer from "../components/Footer.astro";
+import Header from "../components/Header.astro";
+import type { NavLink } from "../components/Header.astro";
 
 interface Props {
   title: string;
@@ -36,8 +36,8 @@ const {
     <DocumentHead title={title} description={description} ogTitle={ogTitle} />
   </head>
   <body class={bodyClass}>
-    <SiteHeader navLinks={navLinks} />
+    <Header navLinks={navLinks} />
     <slot />
-    <SiteFooter footerLabel={footerLabel} footerLinks={footerLinks} />
+    <Footer footerLabel={footerLabel} footerLinks={footerLinks} />
   </body>
 </html>
