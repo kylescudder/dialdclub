@@ -1,6 +1,11 @@
 ---
+import BaristaLedgerVariation from "../components/BaristaLedgerVariation.astro";
+import EspressoBrutalistVariation from "../components/EspressoBrutalistVariation.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import HomePage from "../components/HomePage.astro";
+import MidnightCalibrationVariation from "../components/MidnightCalibrationVariation.astro";
+import OriginFieldnotesVariation from "../components/OriginFieldnotesVariation.astro";
+import SlowBarLuxeVariation from "../components/SlowBarLuxeVariation.astro";
+import SupportSection from "../components/SupportSection.astro";
 ---
 
 <BaseLayout
@@ -8,5 +13,12 @@ import HomePage from "../components/HomePage.astro";
   description="Five promotional site directions for Diald Club, a focused coffee tracking app for repeatable brews."
   ogTitle="Diald Club"
 >
-  <HomePage />
+  <main>
+    <BaristaLedgerVariation />
+    <MidnightCalibrationVariation />
+    <OriginFieldnotesVariation />
+    <EspressoBrutalistVariation />
+    <SlowBarLuxeVariation />
+    <SupportSection />
+  </main>
 </BaseLayout>
