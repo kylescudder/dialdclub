@@ -1,0 +1,50 @@
+---
+import VariationIntro from "./VariationIntro.astro";
+---
+
+<section
+  class="variant variant-ledger"
+  id="barista-ledger"
+  aria-labelledby="ledger-title"
+>
+  <VariationIntro
+    kicker="Variation 01 / Barista ledger"
+    title="Dial in every bag without decoding old notes."
+    titleId="ledger-title"
+    headingLevel="h1"
+    lede="Diald turns beans, recipes, brew sessions, and reminders into a clean coffee log that makes the next cup easier to repeat."
+    buttons={[
+      {
+        href: "https://github.com/kylescudder/dialdclub",
+        label: "View project",
+        class: "button-dark",
+      },
+      {
+        href: "#midnight-calibration",
+        label: "Next variation",
+        class: "button-line",
+      },
+    ]}
+  />
+  <div class="ledger-board" aria-hidden="true">
+    <div class="ledger-card led-a">
+      <span>18.0g</span><strong>V60</strong><small>Guji / 2:42 / bright</small>
+    </div>
+    <div class="ledger-card led-b">
+      <span>36g out</span><strong>Espresso</strong><small
+        >House / 29s / syrupy</small
+      >
+    </div>
+    <div class="ledger-card led-c">
+      <span>1:16</span><strong>Chemex</strong><small
+        >Kenya / 4:08 / floral</small
+      >
+    </div>
+    <div class="phone phone-paper">
+      <div class="phone-top">Diald</div>
+      <div class="score">92</div>
+      <div class="mini-chart"><i></i><i></i><i></i><i></i><i></i></div>
+      <p>Best cup this week<br />Ethiopia Guji, 18g in</p>
+    </div>
+  </div>
+</section>
