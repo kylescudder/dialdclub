@@ -43,3 +43,8 @@ supabase/.branches/
 
 # Local Netlify folder
 .netlify
+
+# Astro marketing site
+Site/.astro/
+Site/dist/
+Site/node_modules/

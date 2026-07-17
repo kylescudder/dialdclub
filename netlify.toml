@@ -1,0 +1,9 @@
+[build]
+  base = "Site"
+  command = "bun run build"
+  publish = "dist"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
