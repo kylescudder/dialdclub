@@ -1,11 +1,14 @@
 {
-  "packageManager": "bun@1.3.14",
+  "name": "dialdclub",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
   "scripts": {
+    "dev": "astro dev --host 0.0.0.0",
     "build": "astro build",
-    "dev": "astro dev --host 0.0.0.0 --port 4175",
-    "preview": "astro preview --host 0.0.0.0 --port 4175",
-    "site": "bun run dev",
-    "start": "bun run dev"
+    "preview": "astro preview --host 0.0.0.0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "astro": "^7.1.1"
