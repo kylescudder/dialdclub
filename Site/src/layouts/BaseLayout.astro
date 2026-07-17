@@ -1,0 +1,79 @@
+---
+import "../styles/global.css";
+
+interface NavLink {
+    href: string;
+    label: string;
+    class?: string;
+}
+
+interface Props {
+    title: string;
+    description: string;
+    ogTitle?: string;
+    bodyClass?: string;
+    navLinks?: NavLink[];
+    footerLabel?: string;
+    footerLinks?: NavLink[];
+}
+
+const {
+    title,
+    description,
+    ogTitle = title,
+    bodyClass = "",
+    navLinks = [],
+    footerLabel = "Diald Club",
+    footerLinks = [
+        { href: "/#support", label: "Support" },
+        { href: "/privacy", label: "Privacy" },
+        { href: "/terms", label: "Terms" },
+    ],
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta name="theme-color" content="#11100d" />
+        <title>{title}</title>
+        <meta name="description" content={description} />
+
+        <meta property="og:title" content={ogTitle} />
+        <meta property="og:description" content={description} />
+        <meta property="og:type" content="website" />
+
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Archivo+Black&family=DM+Serif+Display:ital@0;1&family=Fraunces:opsz,wght@9..144,500;9..144,800&family=IBM+Plex+Mono:wght@500;700&family=Libre+Baskerville:wght@400;700&family=Newsreader:opsz,wght@6..72,500;6..72,800&family=Oswald:wght@500;700&family=Unbounded:wght@600;800&family=Work+Sans:wght@500;700&display=swap" rel="stylesheet" />
+        <link rel="icon" href="/assets/diald-icon.png" type="image/png" />
+    </head>
+    <body class={bodyClass}>
+        <header class="site-header">
+            <a class="brand-link" href="/" aria-label="Diald Club home">
+                <span class="logo" aria-hidden="true"><img src="/assets/diald-icon.png" alt="" /></span>
+                <span class="wordmark">Diald Club</span>
+            </a>
+            {
+                navLinks.length > 0 && (
+                    <nav class="variant-nav" aria-label="Site links">
+                        {navLinks.map((link) => (
+                            <a class={link.class} href={link.href}>{link.label}</a>
+                        ))}
+                    </nav>
+                )
+            }
+        </header>
+
+        <slot />
+
+        <footer>
+            <span>{footerLabel}</span>
+            <span class="footer-links">
+                {footerLinks.map((link) => <a class={link.class} href={link.href}>{link.label}</a>)}
+            </span>
+        </footer>
+    </body>
+</html>

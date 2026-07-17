@@ -1,5 +1,7 @@
 [build]
-  publish = "web"
+  base = "Site"
+  command = "bun run build"
+  publish = "dist"
 
 [[headers]]
   for = "/assets/*"
