@@ -316,9 +316,7 @@ final class AuthClient: ObservableObject {
             if let firstName = credential.fullName?.givenName?.trimmingCharacters(in: .whitespaces),
                !firstName.isEmpty {
                 _ = try? await supabase
-                    .from("profiles")
-                    .update(["display_name": firstName])
-                    .eq("id", value: session.user.id.uuidString.lowercased())
+                    .rpc("fill_profile_display_name", params: ["candidate": firstName])
                     .execute()
             }
         } catch {
