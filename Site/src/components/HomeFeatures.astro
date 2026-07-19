@@ -1,0 +1,58 @@
+---
+const features = [
+  {
+    icon: "◷",
+    title: "Time the extraction",
+    body: "Open the full-screen timer from a new brew or start it from a Shortcut, then save the result straight into the recipe.",
+  },
+  {
+    icon: "♧",
+    title: "Know every bean",
+    body: "Catalogue the roaster, origin, process, roast level, and tasting notes so each brew stays attached to the coffee behind it.",
+  },
+  {
+    icon: "⌁",
+    title: "Compare what changed",
+    body: "Filter previous brews and review totals, average ratings, average extraction times, and recent trends in one focused view.",
+  },
+  {
+    icon: "✦",
+    title: "Ask for a second opinion",
+    body: "Send only the brews you choose to OpenAI or Anthropic for practical recommendations, using an API key kept in your Keychain.",
+  },
+  {
+    icon: "↗",
+    title: "Start from anywhere",
+    body: "Log a brew or launch the timer with Siri Shortcuts, quick actions, and Home Screen widgets when your hands are already busy.",
+  },
+  {
+    icon: "◉",
+    title: "Keep the habit going",
+    body: "Sync your account data across devices, schedule brew reminders, and keep a reliable history ready whenever the next bag opens.",
+  },
+];
+---
+
+<section class="feature-section" id="features" aria-labelledby="features-title">
+  <div class="section-heading">
+    <div>
+      <p class="kicker">Built around the whole brew</p>
+      <h2 id="features-title">The details matter only when they help the next cup.</h2>
+    </div>
+    <p>
+      Diald Club turns a pile of disconnected notes into a practical workflow:
+      log what happened, understand the result, and start the next brew closer.
+    </p>
+  </div>
+  <div class="feature-grid">
+    {
+      features.map((feature) => (
+        <article class="feature-card">
+          <span class="feature-icon" aria-hidden="true">{feature.icon}</span>
+          <h3>{feature.title}</h3>
+          <p>{feature.body}</p>
+        </article>
+      ))
+    }
+  </div>
+</section>

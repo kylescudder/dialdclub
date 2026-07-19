@@ -7,9 +7,9 @@ interface Props {
 const { title, updated } = Astro.props;
 ---
 
-<main class="legal-shell">
-  <article class="legal">
-    <p class="kicker">Diald Club</p>
+<main class="legal-shell wrap">
+  <article class="legal prose legal-policy">
+    <p class="eyebrow">Diald Club</p>
     <h1>{title}</h1>
     {updated && <p class="updated">Last updated: {updated}</p>}
     <slot />

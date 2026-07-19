@@ -1,14 +1,21 @@
 ---
-import BaristaLedgerVariation from "../components/BaristaLedgerVariation.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import HomeFeatures from "../components/HomeFeatures.astro";
+import HomeHero from "../components/HomeHero.astro";
+import HomeHighlights from "../components/HomeHighlights.astro";
+import HomeSupport from "../components/HomeSupport.astro";
 ---
 
 <BaseLayout
-  title="Diald Club - coffee tracking app"
-  description="Diald Club is a focused coffee tracking app for repeatable brews, better bean notes, and easier dialing in."
+  title="Diald Club — make every coffee easier to repeat"
+  description="Track recipes, time extractions, compare brew stats, catalogue beans, and turn tasting notes into a better next cup with Diald Club."
   ogTitle="Diald Club"
+  bodyClass="home-page"
 >
   <main>
-    <BaristaLedgerVariation />
+    <HomeHero />
+    <HomeHighlights />
+    <HomeFeatures />
+    <HomeSupport />
   </main>
 </BaseLayout>

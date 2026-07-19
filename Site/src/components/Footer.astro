@@ -1,41 +1,13 @@
 ---
-import type { NavLink } from "./Header.astro";
-
-interface Props {
-  footerLabel?: string;
-  footerLinks?: NavLink[];
-}
-
-const path = Astro.url.pathname;
-const defaultFooterLabel =
-  path === "/" ? "Diald Club" : "Diald Club";
-const defaultFooterLinks =
-  path === "/"
-    ? [
-        { href: "/support", label: "Support" },
-        { href: "/privacy", label: "Privacy" },
-        { href: "/terms", label: "Terms" },
-        { href: "https://github.com/kylescudder/dialdclub", label: "GitHub" },
-      ]
-    : [
-        { href: "/support", label: "Support" },
-        { href: "/privacy", label: "Privacy" },
-        { href: "/terms", label: "Terms" },
-      ];
-
-const { footerLabel = defaultFooterLabel, footerLinks = defaultFooterLinks } =
-  Astro.props;
+const year = new Date().getFullYear();
 ---
 
-<footer>
-  <span>{footerLabel}</span>
-  <span class="footer-links">
-    {
-      footerLinks.map((link) => (
-        <a class={link.class} href={link.href}>
-          {link.label}
-        </a>
-      ))
-    }
-  </span>
+<footer class="site-footer">
+  <div class="footer-wrap">
+    <a href="/privacy">Privacy</a>
+    <a href="/terms">Terms</a>
+    <a href="/support">Support</a>
+    <a href="https://github.com/kylescudder/dialdclub">GitHub</a>
+    <span>&copy; {year} Kyle Scudder</span>
+  </div>
 </footer>
