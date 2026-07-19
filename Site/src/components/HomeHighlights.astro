@@ -1,0 +1,31 @@
+---
+const highlights = [
+  {
+    title: "Log",
+    subtitle: "Every variable that moved the cup",
+    body: "Keep dose, yield, water, temperature, grind, method, extraction time, rating, and tasting notes together.",
+  },
+  {
+    title: "Learn",
+    subtitle: "Patterns you can see, not guess",
+    body: "Filter your history by bean, method, time, or rating and use clear stats to spot the recipes that work.",
+  },
+  {
+    title: "Repeat",
+    subtitle: "A better starting point next time",
+    body: "Bring the last brew back, adjust with intent, and build a useful record of every bag from first cup to last.",
+  },
+];
+---
+
+<section class="highlight-strip" aria-label="How Diald Club helps">
+  {
+    highlights.map((highlight) => (
+      <article class="highlight-card">
+        <strong>{highlight.title}</strong>
+        <span>{highlight.subtitle}</span>
+        <p>{highlight.body}</p>
+      </article>
+    ))
+  }
+</section>
