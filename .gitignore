@@ -7,7 +7,7 @@ DerivedData/
 *.xcodeproj/project.xcworkspace/xcuserdata/
 
 # XcodeGen generates this from project.yml
-BrewLab.xcodeproj/
+Diald.xcodeproj/
 
 # Swift Package Manager
 .swiftpm/
