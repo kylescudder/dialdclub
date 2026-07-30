@@ -10,68 +10,76 @@ struct SubscriptionPaywallView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: Theme.Spacing.xl) {
-                Spacer(minLength: Theme.Spacing.lg)
+            GeometryReader { geometry in
+                ScrollView {
+                    VStack(spacing: Theme.Spacing.xl) {
+                        Spacer(minLength: Theme.Spacing.lg)
 
-                Image(systemName: "timer.circle.fill")
-                    .font(.system(size: 78))
-                    .foregroundStyle(Theme.Colors.green)
+                        Image(systemName: "timer.circle.fill")
+                            .font(.system(size: 78))
+                            .foregroundStyle(Theme.Colors.green)
 
-                VStack(spacing: Theme.Spacing.sm) {
-                    Text("Keep logging extractions")
-                        .font(.title2.weight(.semibold))
-                        .multilineTextAlignment(.center)
-                    Text("Your first \(AppServices.freeExtractionLimit) extractions are free. Subscribe to add unlimited brews, recipes, and tasting notes.")
-                        .font(.body)
-                        .foregroundStyle(Theme.Colors.textSecondary)
-                        .multilineTextAlignment(.center)
-                }
-
-                VStack(spacing: Theme.Spacing.sm) {
-                    PrimaryButton(
-                        title: subscribeTitle,
-                        systemImage: "checkmark.seal.fill",
-                        isLoading: isPurchasing,
-                        action: { Task { await subscribe() } }
-                    )
-                    .disabled(isPurchasing || services.billing.subscriptionProduct == nil)
-
-                    Button {
-                        Task { await restore() }
-                    } label: {
-                        if isRestoring {
-                            ProgressView()
-                        } else {
-                            Text("Restore purchases")
+                        VStack(spacing: Theme.Spacing.sm) {
+                            Text("Keep logging extractions")
+                                .font(.title2.weight(.semibold))
+                                .multilineTextAlignment(.center)
+                            Text("Your first \(AppServices.freeExtractionLimit) extractions are free. Subscribe to add unlimited brews, recipes, and tasting notes.")
+                                .font(.body)
+                                .foregroundStyle(Theme.Colors.textSecondary)
+                                .multilineTextAlignment(.center)
                         }
+
+                        VStack(spacing: Theme.Spacing.sm) {
+                            PrimaryButton(
+                                title: subscribeTitle,
+                                systemImage: "checkmark.seal.fill",
+                                isLoading: isPurchasing,
+                                action: { Task { await subscribe() } }
+                            )
+                            .disabled(isPurchasing || services.billing.subscriptionProduct == nil)
+
+                            Button {
+                                Task { await restore() }
+                            } label: {
+                                if isRestoring {
+                                    ProgressView()
+                                } else {
+                                    Text("Restore purchases")
+                                }
+                            }
+                            .disabled(isRestoring || isPurchasing)
+                        }
+
+                        if services.billing.isLoadingProducts {
+                            ProgressView()
+                        } else if services.billing.subscriptionProduct == nil {
+                            Text("Subscription details are unavailable. Try again later.")
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                                .multilineTextAlignment(.center)
+                        } else if let message = services.billing.lastError {
+                            Text(message)
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                                .multilineTextAlignment(.center)
+                        }
+
+                        if let extractionCount {
+                            Text("\(extractionCount) extractions logged")
+                                .font(.footnote)
+                                .foregroundStyle(Theme.Colors.textTertiary)
+                        }
+
+                        subscriptionDisclosure
+
+                        Spacer(minLength: Theme.Spacing.lg)
                     }
-                    .disabled(isRestoring || isPurchasing)
+                    .padding(Theme.Spacing.xl)
+                    .frame(maxWidth: .infinity, minHeight: geometry.size.height)
                 }
-
-                if services.billing.isLoadingProducts {
-                    ProgressView()
-                } else if services.billing.subscriptionProduct == nil {
-                    Text("Subscription details are unavailable. Try again later.")
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .multilineTextAlignment(.center)
-                } else if let message = services.billing.lastError {
-                    Text(message)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .multilineTextAlignment(.center)
-                }
-
-                if let extractionCount {
-                    Text("\(extractionCount) extractions logged")
-                        .font(.footnote)
-                        .foregroundStyle(Theme.Colors.textTertiary)
-                }
-
-                Spacer(minLength: Theme.Spacing.lg)
+                .scrollBounceBehavior(.basedOnSize)
+                .background(Theme.Colors.background)
             }
-            .padding(Theme.Spacing.xl)
-            .background(Theme.Colors.background)
             .navigationTitle("Supporter Monthly")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -99,6 +107,45 @@ struct SubscriptionPaywallView: View {
         }
         return "Subscribe \(product.displayPrice) / month"
     }
+
+    @ViewBuilder
+    private var subscriptionDisclosure: some View {
+        VStack(spacing: Theme.Spacing.xs) {
+            Text("Supporter Monthly")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Theme.Colors.textSecondary)
+            Text(subscriptionDetailText)
+                .font(.footnote)
+                .foregroundStyle(Theme.Colors.textTertiary)
+                .multilineTextAlignment(.center)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Theme.Spacing.sm) {
+                    Link("Privacy Policy", destination: Self.privacyPolicyURL)
+                    Text("•")
+                        .foregroundStyle(Theme.Colors.textTertiary)
+                    Link("Terms of Use", destination: Self.termsOfUseURL)
+                }
+                .fixedSize(horizontal: true, vertical: false)
+
+                VStack(spacing: Theme.Spacing.xs) {
+                    Link("Privacy Policy", destination: Self.privacyPolicyURL)
+                    Link("Terms of Use", destination: Self.termsOfUseURL)
+                }
+            }
+            .font(.footnote.weight(.semibold))
+        }
+        .padding(.top, Theme.Spacing.sm)
+    }
+
+    private var subscriptionDetailText: String {
+        guard let product = services.billing.subscriptionProduct else {
+            return "Monthly auto-renewable subscription. Payment is charged to your Apple ID after purchase confirmation."
+        }
+        return "Monthly auto-renewable subscription: \(product.displayPrice) per month. Payment is charged to your Apple ID after purchase confirmation."
+    }
+
+    private static let privacyPolicyURL = URL(string: "https://diald.club/privacy")!
+    private static let termsOfUseURL = URL(string: "https://diald.club/terms")!
 
     private func subscribe() async {
         isPurchasing = true
