@@ -22,7 +22,7 @@ The fastest path is the bundled script:
 ./setup.sh
 ```
 
-It checks Bun and the required native/backend tools, reports optional Netlify and PostgreSQL CLIs, copies the secrets template without overwriting local values, verifies Supabase CLI login/link state, offers to apply migrations with `supabase db push`, explains the future PowerSync boundary, generates the Xcode project on macOS, and offers an unsigned simulator build.
+It checks Bun and the required native/backend tools, reports optional Netlify and PostgreSQL CLIs, copies the secrets template without overwriting local values, verifies Supabase CLI login and local link state, offers migrations only for a linked project, explains the future PowerSync boundary, generates the Xcode project on macOS, and offers an unsigned simulator build.
 
 Manual version:
 

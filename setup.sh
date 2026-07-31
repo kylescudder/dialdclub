@@ -109,18 +109,25 @@ if ! supabase projects list >/dev/null 2>&1; then
     note "Find the project ref at: supabase.com → your project → Settings → General"
 else
     ok "supabase CLI is logged in"
-    note "If this repository is not linked yet, run: supabase link --project-ref <ref>"
 
-    REPLY=""
-    read -p "Apply Supabase migrations from supabase/migrations/ to your linked project now? [y/N] " -n 1 -r || true
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        supabase db push
-        ok "Migrations applied"
+    if [[ ! -s supabase/.temp/project-ref ]]; then
+        warn "This repository is not linked to a Supabase project."
+        note "Run: supabase link --project-ref <ref>"
+        note "Then re-run setup.sh to be offered the migration step."
     else
-        note "Skipped. To apply manually:"
-        note "  supabase db push"
-        note "Or paste each file in supabase/migrations/ into the Supabase SQL editor in order."
+        ok "Supabase project link present"
+
+        REPLY=""
+        read -p "Apply Supabase migrations from supabase/migrations/ to your linked project now? [y/N] " -n 1 -r || true
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            supabase db push
+            ok "Migrations applied"
+        else
+            note "Skipped. To apply manually:"
+            note "  supabase db push"
+            note "Or paste each file in supabase/migrations/ into the Supabase SQL editor in order."
+        fi
     fi
 fi
 
