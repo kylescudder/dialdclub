@@ -65,7 +65,7 @@ struct SubscriptionPaywallView: View {
                         }
 
                         if let extractionCount {
-                            Text("\(extractionCount) extractions logged")
+                            Text("\(extractionCount) \(extractionCount == 1 ? \"extraction\" : \"extractions\") logged")
                                 .font(.footnote)
                                 .foregroundStyle(Theme.Colors.textTertiary)
                         }
