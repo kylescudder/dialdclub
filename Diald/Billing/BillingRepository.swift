@@ -41,6 +41,7 @@ final class BillingRepository: ObservableObject {
 
     func loadProducts() async {
         isLoadingProducts = true
+        lastError = nil
         defer { isLoadingProducts = false }
         do {
             let products = try await Product.products(for: [Self.supporterMonthlyProductID])
