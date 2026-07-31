@@ -41,10 +41,12 @@ final class BillingRepository: ObservableObject {
 
     func loadProducts() async {
         isLoadingProducts = true
+        lastError = nil
         defer { isLoadingProducts = false }
         do {
             let products = try await Product.products(for: [Self.supporterMonthlyProductID])
             subscriptionProduct = products.first
+            lastError = nil
         } catch {
             lastError = error.localizedDescription
             Log.error(error, category: "billing.products")
