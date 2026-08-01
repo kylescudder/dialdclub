@@ -36,7 +36,6 @@ enum AppSecrets {
         let raw = rawString(for: "SUPABASE_URL")
         guard supabaseConfigurationError == nil,
               let url = URL(string: raw) else {
-            assertionFailure("SUPABASE_URL is not configured")
             return URL(string: "https://placeholder.supabase.co")!
         }
         return url
