@@ -1,6 +1,10 @@
 -- Preserve lifetime extraction usage independently from mutable brew rows and
 -- enforce the free allowance at the database boundary.
 
+-- RLS policies decide which owner-scoped rows are accessible; the table grant
+-- is still required for authenticated PostgREST operations on a clean project.
+grant select, insert, update, delete on table public.brew_sessions to authenticated;
+
 create table if not exists public.extraction_creation_quotas (
   user_id uuid primary key references public.profiles(id) on delete cascade,
   lifetime_count bigint not null default 0 check (lifetime_count >= 0),
