@@ -191,6 +191,7 @@ Developer tasks:
   4. In Supabase Edge Functions, configure:
        SUPABASE_URL
        SUPABASE_SERVICE_ROLE_KEY
+       APPLE_APP_ID (the numeric App Store app ID)
      Never place the service-role key in either app target or xcconfig.
   5. Verify the existing StoreKit/App Store Connect setup for
      club.diald.supporter.monthly, signing profiles for both targets, and

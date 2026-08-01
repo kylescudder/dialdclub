@@ -12,7 +12,7 @@ struct AddBrewView: View {
     @State private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     @State private var hasAppliedInitialTimerState = false
     @State private var showPaywall = false
-    @State private var showSaveError = false
+    @State private var creationFailure: BrewCreationError?
     @State private var showTimerScreen = false
 
     init(startTimerOnAppear: Bool = false, brewToEdit: BrewSession? = nil) {
@@ -102,10 +102,8 @@ struct AddBrewView: View {
             .sheet(isPresented: $showPaywall) {
                 SubscriptionPaywallView()
             }
-            .alert("Couldn't save brew", isPresented: $showSaveError) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text("Please check your connection and try again.")
+            .alert(item: $creationFailure) { error in
+                creationAlert(for: error)
             }
             .fullScreenCover(isPresented: $showTimerScreen) {
                 CoffeeTimerScreen(
@@ -142,21 +140,65 @@ struct AddBrewView: View {
         if let brewToEdit {
             await services.brews.update(brewToEdit, with: draft)
         } else {
-            guard await services.canCreateNewExtraction() else {
+            switch await services.canCreateNewExtraction() {
+            case .allowed:
+                break
+            case .limitReached:
                 showPaywall = true
                 return
+            case .subscriptionVerificationPending:
+                handleCreationError(.subscriptionVerificationPending)
+                return
+            case .failed(let error):
+                handleCreationError(error)
+                return
             }
-            guard await services.brews.create(draft) else {
-                if await services.canCreateNewExtraction() {
-                    showSaveError = true
-                } else {
-                    showPaywall = true
-                }
+
+            do {
+                try await services.brews.create(draft)
+            } catch let error as BrewCreationError {
+                handleCreationError(error)
+                return
+            } catch {
+                handleCreationError(.unknownFailure)
                 return
             }
         }
         await services.refreshBrewData()
         dismiss()
+    }
+
+    private func handleCreationError(_ error: BrewCreationError) {
+        if case .paywall = BrewCreationFailurePresentation.forError(error) {
+            showPaywall = true
+        } else {
+            creationFailure = error
+        }
+    }
+
+    private func creationAlert(for error: BrewCreationError) -> Alert {
+        switch BrewCreationFailurePresentation.forError(error) {
+        case .paywall:
+            return Alert(title: Text("Free extraction limit reached"))
+        case .verification(let title, let message):
+            return Alert(
+                title: Text(title),
+                message: Text(message),
+                primaryButton: .default(Text("Retry")) {
+                    Task {
+                        await services.billing.syncEntitlements()
+                        await save()
+                    }
+                },
+                secondaryButton: .cancel()
+            )
+        case .alert(let title, let message):
+            return Alert(
+                title: Text(title),
+                message: Text(message),
+                dismissButton: .default(Text("OK"))
+            )
+        }
     }
 
     private var canSave: Bool {

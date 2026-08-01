@@ -25,7 +25,7 @@ final class AppServices: ObservableObject {
         self.auth = auth
         self.billing = billing
         self.beans = BeansRepository(auth: auth)
-        self.brews = BrewsRepository(auth: auth)
+        self.brews = BrewsRepository(auth: auth, billing: billing)
         self.stats = StatsRepository(auth: auth)
         self.notifications = NotificationManager.shared
         self.profile = ProfileRepository(auth: auth)
@@ -90,9 +90,18 @@ final class AppServices: ObservableObject {
         WidgetCenter.shared.reloadTimelines(ofKind: WidgetSnapshotStore.dashboardWidgetKind)
     }
 
-    func canCreateNewExtraction() async -> Bool {
-        guard !billing.isSubscribed else { return true }
-        let count = await brews.createdExtractionCount()
-        return count < Self.freeExtractionLimit
+    func canCreateNewExtraction() async -> ExtractionCreationAvailability {
+        do {
+            let status = try await brews.extractionCreationStatus()
+            return ExtractionCreationAvailability.resolve(
+                status: status,
+                subscriptionState: billing.subscriptionState
+            )
+        } catch {
+            return .failed(BrewCreationError.classify(
+                error,
+                subscriptionState: billing.subscriptionState
+            ))
+        }
     }
 }

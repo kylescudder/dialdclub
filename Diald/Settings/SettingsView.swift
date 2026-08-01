@@ -79,9 +79,16 @@ struct SettingsView: View {
             Section {
                 LabeledContent(
                     "Plan",
-                    value: services.billing.isSubscribed ? "Supporter Monthly" : "Free"
+                    value: subscriptionPlanLabel
                 )
                 if services.billing.isSubscribed {
+                    Button("Manage subscription") {
+                        Task { await services.billing.manageSubscriptions() }
+                    }
+                } else if services.billing.isVerifyingSubscription {
+                    Button("Retry subscription verification") {
+                        Task { await services.billing.syncEntitlements() }
+                    }
                     Button("Manage subscription") {
                         Task { await services.billing.manageSubscriptions() }
                     }
@@ -173,6 +180,14 @@ struct SettingsView: View {
         let v = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
         let b = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
         return "\(v) (\(b))"
+    }
+
+    private var subscriptionPlanLabel: String {
+        switch services.billing.subscriptionState {
+        case .free: "Free"
+        case .verifying: "Verifying Supporter"
+        case .active: "Supporter Monthly"
+        }
     }
 
     private func deleteAccount() async {

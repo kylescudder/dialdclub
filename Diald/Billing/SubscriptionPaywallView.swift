@@ -38,6 +38,7 @@ struct SubscriptionPaywallView: View {
                             )
                             .disabled(
                                 isRestoring
+                                    || services.billing.isVerifyingSubscription
                                     || (services.billing.isLoadingProducts
                                         && services.billing.subscriptionProduct == nil)
                             )
@@ -54,7 +55,19 @@ struct SubscriptionPaywallView: View {
                             .disabled(isRestoring || isPurchasing)
                         }
 
-                        if services.billing.isLoadingProducts {
+                        if services.billing.isVerifyingSubscription {
+                            VStack(spacing: Theme.Spacing.sm) {
+                                ProgressView()
+                                Text(services.billing.verificationStatusMessage)
+                                    .font(.footnote)
+                                    .foregroundStyle(Theme.Colors.textSecondary)
+                                    .multilineTextAlignment(.center)
+                                Button("Retry verification") {
+                                    Task { await services.billing.syncEntitlements() }
+                                }
+                                .font(.footnote.weight(.semibold))
+                            }
+                        } else if services.billing.isLoadingProducts {
                             ProgressView()
                         } else if services.billing.subscriptionProduct == nil {
                             Text("Subscription details are unavailable. Tap Subscribe to try again.")
@@ -168,6 +181,6 @@ struct SubscriptionPaywallView: View {
     }
 
     private func loadCount() async {
-        extractionCount = await services.brews.createdExtractionCount()
+        extractionCount = try? await services.brews.createdExtractionCount()
     }
 }

@@ -1,0 +1,64 @@
+name: Backend · Checks
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - "deno.lock"
+      - ".github/workflows/backend-checks.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  edge-functions:
+    name: Verify Apple payload handling
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check formatting
+        run: >-
+          deno fmt --check
+          supabase/functions/_shared/apple_store_verification.ts
+          supabase/functions/_shared/apple_store_verification_test.ts
+          supabase/functions/iap-sync-transaction/index.ts
+          supabase/functions/iap-app-store-notifications/index.ts
+      - name: Type-check
+        run: >-
+          deno check --node-modules-dir=auto
+          supabase/functions/_shared/apple_store_verification.ts
+          supabase/functions/_shared/apple_store_verification_test.ts
+          supabase/functions/iap-sync-transaction/index.ts
+          supabase/functions/iap-app-store-notifications/index.ts
+      - name: Test forged and mismatched Apple payloads
+        run: >-
+          deno test --node-modules-dir=auto --allow-env --allow-net
+          supabase/functions/_shared/apple_store_verification_test.ts
+
+  database:
+    name: Verify quota migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+      - name: Start local Supabase and apply migrations
+        run: supabase start
+      - name: Run database tests
+        run: supabase test db
+      - name: Reproduce concurrent fifth and sixth creations
+        run: supabase/tests/extraction_creation_quota_concurrency.sh

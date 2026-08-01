@@ -402,3 +402,6 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 
 [functions.notify-brew-reminder]
 verify_jwt = false
+
+[functions.iap-app-store-notifications]
+verify_jwt = false

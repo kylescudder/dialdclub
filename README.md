@@ -10,7 +10,7 @@ Native iOS app for specialty coffee experiments: beans, extraction time, ratios,
 - AppIntents and Shortcuts for logging brews and starting the timer
 - Local notifications plus APNs token upload for server-side reminders
 - WidgetKit extension with Home Screen quick actions and a brew stats widget
-- StoreKit subscription gating: 5 free extractions, then Supporter Monthly for unlimited logging
+- StoreKit subscription gating: 5 lifetime extractions, including deleted records, then Supporter Monthly for unlimited logging
 - TestFlight GitHub Actions workflow
 - PowerSync-compatible sync rules for an offline-first follow-up
 
@@ -41,13 +41,18 @@ Diald uses StoreKit for the `club.diald.supporter.monthly` auto-renewable subscr
 
 1. In App Store Connect, create an auto-renewable subscription with product ID `club.diald.supporter.monthly`.
 2. Set the UK monthly price to GBP 1.99 or the nearest App Store pricing equivalent.
-3. Deploy `supabase/functions/iap-sync-transaction` and optionally configure App Store Server Notifications V2 to call `supabase/functions/iap-app-store-notifications`.
+3. Add the numeric App Store app ID to Supabase Edge Function secrets as `APPLE_APP_ID` alongside `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+4. Apply migration `0006`, then immediately deploy `iap-sync-transaction` and `iap-app-store-notifications` (`--no-verify-jwt` for Apple's unauthenticated notification callback).
+
+Both IAP functions cryptographically verify Apple's JWS certificate chain and signature before accepting the exact `club.diald` bundle, `club.diald.supporter.monthly` product, environment, and required user-bound `appAccountToken`. StoreKit establishes local purchase state; unlimited server-backed creation becomes available only after this server confirmation succeeds.
 
 ## Backend
 
 supabase/migrations creates profiles, beans, brew_sessions, brew_steps, brew_reminders, device_tokens, and get_brew_stats(user_id uuid).
 
 All user-owned tables use RLS and soft-delete tombstones.
+
+Database quota coverage runs with `supabase test db`. The two-session concurrency reproduction is `supabase/tests/extraction_creation_quota_concurrency.sh`, optionally followed by a database URL. Edge verification checks run with `deno test --allow-env --allow-net supabase/functions/_shared/apple_store_verification_test.ts`.
 
 ## Current scope
 

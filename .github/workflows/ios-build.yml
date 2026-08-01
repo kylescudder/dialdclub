@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'Diald/**'
+      - 'DialdTests/**'
       - 'DialdWidgets/**'
       - 'project.yml'
       - 'Config/Secrets.xcconfig.example'
@@ -57,4 +58,14 @@ jobs:
             -scheme "$SCHEME" \
             -configuration Debug \
             -destination "generic/platform=iOS Simulator" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project Diald.xcodeproj \
+            -scheme "$SCHEME" \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,name=iPhone 16" \
             CODE_SIGNING_ALLOWED=NO

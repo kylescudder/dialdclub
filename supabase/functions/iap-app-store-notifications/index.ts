@@ -1,118 +1,97 @@
-// Supabase Edge Function: iap-app-store-notifications
-//
-// Endpoint for App Store Server Notifications V2. It decodes the notification
-// payload and mirrors subscription state into public.iap_entitlements.
+// Verifies App Store Server Notifications V2 and their nested transaction JWS
+// before updating the entitlement used by database-backed extraction creation.
 //
 // Required Edge Function secrets:
 //   SUPABASE_SERVICE_ROLE_KEY
 //   SUPABASE_URL
+//   APPLE_APP_ID (numeric App Store app ID; required for Production payloads)
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  VerificationException,
+  VerificationStatus,
+} from "npm:@apple/app-store-server-library@3.1.0";
+import {
+  ApplePayloadValidationError,
+  AppleVerificationConfigurationError,
+  type VerifiedSubscriptionTransaction,
+  verifySubscriptionNotification,
+} from "../_shared/apple_store_verification.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const PRODUCT_ID = "club.diald.supporter.monthly";
-
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
 
 interface NotificationRequest {
-  signedPayload: string;
+  signedPayload?: string;
 }
 
-interface AppleNotificationPayload {
-  notificationType?: string;
-  subtype?: string;
-  data?: {
-    signedTransactionInfo?: string;
-  };
+function json(body: Record<string, unknown>, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
-interface AppleTransaction {
-  appAccountToken?: string;
-  productId?: string;
-  originalTransactionId?: string;
-  expiresDate?: number | string;
-  revocationDate?: number | string;
-  environment?: string;
-}
-
-function decodeJWS<T>(jws: string): T {
-  const [, payload] = jws.split(".");
-  if (!payload) throw new Error("Invalid JWS");
-  const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
-  return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(padded), (c) => c.charCodeAt(0))));
-}
-
-function dateFromMillis(value?: number | string): string | null {
-  if (value == null) return null;
-  const numeric = typeof value === "string" ? Number(value) : value;
-  if (!Number.isFinite(numeric)) return null;
-  return new Date(numeric).toISOString();
-}
-
-function statusFor(notificationType: string | undefined, expiresAt: string | null, revokedAt: string | null): "active" | "expired" | "revoked" | "unknown" {
-  if (revokedAt || notificationType === "REFUND" || notificationType === "REVOKE") return "revoked";
-  if (notificationType === "EXPIRED") return "expired";
-  if (expiresAt && new Date(expiresAt).getTime() <= Date.now()) return "expired";
-  if (notificationType == null) return "unknown";
-  return "active";
-}
-
-async function updateByOriginalTransactionID(tx: AppleTransaction, status: string, expiresAt: string | null, revokedAt: string | null) {
-  if (!tx.originalTransactionId) return;
-  const { error } = await supabase
-    .from("iap_entitlements")
-    .update({
-      product_id: tx.productId ?? PRODUCT_ID,
-      status,
-      expires_at: expiresAt,
-      revoked_at: revokedAt,
-      environment: tx.environment ?? null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("original_transaction_id", tx.originalTransactionId);
+async function recordVerifiedEntitlement(
+  transaction: VerifiedSubscriptionTransaction,
+): Promise<void> {
+  const { error } = await supabase.rpc("record_verified_iap_entitlement", {
+    p_user_id: transaction.userID,
+    p_product_id: transaction.productID,
+    p_bundle_id: transaction.bundleID,
+    p_original_transaction_id: transaction.originalTransactionID,
+    p_transaction_id: transaction.transactionID,
+    p_status: transaction.status,
+    p_expires_at: transaction.expiresAt,
+    p_revoked_at: transaction.revokedAt,
+    p_environment: transaction.environment,
+    p_signed_at: transaction.signedAt,
+    p_verification_source: "notification",
+  });
   if (error) throw error;
 }
 
 serve(async (req) => {
+  if (req.method !== "POST") {
+    return json({ error: "method_not_allowed" }, 405);
+  }
+
   try {
-    if (req.method !== "POST") {
-      return new Response("Method not allowed", { status: 405 });
+    const body = await req.json() as NotificationRequest;
+    if (typeof body.signedPayload !== "string") {
+      return json({ error: "signed_payload_required" }, 400);
     }
 
-    const body = (await req.json()) as NotificationRequest;
-    const notification = decodeJWS<AppleNotificationPayload>(body.signedPayload);
-    const signedTransactionInfo = notification.data?.signedTransactionInfo;
-    if (!signedTransactionInfo) return new Response("no transaction", { status: 200 });
-
-    const tx = decodeJWS<AppleTransaction>(signedTransactionInfo);
-    if (tx.productId !== PRODUCT_ID) return new Response("ignored product", { status: 200 });
-
-    const expiresAt = dateFromMillis(tx.expiresDate);
-    const revokedAt = dateFromMillis(tx.revocationDate);
-    const status = statusFor(notification.notificationType, expiresAt, revokedAt);
-
-    if (tx.appAccountToken) {
-      const { error } = await supabase.from("iap_entitlements").upsert({
-        user_id: tx.appAccountToken.toLowerCase(),
-        product_id: tx.productId,
-        original_transaction_id: tx.originalTransactionId ?? null,
-        status,
-        expires_at: expiresAt,
-        revoked_at: revokedAt,
-        environment: tx.environment ?? null,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id" });
-      if (error) throw error;
-    } else {
-      await updateByOriginalTransactionID(tx, status, expiresAt, revokedAt);
+    const { transaction } = await verifySubscriptionNotification(
+      body.signedPayload,
+    );
+    await recordVerifiedEntitlement(transaction);
+    return json({ accepted: true }, 200);
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      return json({ error: "invalid_request" }, 400);
+    }
+    if (error instanceof AppleVerificationConfigurationError) {
+      console.error("Apple verification configuration error", error);
+      return json({ error: "verification_unavailable" }, 503);
+    }
+    if (error instanceof ApplePayloadValidationError) {
+      return json({ error: "invalid_notification" }, 422);
+    }
+    if (error instanceof VerificationException) {
+      if (error.status === VerificationStatus.RETRYABLE_VERIFICATION_FAILURE) {
+        console.error(
+          "Retryable Apple notification verification failure",
+          error,
+        );
+        return json({ error: "verification_unavailable" }, 503);
+      }
+      return json({ error: "invalid_notification" }, 422);
     }
 
-    return new Response("ok", { status: 200 });
-  } catch (e) {
-    console.error(e);
-    return new Response(String(e), { status: 500 });
+    console.error("Unable to record verified App Store notification", error);
+    return json({ error: "internal_error" }, 500);
   }
 });
