@@ -101,7 +101,7 @@ struct SettingsView: View {
             } header: {
                 Text("Subscription")
             } footer: {
-                Text("Free accounts can log up to \(AppServices.freeExtractionLimit) extractions. Manage subscription opens Apple's system sheet, where you can cancel or change the subscription.")
+                Text("Free accounts can log up to \(AppServices.freeExtractionLimit) lifetime extractions; deleted extractions still count. Manage subscription opens Apple's system sheet, where you can cancel or change the subscription.")
             }
 
             Section("AI provider") {

@@ -31,8 +31,9 @@ final class BrewsRepository: ObservableObject {
         }
     }
 
-    func create(_ draft: BrewDraft) async {
-        guard let userID = auth.currentUserID else { return }
+    @discardableResult
+    func create(_ draft: BrewDraft) async -> Bool {
+        guard let userID = auth.currentUserID else { return false }
         struct Payload: Encodable {
             let owner_id: String
             let bean_id: String?
@@ -66,8 +67,10 @@ final class BrewsRepository: ObservableObject {
             )
             try await auth.supabase.from("brew_sessions").insert(payload).execute()
             await refresh()
+            return true
         } catch {
             Log.error(error, category: "brews.create")
+            return false
         }
     }
 
@@ -164,7 +167,6 @@ final class BrewsRepository: ObservableObject {
                 .from("brew_sessions")
                 .select("id")
                 .eq("owner_id", value: userID.uuidString.lowercased())
-                .is("deleted_at", value: nil)
                 .limit(AppServices.freeExtractionLimit + 1)
                 .execute()
                 .value

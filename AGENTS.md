@@ -80,7 +80,7 @@ There is no iOS test target, linter, or formatter configured. The Astro site has
 - `BillingRepository` is the StoreKit 2 authority for the in-app unlock. It watches `Transaction.updates`, loads `club.diald.supporter.monthly`, checks `Transaction.currentEntitlements`, and sets `isSubscribed` from verified, active local entitlements.
 - Purchase calls include the signed-in Supabase user UUID as `appAccountToken`. Verified transactions are mirrored to `iap-sync-transaction`; App Store Server Notifications V2 can update the same `iap_entitlements` row through `iap-app-store-notifications`.
 - The Supabase entitlement row is a server-side mirror, not the current client gate. Do not replace StoreKit verification with a bare database flag. Keep purchase, restore, manage-subscription, transaction finishing, and entitlement refresh paths aligned.
-- The free limit is `AppServices.freeExtractionLimit == 5` and counts non-deleted `brew_sessions`. Any change to the limit or what constitutes an extraction must update both the gate and its user-facing paywall copy.
+- The free limit is `AppServices.freeExtractionLimit == 5` and counts all lifetime `brew_sessions`, including soft-deleted rows. Migration `0006_enforce_free_extraction_limit.sql` enforces it atomically at insert time; the client-side count is only a UX preflight. Any change to the limit or what constitutes an extraction must update the database trigger, client gate, and user-facing paywall copy together.
 
 ### AI brew analysis
 

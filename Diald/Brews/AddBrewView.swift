@@ -12,6 +12,7 @@ struct AddBrewView: View {
     @State private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     @State private var hasAppliedInitialTimerState = false
     @State private var showPaywall = false
+    @State private var showSaveError = false
     @State private var showTimerScreen = false
 
     init(startTimerOnAppear: Bool = false, brewToEdit: BrewSession? = nil) {
@@ -101,6 +102,11 @@ struct AddBrewView: View {
             .sheet(isPresented: $showPaywall) {
                 SubscriptionPaywallView()
             }
+            .alert("Couldn't save brew", isPresented: $showSaveError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Please check your connection and try again.")
+            }
             .fullScreenCover(isPresented: $showTimerScreen) {
                 CoffeeTimerScreen(
                     seconds: $draft.extractionSeconds,
@@ -140,7 +146,14 @@ struct AddBrewView: View {
                 showPaywall = true
                 return
             }
-            await services.brews.create(draft)
+            guard await services.brews.create(draft) else {
+                if await services.canCreateNewExtraction() {
+                    showSaveError = true
+                } else {
+                    showPaywall = true
+                }
+                return
+            }
         }
         await services.refreshBrewData()
         dismiss()

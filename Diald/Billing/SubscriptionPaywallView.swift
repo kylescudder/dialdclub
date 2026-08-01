@@ -23,7 +23,7 @@ struct SubscriptionPaywallView: View {
                             Text("Keep logging extractions")
                                 .font(.title2.weight(.semibold))
                                 .multilineTextAlignment(.center)
-                            Text("Your first \(AppServices.freeExtractionLimit) extractions are free. Subscribe to add unlimited brews, recipes, and tasting notes.")
+                            Text("Your first \(AppServices.freeExtractionLimit) extractions are free. This is a lifetime allowance, so deleted extractions still count. Subscribe to add unlimited brews, recipes, and tasting notes.")
                                 .font(.body)
                                 .foregroundStyle(Theme.Colors.textSecondary)
                                 .multilineTextAlignment(.center)
