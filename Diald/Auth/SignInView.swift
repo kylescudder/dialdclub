@@ -13,10 +13,11 @@ struct SignInView: View {
         ScrollView {
             VStack(spacing: Theme.Spacing.xl) {
                 VStack(spacing: Theme.Spacing.sm) {
-                    Image(systemName: "cup.and.saucer.fill")
-                        .font(.system(size: 64))
-                        .foregroundStyle(Theme.Colors.accent)
-                        .frame(width: 96, height: 96)
+                    Image("AppLogoIcon")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 78, height: 78)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md))
                     Text("Diald")
                         .font(.largeTitle.weight(.bold))
                         .foregroundStyle(Theme.Colors.textPrimary)

@@ -15,9 +15,11 @@ struct SubscriptionPaywallView: View {
                     VStack(spacing: Theme.Spacing.xl) {
                         Spacer(minLength: Theme.Spacing.lg)
 
-                        Image(systemName: "timer.circle.fill")
-                            .font(.system(size: 78))
-                            .foregroundStyle(Theme.Colors.green)
+                        Image("AppLogoIcon")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 78, height: 78)
+                            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md))
 
                         VStack(spacing: Theme.Spacing.sm) {
                             Text("Keep logging extractions")

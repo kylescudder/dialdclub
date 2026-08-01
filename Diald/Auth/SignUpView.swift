@@ -13,6 +13,11 @@ struct SignUpView: View {
         ScrollView {
             VStack(spacing: Theme.Spacing.xl) {
                 VStack(spacing: Theme.Spacing.sm) {
+                    Image("AppLogoIcon")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 48, height: 48)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md))
                     Text("Create account").font(.largeTitle.weight(.bold))
                     Text("Your brews and beans sync across devices automatically.")
                         .font(.callout)
