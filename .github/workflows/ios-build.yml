@@ -63,9 +63,11 @@ jobs:
       - name: Test
         run: |
           set -o pipefail
+          simulator_id="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/{print $2; exit}')"
+          test -n "$simulator_id" || (echo "::error::No available iPhone simulator" && exit 1)
           xcodebuild test \
             -project Diald.xcodeproj \
             -scheme "$SCHEME" \
             -configuration Debug \
-            -destination "platform=iOS Simulator,name=iPhone 16" \
+            -destination "platform=iOS Simulator,id=$simulator_id" \
             CODE_SIGNING_ALLOWED=NO
