@@ -8,7 +8,7 @@ import LegalArticle from "../components/LegalArticle.astro";
   description="Privacy policy for the Diald Club coffee tracking app."
   bodyClass="legal-page"
 >
-  <LegalArticle title="Privacy Policy" updated="19 July 2026">
+  <LegalArticle title="Privacy Policy" updated="1 August 2026">
     <p>
       This Privacy Policy explains how Diald Club ("the app", "we", "us")
       collects, uses, and protects your information when you use the Diald Club
@@ -27,20 +27,25 @@ import LegalArticle from "../components/LegalArticle.astro";
         email address, and profile details you authorize it to share.
       </li>
       <li>
-        <strong>Your content.</strong> The beans, recipes, brew sessions,
-        ratings, tasting notes, reminders, and related settings you add to the
-        app are stored so they can sync across your devices.
+        <strong>Your content.</strong> The beans, recipes, brew sessions, ratings,
+        tasting notes, reminders, and related settings you add to the app are stored
+        so they can sync across your devices.
       </li>
       <li>
-        <strong>Device tokens.</strong> If you enable push notifications we
-        store an Apple Push Notification service token so we can send you alerts
-        such as brew reminders.
+        <strong>Device tokens.</strong> If you enable push notifications we store
+        an Apple Push Notification service token so we can send you alerts such as
+        brew reminders.
       </li>
       <li>
-        <strong>AI provider keys.</strong> If you use AI analysis, your OpenAI
-        or Anthropic API key is stored securely on your device in the iOS
-        keychain and is used only to request analysis on your behalf. It is not
-        sent to our servers.
+        <strong>Subscription information.</strong> We verify Apple's signed transaction
+        information and store subscription status, expiration, and a lifetime extraction
+        count associated with your Diald account. Deleting an individual extraction
+        does not reduce that lifetime count.
+      </li>
+      <li>
+        <strong>AI provider keys.</strong> If you use AI analysis, your OpenAI or
+        Anthropic API key is stored securely on your device in the iOS keychain and
+        is used only to request analysis on your behalf. It is not sent to our servers.
       </li>
     </ul>
 
@@ -51,7 +56,9 @@ import LegalArticle from "../components/LegalArticle.astro";
         notes, syncing across devices, generating stats, and reminding you to
         brew.
       </li>
-      <li>To send notifications you have opted into, such as brew reminders.</li>
+      <li>
+        To send notifications you have opted into, such as brew reminders.
+      </li>
       <li>To maintain, secure, and improve the service.</li>
     </ul>
 
@@ -70,10 +77,10 @@ import LegalArticle from "../components/LegalArticle.astro";
     </p>
     <ul>
       <li>
-        <strong>With service providers.</strong> We use service providers to host and
-        operate the app; Apple and Google for sign-in when selected; Apple for purchases
-        and notifications; and your selected AI provider only when you choose to run
-        AI analysis.
+        <strong>With service providers.</strong> We use service providers to host
+        and operate the app; Apple and Google for sign-in when selected; Apple for
+        purchases and notifications; and your selected AI provider only when you choose
+        to run AI analysis.
       </li>
       <li>
         <strong>When required by law.</strong> We may disclose information if required
@@ -85,15 +92,17 @@ import LegalArticle from "../components/LegalArticle.astro";
     <p>
       We retain your information for as long as your account is active. You can
       delete beans, brews, notes, reminders, and other content from within the
-      app at any time. When you delete your account, your associated personal
-      data is removed from our systems.
+      app at any time. The lifetime extraction count remains until you delete
+      your account. When you delete your account, your associated personal data
+      is removed from our systems.
     </p>
 
     <h2>Security</h2>
     <p>
-      We use reasonable safeguards to protect your information, including encrypted
-      connections, database access controls, and Apple Keychain storage for AI
-      provider keys. No method of transmission or storage is completely secure.
+      We use reasonable safeguards to protect your information, including
+      encrypted connections, database access controls, and Apple Keychain
+      storage for AI provider keys. No method of transmission or storage is
+      completely secure.
     </p>
 
     <h2>Your rights</h2>

@@ -25,7 +25,7 @@ struct SubscriptionPaywallView: View {
                             Text("Keep logging extractions")
                                 .font(.title2.weight(.semibold))
                                 .multilineTextAlignment(.center)
-                            Text("Your first \(AppServices.freeExtractionLimit) extractions are free. Subscribe to add unlimited brews, recipes, and tasting notes.")
+                            Text("Your first \(AppServices.freeExtractionLimit) extractions are free. This is a lifetime allowance, so deleted extractions still count. Subscribe to add unlimited brews, recipes, and tasting notes.")
                                 .font(.body)
                                 .foregroundStyle(Theme.Colors.textSecondary)
                                 .multilineTextAlignment(.center)
@@ -40,6 +40,7 @@ struct SubscriptionPaywallView: View {
                             )
                             .disabled(
                                 isRestoring
+                                    || services.billing.isVerifyingSubscription
                                     || (services.billing.isLoadingProducts
                                         && services.billing.subscriptionProduct == nil)
                             )
@@ -56,7 +57,19 @@ struct SubscriptionPaywallView: View {
                             .disabled(isRestoring || isPurchasing)
                         }
 
-                        if services.billing.isLoadingProducts {
+                        if services.billing.isVerifyingSubscription {
+                            VStack(spacing: Theme.Spacing.sm) {
+                                ProgressView()
+                                Text(services.billing.verificationStatusMessage)
+                                    .font(.footnote)
+                                    .foregroundStyle(Theme.Colors.textSecondary)
+                                    .multilineTextAlignment(.center)
+                                Button("Retry verification") {
+                                    Task { await services.billing.syncEntitlements() }
+                                }
+                                .font(.footnote.weight(.semibold))
+                            }
+                        } else if services.billing.isLoadingProducts {
                             ProgressView()
                         } else if services.billing.subscriptionProduct == nil {
                             Text("Subscription details are unavailable. Tap Subscribe to try again.")
@@ -170,6 +183,6 @@ struct SubscriptionPaywallView: View {
     }
 
     private func loadCount() async {
-        extractionCount = await services.brews.createdExtractionCount()
+        extractionCount = try? await services.brews.createdExtractionCount()
     }
 }

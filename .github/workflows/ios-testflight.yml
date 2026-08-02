@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'Diald/**'
+      - 'DialdTests/**'
       - 'DialdWidgets/**'
       - 'project.yml'
       - 'Config/Secrets.xcconfig.example'

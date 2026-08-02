@@ -7,9 +7,11 @@ final class BrewsRepository: ObservableObject {
     @Published private(set) var isLoading = false
 
     private let auth: AuthClient
+    private let billing: BillingRepository
 
-    init(auth: AuthClient) {
+    init(auth: AuthClient, billing: BillingRepository) {
         self.auth = auth
+        self.billing = billing
     }
 
     func refresh() async {
@@ -31,8 +33,10 @@ final class BrewsRepository: ObservableObject {
         }
     }
 
-    func create(_ draft: BrewDraft) async {
-        guard let userID = auth.currentUserID else { return }
+    func create(_ draft: BrewDraft) async throws {
+        guard let userID = auth.currentUserID else {
+            throw BrewCreationError.unauthenticated
+        }
         struct Payload: Encodable {
             let owner_id: String
             let bean_id: String?
@@ -68,6 +72,10 @@ final class BrewsRepository: ObservableObject {
             await refresh()
         } catch {
             Log.error(error, category: "brews.create")
+            throw BrewCreationError.classify(
+                error,
+                subscriptionState: billing.subscriptionState
+            )
         }
     }
 
@@ -154,25 +162,31 @@ final class BrewsRepository: ObservableObject {
         }
     }
 
-    func createdExtractionCount() async -> Int {
-        guard let userID = auth.currentUserID else { return 0 }
-        struct Row: Decodable {
-            let id: UUID
+    func extractionCreationStatus() async throws -> ExtractionCreationStatus {
+        guard auth.currentUserID != nil else {
+            throw BrewCreationError.unauthenticated
         }
         do {
-            let rows: [Row] = try await auth.supabase
-                .from("brew_sessions")
-                .select("id")
-                .eq("owner_id", value: userID.uuidString.lowercased())
-                .is("deleted_at", value: nil)
-                .limit(AppServices.freeExtractionLimit + 1)
+            let rows: [ExtractionCreationStatus] = try await auth.supabase
+                .rpc("get_extraction_creation_status")
                 .execute()
                 .value
-            return rows.count
+            guard let status = rows.first else {
+                throw BrewCreationError.serverValidationFailure
+            }
+            return status
         } catch {
             Log.error(error, category: "brews.count")
-            return brews.count
+            throw BrewCreationError.classify(
+                error,
+                subscriptionState: billing.subscriptionState
+            )
         }
+    }
+
+    func createdExtractionCount() async throws -> Int {
+        let status = try await extractionCreationStatus()
+        return status.lifetimeCount
     }
 
     func softDelete(_ brew: BrewSession) async {
