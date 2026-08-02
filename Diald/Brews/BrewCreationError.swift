@@ -1,9 +1,10 @@
 import Foundation
 import Supabase
 
-enum BrewCreationError: Error, Equatable, Identifiable {
+enum BrewCreationError: Error, Equatable, Identifiable, Sendable {
     case freeLimitReached
     case subscriptionVerificationPending
+    case quotaSnapshotUnavailable
     case unauthenticated
     case networkFailure
     case serverValidationFailure
@@ -13,6 +14,7 @@ enum BrewCreationError: Error, Equatable, Identifiable {
         switch self {
         case .freeLimitReached: "freeLimitReached"
         case .subscriptionVerificationPending: "subscriptionVerificationPending"
+        case .quotaSnapshotUnavailable: "quotaSnapshotUnavailable"
         case .unauthenticated: "unauthenticated"
         case .networkFailure: "networkFailure"
         case .serverValidationFailure: "serverValidationFailure"
@@ -53,7 +55,7 @@ enum BrewCreationError: Error, Equatable, Identifiable {
     }
 }
 
-enum BrewCreationFailurePresentation: Equatable {
+enum BrewCreationFailurePresentation: Equatable, Sendable {
     case paywall
     case verification(title: String, message: String)
     case alert(title: String, message: String)
@@ -66,6 +68,11 @@ enum BrewCreationFailurePresentation: Equatable {
             return .verification(
                 title: "Verifying subscription",
                 message: "Apple has verified your subscription, but Diald is still confirming it with the server. Retry in a moment."
+            )
+        case .quotaSnapshotUnavailable:
+            return .alert(
+                title: "Finish syncing first",
+                message: "Diald needs to download your extraction allowance before you can save brews offline. Make sure you're online, wait for sync to finish, and try again."
             )
         case .unauthenticated:
             return .alert(
@@ -91,7 +98,16 @@ enum BrewCreationFailurePresentation: Equatable {
     }
 }
 
-struct ExtractionCreationStatus: Decodable, Equatable {
+enum ExtractionQuotaSnapshot {
+    static func requireInitializedCount(_ lifetimeCount: Int?) throws -> Int {
+        guard let lifetimeCount else {
+            throw BrewCreationError.quotaSnapshotUnavailable
+        }
+        return lifetimeCount
+    }
+}
+
+struct ExtractionCreationStatus: Decodable, Equatable, Sendable {
     let lifetimeCount: Int
     let freeLimit: Int
     let hasVerifiedEntitlement: Bool
@@ -103,7 +119,7 @@ struct ExtractionCreationStatus: Decodable, Equatable {
     }
 }
 
-enum ExtractionCreationAvailability: Equatable {
+enum ExtractionCreationAvailability: Equatable, Sendable {
     case allowed
     case limitReached
     case subscriptionVerificationPending

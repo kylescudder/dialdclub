@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(22);
+select plan(23);
 
 select has_table(
   'public',
@@ -28,6 +28,16 @@ insert into auth.users (id, email) values
   ('44444444-4444-4444-8444-444444444444', 'untrusted@example.com'),
   ('55555555-5555-4555-8555-555555555555', 'missing-profile@example.com'),
   ('66666666-6666-4666-8666-666666666666', 'seed@example.com');
+
+select results_eq(
+  $$
+    select lifetime_count
+    from public.extraction_creation_quotas
+    where user_id = '11111111-1111-4111-8111-111111111111'
+  $$,
+  array[0::bigint],
+  'new profiles receive an explicit confirmed-zero quota snapshot'
+);
 
 set local role authenticated;
 set local request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';

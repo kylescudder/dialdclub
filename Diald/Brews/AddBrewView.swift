@@ -204,7 +204,7 @@ struct AddBrewView: View {
     private var canSave: Bool {
         !draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && draft.doseGrams > 0
-            && draft.extractionSeconds >= 0
+            && draft.extractionSeconds > 0
     }
 }
 

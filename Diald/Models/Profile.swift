@@ -1,6 +1,7 @@
 import Foundation
+import PowerSync
 
-struct Profile: Codable, Identifiable, Hashable {
+struct Profile: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     var username: String?
     var displayName: String?
@@ -12,5 +13,22 @@ struct Profile: Codable, Identifiable, Hashable {
         case displayName = "display_name"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+}
+
+extension Profile {
+    static func from(cursor: SqlCursor) -> Profile? {
+        do {
+            guard let id = UUID(uuidString: try cursor.getString(name: "id")) else { return nil }
+            return Profile(
+                id: id,
+                username: try cursor.getStringOptional(name: "username"),
+                displayName: try cursor.getStringOptional(name: "display_name"),
+                createdAt: parseISO8601Date(try cursor.getStringOptional(name: "created_at")),
+                updatedAt: parseISO8601Date(try cursor.getStringOptional(name: "updated_at"))
+            )
+        } catch {
+            return nil
+        }
     }
 }

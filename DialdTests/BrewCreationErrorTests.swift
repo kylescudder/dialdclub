@@ -16,6 +16,13 @@ final class BrewCreationErrorTests: XCTestCase {
             )
         )
         XCTAssertEqual(
+            BrewCreationFailurePresentation.forError(.quotaSnapshotUnavailable),
+            .alert(
+                title: "Finish syncing first",
+                message: "Diald needs to download your extraction allowance before you can save brews offline. Make sure you're online, wait for sync to finish, and try again."
+            )
+        )
+        XCTAssertEqual(
             BrewCreationFailurePresentation.forError(.unauthenticated),
             .alert(
                 title: "Sign in again",
@@ -43,6 +50,13 @@ final class BrewCreationErrorTests: XCTestCase {
                 message: "Something unexpected happened. Please try again."
             )
         )
+    }
+
+    func testLocalQuotaSnapshotDistinguishesUnknownFromConfirmedZero() throws {
+        XCTAssertThrowsError(try ExtractionQuotaSnapshot.requireInitializedCount(nil)) { error in
+            XCTAssertEqual(error as? BrewCreationError, .quotaSnapshotUnavailable)
+        }
+        XCTAssertEqual(try ExtractionQuotaSnapshot.requireInitializedCount(0), 0)
     }
 
     func testDatabaseLimitMapsToVerificationWhileMirrorIsPending() {
@@ -116,5 +130,26 @@ final class BrewCreationErrorTests: XCTestCase {
             ),
             .allowed
         )
+    }
+
+    func testPowerSyncAcknowledgesOnlyKnownPermanentPostgresRejections() {
+        XCTAssertTrue(SupabaseConnector.isPermanentRejection(
+            PostgrestError(code: "DX001", message: "free extraction limit reached")
+        ))
+        XCTAssertTrue(SupabaseConnector.isPermanentRejection(
+            PostgrestError(code: "23514", message: "check constraint failed")
+        ))
+        XCTAssertFalse(SupabaseConnector.isPermanentRejection(
+            PostgrestError(code: "PGRST001", message: "database unavailable")
+        ))
+        XCTAssertFalse(SupabaseConnector.isPermanentRejection(
+            PostgrestError(code: "42501", message: "row-level security violation")
+        ))
+        XCTAssertFalse(SupabaseConnector.isPermanentRejection(
+            PostgrestError(code: "DX002", message: "authentication required")
+        ))
+        XCTAssertFalse(SupabaseConnector.isPermanentRejection(
+            NSError(domain: NSURLErrorDomain, code: NSURLErrorNotConnectedToInternet)
+        ))
     }
 }

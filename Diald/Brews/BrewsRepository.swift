@@ -1,4 +1,6 @@
+import Combine
 import Foundation
+import PowerSync
 import Supabase
 
 @MainActor
@@ -8,202 +10,308 @@ final class BrewsRepository: ObservableObject {
 
     private let auth: AuthClient
     private let billing: BillingRepository
+    private let database: PowerSyncDatabaseProtocol
+    private var brewWatchTask: Task<Void, Never>?
+    private var quotaWatchTask: Task<Void, Never>?
+    private var userID: String?
 
-    init(auth: AuthClient, billing: BillingRepository) {
+    init(auth: AuthClient, billing: BillingRepository, database: PowerSyncDatabaseProtocol) {
         self.auth = auth
         self.billing = billing
+        self.database = database
+    }
+
+    deinit {
+        brewWatchTask?.cancel()
+        quotaWatchTask?.cancel()
+    }
+
+    func startWatching(userID: String) {
+        guard self.userID != userID || brewWatchTask == nil else { return }
+        self.userID = userID
+        brewWatchTask?.cancel()
+        quotaWatchTask?.cancel()
+        isLoading = true
+
+        let database = database
+        brewWatchTask = Task { [weak self] in
+            do {
+                let stream = try database.watch(
+                    sql: Self.selectSQL,
+                    parameters: [userID],
+                    mapper: BrewSession.from(cursor:)
+                )
+                for try await rows in stream {
+                    guard !Task.isCancelled else { return }
+                    self?.brews = rows.compactMap { $0 }
+                    self?.isLoading = false
+                }
+            } catch {
+                self?.isLoading = false
+                Log.error(error, category: "brews.watch")
+            }
+        }
+
+        quotaWatchTask = Task { [weak self] in
+            do {
+                let stream = try database.watch(
+                    sql: "select lifetime_count from extraction_creation_quotas where id = ?",
+                    parameters: [userID],
+                    mapper: { try $0.getInt(name: "lifetime_count") }
+                )
+                for try await rows in stream {
+                    guard !Task.isCancelled, let count = rows.first else { continue }
+                    await self?.reconcileAcceptedPendingExtractions(serverLifetimeCount: count)
+                }
+            } catch {
+                Log.error(error, category: "brews.quotaWatch")
+            }
+        }
+    }
+
+    func stopWatching() {
+        brewWatchTask?.cancel()
+        quotaWatchTask?.cancel()
+        brewWatchTask = nil
+        quotaWatchTask = nil
+        userID = nil
+        brews = []
+        isLoading = false
     }
 
     func refresh() async {
-        guard let userID = auth.currentUserID else { return }
-        isLoading = true
-        defer { isLoading = false }
+        guard let userID else { return }
         do {
-            brews = try await auth.supabase
-                .from("brew_sessions")
-                .select()
-                .eq("owner_id", value: userID.uuidString.lowercased())
-                .is("deleted_at", value: nil)
-                .order("brewed_at", ascending: false)
-                .limit(80)
-                .execute()
-                .value
+            let rows = try await database.getAll(
+                sql: Self.selectSQL,
+                parameters: [userID],
+                mapper: BrewSession.from(cursor:)
+            )
+            brews = rows.compactMap { $0 }
+            isLoading = false
         } catch {
             Log.error(error, category: "brews.refresh")
         }
     }
 
     func create(_ draft: BrewDraft) async throws {
-        guard let userID = auth.currentUserID else {
-            throw BrewCreationError.unauthenticated
-        }
-        struct Payload: Encodable {
-            let owner_id: String
-            let bean_id: String?
-            let method: BrewMethod
-            let title: String
-            let dose_grams: Double
-            let yield_grams: Double?
-            let water_grams: Double?
-            let grind_setting: String?
-            let water_temperature_c: Double?
-            let extraction_seconds: Int
-            let rating: Int?
-            let notes: String?
-            let brewed_at: Date
-        }
+        guard let userID else { throw BrewCreationError.unauthenticated }
+
+        let brewID = UUID().uuidString.lowercased()
+        let now = Date().iso8601
+        let beanID = draft.beanID?.uuidString.lowercased()
+        let grindSetting = draft.grindSetting.nilIfBlank
+        let notes = draft.notes.nilIfBlank
+        let cachedStatus = try await localExtractionCreationStatus()
+        let allowsUnlimited = billing.subscriptionState == .active
+            || cachedStatus.hasVerifiedEntitlement
+        let freeLimit = AppServices.freeExtractionLimit
         do {
-            let payload = Payload(
-                owner_id: userID.uuidString.lowercased(),
-                bean_id: draft.beanID?.uuidString.lowercased(),
-                method: draft.method,
-                title: draft.title,
-                dose_grams: draft.doseGrams,
-                yield_grams: draft.yieldGrams,
-                water_grams: draft.waterGrams,
-                grind_setting: draft.grindSetting.nilIfBlank,
-                water_temperature_c: draft.waterTemperatureC,
-                extraction_seconds: draft.extractionSeconds,
-                rating: draft.rating,
-                notes: draft.notes.nilIfBlank,
-                brewed_at: draft.brewedAt
-            )
-            try await auth.supabase.from("brew_sessions").insert(payload).execute()
-            await refresh()
+            try await database.writeTransaction { transaction in
+                let serverCount = try ExtractionQuotaSnapshot.requireInitializedCount(
+                    transaction.getOptional(
+                        sql: "select lifetime_count from extraction_creation_quotas where id = ?",
+                        parameters: [userID],
+                        mapper: { try $0.getInt(name: "lifetime_count") }
+                    )
+                )
+                let pendingCount = try transaction.getOptional(
+                    sql: """
+                    select count(*) as count from pending_extractions
+                    where user_id = ? and expected_lifetime_count > ?
+                    """,
+                    parameters: [userID, serverCount],
+                    mapper: { try $0.getInt(name: "count") }
+                ) ?? 0
+                let expectedLifetimeCount = serverCount + pendingCount + 1
+                guard allowsUnlimited || expectedLifetimeCount <= freeLimit else {
+                    throw BrewCreationError.freeLimitReached
+                }
+
+                try transaction.execute(
+                    sql: """
+                    insert into pending_extractions
+                      (id, user_id, expected_lifetime_count, state, created_at)
+                    values (?, ?, ?, 'queued', ?)
+                    """,
+                    parameters: [brewID, userID, expectedLifetimeCount, now]
+                )
+                try transaction.execute(
+                    sql: """
+                    insert into brew_sessions
+                      (id, owner_id, bean_id, method, title, dose_grams, yield_grams,
+                       water_grams, grind_setting, water_temperature_c,
+                       extraction_seconds, rating, notes, brewed_at, created_at, updated_at)
+                    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    parameters: [
+                        brewID,
+                        userID,
+                        beanID,
+                        draft.method.rawValue,
+                        draft.title,
+                        draft.doseGrams,
+                        draft.yieldGrams,
+                        draft.waterGrams,
+                        grindSetting,
+                        draft.waterTemperatureC,
+                        draft.extractionSeconds,
+                        draft.rating,
+                        notes,
+                        draft.brewedAt.iso8601,
+                        now,
+                        now,
+                    ]
+                )
+            }
         } catch {
             Log.error(error, category: "brews.create")
-            throw BrewCreationError.classify(
-                error,
-                subscriptionState: billing.subscriptionState
-            )
+            throw BrewCreationError.classify(error, subscriptionState: billing.subscriptionState)
         }
     }
 
     func update(_ brew: BrewSession, with draft: BrewDraft) async {
-        struct Payload: Encodable {
-            let bean_id: String?
-            let method: BrewMethod
-            let title: String
-            let dose_grams: Double
-            let yield_grams: Double?
-            let water_grams: Double?
-            let grind_setting: String?
-            let water_temperature_c: Double?
-            let extraction_seconds: Int
-            let rating: Int?
-            let notes: String?
-            let brewed_at: Date
-            let updated_at: Date
-
-            enum CodingKeys: String, CodingKey {
-                case bean_id
-                case method
-                case title
-                case dose_grams
-                case yield_grams
-                case water_grams
-                case grind_setting
-                case water_temperature_c
-                case extraction_seconds
-                case rating
-                case notes
-                case brewed_at
-                case updated_at
-            }
-
-            func encode(to encoder: Encoder) throws {
-                var container = encoder.container(keyedBy: CodingKeys.self)
-                try container.encodeIfPresent(bean_id, forKey: .bean_id)
-                if bean_id == nil { try container.encodeNil(forKey: .bean_id) }
-                try container.encode(method, forKey: .method)
-                try container.encode(title, forKey: .title)
-                try container.encode(dose_grams, forKey: .dose_grams)
-                try container.encodeIfPresent(yield_grams, forKey: .yield_grams)
-                if yield_grams == nil { try container.encodeNil(forKey: .yield_grams) }
-                try container.encodeIfPresent(water_grams, forKey: .water_grams)
-                if water_grams == nil { try container.encodeNil(forKey: .water_grams) }
-                try container.encodeIfPresent(grind_setting, forKey: .grind_setting)
-                if grind_setting == nil { try container.encodeNil(forKey: .grind_setting) }
-                try container.encodeIfPresent(water_temperature_c, forKey: .water_temperature_c)
-                if water_temperature_c == nil { try container.encodeNil(forKey: .water_temperature_c) }
-                try container.encode(extraction_seconds, forKey: .extraction_seconds)
-                try container.encodeIfPresent(rating, forKey: .rating)
-                if rating == nil { try container.encodeNil(forKey: .rating) }
-                try container.encodeIfPresent(notes, forKey: .notes)
-                if notes == nil { try container.encodeNil(forKey: .notes) }
-                try container.encode(brewed_at, forKey: .brewed_at)
-                try container.encode(updated_at, forKey: .updated_at)
-            }
-        }
         do {
-            let payload = Payload(
-                bean_id: draft.beanID?.uuidString.lowercased(),
-                method: draft.method,
-                title: draft.title,
-                dose_grams: draft.doseGrams,
-                yield_grams: draft.yieldGrams,
-                water_grams: draft.waterGrams,
-                grind_setting: draft.grindSetting.nilIfBlank,
-                water_temperature_c: draft.waterTemperatureC,
-                extraction_seconds: draft.extractionSeconds,
-                rating: draft.rating,
-                notes: draft.notes.nilIfBlank,
-                brewed_at: draft.brewedAt,
-                updated_at: Date()
+            try await database.execute(
+                sql: """
+                update brew_sessions set
+                  bean_id = ?, method = ?, title = ?, dose_grams = ?, yield_grams = ?,
+                  water_grams = ?, grind_setting = ?, water_temperature_c = ?,
+                  extraction_seconds = ?, rating = ?, notes = ?, brewed_at = ?, updated_at = ?
+                where id = ?
+                """,
+                parameters: [
+                    draft.beanID?.uuidString.lowercased(),
+                    draft.method.rawValue,
+                    draft.title,
+                    draft.doseGrams,
+                    draft.yieldGrams,
+                    draft.waterGrams,
+                    draft.grindSetting.nilIfBlank,
+                    draft.waterTemperatureC,
+                    draft.extractionSeconds,
+                    draft.rating,
+                    draft.notes.nilIfBlank,
+                    draft.brewedAt.iso8601,
+                    Date().iso8601,
+                    brew.id.uuidString.lowercased(),
+                ]
             )
-            try await auth.supabase
-                .from("brew_sessions")
-                .update(payload)
-                .eq("id", value: brew.id.uuidString.lowercased())
-                .execute()
-            await refresh()
         } catch {
             Log.error(error, category: "brews.update")
         }
     }
 
+    /// Prefer the transactional server status while online. AppServices falls
+    /// back to `localExtractionCreationStatus` for offline operation.
     func extractionCreationStatus() async throws -> ExtractionCreationStatus {
-        guard auth.currentUserID != nil else {
-            throw BrewCreationError.unauthenticated
-        }
+        guard auth.currentUserID != nil else { throw BrewCreationError.unauthenticated }
         do {
             let rows: [ExtractionCreationStatus] = try await auth.supabase
                 .rpc("get_extraction_creation_status")
                 .execute()
                 .value
-            guard let status = rows.first else {
-                throw BrewCreationError.serverValidationFailure
-            }
-            return status
+            guard let status = rows.first else { throw BrewCreationError.serverValidationFailure }
+            return try await statusIncludingLocalPending(status)
         } catch {
-            Log.error(error, category: "brews.count")
-            throw BrewCreationError.classify(
-                error,
-                subscriptionState: billing.subscriptionState
-            )
+            Log.error(error, category: "brews.creationStatus")
+            throw BrewCreationError.classify(error, subscriptionState: billing.subscriptionState)
         }
     }
 
+    func localExtractionCreationStatus() async throws -> ExtractionCreationStatus {
+        guard let userID else { throw BrewCreationError.unauthenticated }
+        let cachedServerCount = try await database.getOptional(
+            sql: "select lifetime_count from extraction_creation_quotas where id = ?",
+            parameters: [userID],
+            mapper: { try $0.getInt(name: "lifetime_count") }
+        )
+        let serverCount = try ExtractionQuotaSnapshot.requireInitializedCount(
+            cachedServerCount
+        )
+        let pendingCount = try await database.getOptional(
+            sql: """
+            select count(*) as count from pending_extractions
+            where user_id = ? and expected_lifetime_count > ?
+            """,
+            parameters: [userID, serverCount],
+            mapper: { try $0.getInt(name: "count") }
+        ) ?? 0
+        let entitlementRows = try await database.getAll(
+            sql: """
+            select product_id, bundle_id, status, expires_at, revoked_at,
+                   environment, signed_at, verified_at, verification_source
+            from iap_entitlements where id = ?
+            """,
+            parameters: [userID],
+            mapper: OfflineEntitlementSnapshot.from(cursor:)
+        )
+        let entitlement = entitlementRows.compactMap { $0 }.first
+        return ExtractionCreationStatus(
+            lifetimeCount: serverCount + pendingCount,
+            freeLimit: AppServices.freeExtractionLimit,
+            hasVerifiedEntitlement: entitlement?.isCurrentlyVerified == true
+        )
+    }
+
     func createdExtractionCount() async throws -> Int {
-        let status = try await extractionCreationStatus()
-        return status.lifetimeCount
+        (try await localExtractionCreationStatus()).lifetimeCount
     }
 
     func softDelete(_ brew: BrewSession) async {
         do {
-            try await auth.supabase
-                .from("brew_sessions")
-                .update(["deleted_at": ISO8601DateFormatter().string(from: Date())])
-                .eq("id", value: brew.id.uuidString.lowercased())
-                .execute()
-            await refresh()
+            let now = Date().iso8601
+            try await database.execute(
+                sql: "update brew_sessions set deleted_at = ?, updated_at = ? where id = ?",
+                parameters: [now, now, brew.id.uuidString.lowercased()]
+            )
         } catch {
             Log.error(error, category: "brews.delete")
         }
     }
+
+    private func reconcileAcceptedPendingExtractions(serverLifetimeCount: Int) async {
+        do {
+            try await database.execute(
+                sql: """
+                delete from pending_extractions
+                where state = 'accepted' and expected_lifetime_count <= ?
+                """,
+                parameters: [serverLifetimeCount]
+            )
+        } catch {
+            Log.error(error, category: "brews.pendingReconcile")
+        }
+    }
+
+    private func statusIncludingLocalPending(
+        _ status: ExtractionCreationStatus
+    ) async throws -> ExtractionCreationStatus {
+        guard let userID else { throw BrewCreationError.unauthenticated }
+        let pendingCount = try await database.getOptional(
+            sql: """
+            select count(*) as count from pending_extractions
+            where user_id = ? and expected_lifetime_count > ?
+            """,
+            parameters: [userID, status.lifetimeCount],
+            mapper: { try $0.getInt(name: "count") }
+        ) ?? 0
+        return ExtractionCreationStatus(
+            lifetimeCount: status.lifetimeCount + pendingCount,
+            freeLimit: status.freeLimit,
+            hasVerifiedEntitlement: status.hasVerifiedEntitlement
+        )
+    }
+
+    private static let selectSQL = """
+        select * from brew_sessions
+        where owner_id = ? and deleted_at is null
+        order by brewed_at desc
+        limit 80
+        """
 }
 
-struct BrewDraft {
+struct BrewDraft: Sendable {
     var beanID: UUID?
     var method: BrewMethod = .espresso
     var title = "Dial-in"
@@ -232,5 +340,47 @@ struct BrewDraft {
         rating = brew.rating
         notes = brew.notes ?? ""
         brewedAt = brew.brewedAt
+    }
+}
+
+private struct OfflineEntitlementSnapshot: Sendable {
+    let productID: String
+    let bundleID: String?
+    let status: String
+    let expiresAt: Date?
+    let revokedAt: Date?
+    let environment: String?
+    let signedAt: Date?
+    let verifiedAt: Date?
+    let verificationSource: String?
+
+    var isCurrentlyVerified: Bool {
+        productID == BillingRepository.supporterMonthlyProductID
+            && bundleID == "club.diald"
+            && status == "active"
+            && revokedAt == nil
+            && signedAt != nil
+            && verifiedAt != nil
+            && ["Production", "Sandbox"].contains(environment ?? "")
+            && ["device", "notification"].contains(verificationSource ?? "")
+            && (expiresAt.map { $0 > Date() } == true)
+    }
+
+    static func from(cursor: SqlCursor) -> OfflineEntitlementSnapshot? {
+        do {
+            return OfflineEntitlementSnapshot(
+                productID: try cursor.getString(name: "product_id"),
+                bundleID: try cursor.getStringOptional(name: "bundle_id"),
+                status: try cursor.getString(name: "status"),
+                expiresAt: parseISO8601Date(try cursor.getStringOptional(name: "expires_at")),
+                revokedAt: parseISO8601Date(try cursor.getStringOptional(name: "revoked_at")),
+                environment: try cursor.getStringOptional(name: "environment"),
+                signedAt: parseISO8601Date(try cursor.getStringOptional(name: "signed_at")),
+                verifiedAt: parseISO8601Date(try cursor.getStringOptional(name: "verified_at")),
+                verificationSource: try cursor.getStringOptional(name: "verification_source")
+            )
+        } catch {
+            return nil
+        }
     }
 }

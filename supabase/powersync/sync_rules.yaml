@@ -1,7 +1,8 @@
 # PowerSync sync rules for Diald.
 #
 # Uses edition 3 Sync Streams. Each stream is scoped to the authenticated
-# Supabase user and excludes soft-deleted rows where the schema supports it.
+# Supabase user. Tombstones remain in the stream long enough for every client
+# to observe the deletion state, while app queries hide them locally.
 
 config:
   edition: 3
@@ -9,20 +10,28 @@ config:
 streams:
   user_profile:
     auto_subscribe: true
-    query: select * from profiles where id = auth.user_id() and deleted_at is null
+    query: select * from profiles where id = auth.user_id()
 
   user_beans:
     auto_subscribe: true
-    query: select * from beans where owner_id = auth.user_id() and deleted_at is null
+    query: select * from beans where owner_id = auth.user_id()
 
   user_brew_sessions:
     auto_subscribe: true
-    query: select * from brew_sessions where owner_id = auth.user_id() and deleted_at is null
+    query: select * from brew_sessions where owner_id = auth.user_id()
 
-  user_brew_steps:
+  user_extraction_quota:
     auto_subscribe: true
-    query: select * from brew_steps where owner_id = auth.user_id() and deleted_at is null
+    query: |
+      select user_id as id, lifetime_count, updated_at
+      from extraction_creation_quotas
+      where user_id = auth.user_id()
 
-  user_brew_reminders:
+  user_iap_entitlement:
     auto_subscribe: true
-    query: select * from brew_reminders where owner_id = auth.user_id() and deleted_at is null
+    query: |
+      select user_id as id, product_id, bundle_id, original_transaction_id,
+             transaction_id, status, expires_at, revoked_at, environment,
+             signed_at, verified_at, verification_source, updated_at
+      from iap_entitlements
+      where user_id = auth.user_id()

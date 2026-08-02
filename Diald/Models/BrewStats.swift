@@ -1,6 +1,6 @@
 import Foundation
 
-struct BrewStats: Codable, Hashable {
+struct BrewStats: Codable, Hashable, Sendable {
     var totalBrews: Int
     var averageRating: Double?
     var averageExtractionSeconds: Double?

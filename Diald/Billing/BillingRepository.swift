@@ -4,7 +4,7 @@ import UIKit
 
 @MainActor
 final class BillingRepository: ObservableObject {
-    static let supporterMonthlyProductID = "club.diald.supporter.monthly"
+    nonisolated static let supporterMonthlyProductID = "club.diald.supporter.monthly"
 
     @Published private(set) var subscriptionProduct: Product?
     @Published private(set) var isLoadingProducts = false

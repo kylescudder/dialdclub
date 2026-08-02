@@ -161,12 +161,16 @@ final class AuthClient: ObservableObject {
             || error.localizedDescription.localizedCaseInsensitiveContains("sending email")
     }
 
-    func signOut() async {
+    @discardableResult
+    func signOut() async -> Bool {
         AuthClient.clearPendingRecoveryFlag()
         do {
             try await supabase.auth.signOut()
+            return true
         } catch {
             Log.error(error, category: "auth.signOut")
+            lastError = error.localizedDescription
+            return false
         }
     }
 
