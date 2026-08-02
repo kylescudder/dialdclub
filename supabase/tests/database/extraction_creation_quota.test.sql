@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(21);
+select plan(22);
 
 select has_table(
   'public',
@@ -51,9 +51,10 @@ select lives_ok(
     insert into public.brew_sessions (
       id, owner_id, method, title, dose_grams, extraction_seconds
     )
-    select gen_random_uuid(), '11111111-1111-4111-8111-111111111111',
+    select ('10000000-0000-4000-8000-' || lpad(value::text, 12, '0'))::uuid,
+           '11111111-1111-4111-8111-111111111111',
            'espresso', 'Free extraction', 18, 30
-    from generate_series(1, 5)
+    from generate_series(1, 5) as series(value)
   $$,
   'five free creations succeed'
 );
@@ -106,6 +107,21 @@ select throws_ok(
   'DX001',
   'free extraction limit reached',
   'hard deletion does not restore allowance'
+);
+
+select throws_ok(
+  $$
+    insert into public.brew_sessions (
+      id, owner_id, method, title, dose_grams, extraction_seconds
+    ) values (
+      '10000000-0000-4000-8000-000000000001',
+      '11111111-1111-4111-8111-111111111111',
+      'espresso', 'Reused hard-deleted ID', 18, 30
+    )
+  $$,
+  '23505',
+  'duplicate key value violates unique constraint "extraction_creation_events_pkey"',
+  'a historical hard-deleted brew ID cannot be reused'
 );
 
 select throws_ok(

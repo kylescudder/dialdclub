@@ -1,6 +1,12 @@
 -- Preserve lifetime extraction usage independently from mutable brew rows and
 -- enforce the free allowance at the database boundary.
 
+-- Supabase runs migrations transactionally. Block concurrent brew mutations
+-- before the historical backfill and retain this lock through helper/RPC
+-- creation and the final trigger installation. Waiting inserts resume after
+-- commit and therefore execute through the installed quota trigger.
+lock table public.brew_sessions in share row exclusive mode;
+
 -- RLS policies decide which owner-scoped rows are accessible; the table grant
 -- is still required for authenticated PostgREST operations on a clean project.
 grant select, insert, update, delete on table public.brew_sessions to authenticated;
@@ -18,6 +24,8 @@ revoke all on table public.extraction_creation_quotas from anon, authenticated;
 -- A durable creation ledger makes retries idempotent without depending on the
 -- continued existence of the mutable brew_sessions row. Its rows intentionally
 -- do not reference brew_sessions, so a hard delete cannot erase lifetime use.
+-- Reusing any historical hard-deleted brew_session_id is rejected by the
+-- ledger primary key as an explicit idempotency and safety rule.
 create table if not exists public.extraction_creation_events (
   brew_session_id uuid primary key,
   user_id uuid not null references public.profiles(id) on delete cascade,

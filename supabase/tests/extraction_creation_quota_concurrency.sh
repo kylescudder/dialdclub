@@ -66,3 +66,5 @@ if [[ "$result" != "5|5" ]]; then
 fi
 
 echo "concurrent quota check passed: one fifth insert committed and the sixth failed"
+
+"$(dirname "$0")/extraction_creation_quota_deployment_concurrency.sh" "$database_url"

@@ -52,7 +52,7 @@ supabase/migrations creates profiles, beans, brew_sessions, brew_steps, brew_rem
 
 All user-owned tables use RLS and soft-delete tombstones.
 
-Database quota coverage runs with `supabase test db`. The two-session concurrency reproduction is `supabase/tests/extraction_creation_quota_concurrency.sh`, optionally followed by a database URL. Edge verification checks run with `deno test --allow-env --allow-net supabase/functions/_shared/apple_store_verification_test.ts`.
+Database quota coverage runs with `supabase test db`. The two-session concurrency reproduction is `supabase/tests/extraction_creation_quota_concurrency.sh`, optionally followed by a database URL; it also runs the live-deployment lock reproduction. The durable event ledger intentionally rejects reuse of a historical hard-deleted `brew_session_id` as an idempotency and safety rule. Edge verification checks run with `deno test --allow-env --allow-net supabase/functions/_shared/apple_store_verification_test.ts`.
 
 ## Current scope
 
