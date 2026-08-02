@@ -4,6 +4,7 @@ import Supabase
 enum BrewCreationError: Error, Equatable, Identifiable, Sendable {
     case freeLimitReached
     case subscriptionVerificationPending
+    case quotaSnapshotUnavailable
     case unauthenticated
     case networkFailure
     case serverValidationFailure
@@ -13,6 +14,7 @@ enum BrewCreationError: Error, Equatable, Identifiable, Sendable {
         switch self {
         case .freeLimitReached: "freeLimitReached"
         case .subscriptionVerificationPending: "subscriptionVerificationPending"
+        case .quotaSnapshotUnavailable: "quotaSnapshotUnavailable"
         case .unauthenticated: "unauthenticated"
         case .networkFailure: "networkFailure"
         case .serverValidationFailure: "serverValidationFailure"
@@ -67,6 +69,11 @@ enum BrewCreationFailurePresentation: Equatable, Sendable {
                 title: "Verifying subscription",
                 message: "Apple has verified your subscription, but Diald is still confirming it with the server. Retry in a moment."
             )
+        case .quotaSnapshotUnavailable:
+            return .alert(
+                title: "Finish syncing first",
+                message: "Diald needs to download your extraction allowance before you can save brews offline. Connect to the internet and try again."
+            )
         case .unauthenticated:
             return .alert(
                 title: "Sign in again",
@@ -88,6 +95,15 @@ enum BrewCreationFailurePresentation: Equatable, Sendable {
                 message: "Something unexpected happened. Please try again."
             )
         }
+    }
+}
+
+enum ExtractionQuotaSnapshot {
+    static func requireInitializedCount(_ lifetimeCount: Int?) throws -> Int {
+        guard let lifetimeCount else {
+            throw BrewCreationError.quotaSnapshotUnavailable
+        }
+        return lifetimeCount
     }
 }
 

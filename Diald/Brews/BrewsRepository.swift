@@ -102,17 +102,19 @@ final class BrewsRepository: ObservableObject {
         let beanID = draft.beanID?.uuidString.lowercased()
         let grindSetting = draft.grindSetting.nilIfBlank
         let notes = draft.notes.nilIfBlank
-        let cachedStatus = try? await localExtractionCreationStatus()
+        let cachedStatus = try await localExtractionCreationStatus()
         let allowsUnlimited = billing.subscriptionState == .active
-            || cachedStatus?.hasVerifiedEntitlement == true
+            || cachedStatus.hasVerifiedEntitlement
         let freeLimit = AppServices.freeExtractionLimit
         do {
             try await database.writeTransaction { transaction in
-                let serverCount = try transaction.getOptional(
-                    sql: "select lifetime_count from extraction_creation_quotas where id = ?",
-                    parameters: [userID],
-                    mapper: { try $0.getInt(name: "lifetime_count") }
-                ) ?? 0
+                let serverCount = try ExtractionQuotaSnapshot.requireInitializedCount(
+                    transaction.getOptional(
+                        sql: "select lifetime_count from extraction_creation_quotas where id = ?",
+                        parameters: [userID],
+                        mapper: { try $0.getInt(name: "lifetime_count") }
+                    )
+                )
                 let pendingCount = try transaction.getOptional(
                     sql: """
                     select count(*) as count from pending_extractions
@@ -219,11 +221,14 @@ final class BrewsRepository: ObservableObject {
 
     func localExtractionCreationStatus() async throws -> ExtractionCreationStatus {
         guard let userID else { throw BrewCreationError.unauthenticated }
-        let serverCount = try await database.getOptional(
+        let cachedServerCount = try await database.getOptional(
             sql: "select lifetime_count from extraction_creation_quotas where id = ?",
             parameters: [userID],
             mapper: { try $0.getInt(name: "lifetime_count") }
-        ) ?? 0
+        )
+        let serverCount = try ExtractionQuotaSnapshot.requireInitializedCount(
+            cachedServerCount
+        )
         let pendingCount = try await database.getOptional(
             sql: """
             select count(*) as count from pending_extractions
