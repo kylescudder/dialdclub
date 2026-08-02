@@ -15,10 +15,19 @@ struct AddBrewView: View {
     @State private var creationFailure: BrewCreationError?
     @State private var showTimerScreen = false
 
-    init(startTimerOnAppear: Bool = false, brewToEdit: BrewSession? = nil) {
+    init(
+        startTimerOnAppear: Bool = false,
+        brewToEdit: BrewSession? = nil,
+        initialRecipe: BrewSession? = nil
+    ) {
         self.startTimerOnAppear = startTimerOnAppear
         self.brewToEdit = brewToEdit
-        _draft = State(initialValue: brewToEdit.map(BrewDraft.init(brew:)) ?? BrewDraft())
+
+        var initialDraft = (brewToEdit ?? initialRecipe).map(BrewDraft.init(brew:)) ?? BrewDraft()
+        if brewToEdit == nil, initialRecipe != nil {
+            initialDraft.brewedAt = Date()
+        }
+        _draft = State(initialValue: initialDraft)
     }
 
     var body: some View {
