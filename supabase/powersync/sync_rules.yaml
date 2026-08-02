@@ -1,9 +1,28 @@
-bucket_definitions:
-  user_data:
-    parameters: select request.user_id() as user_id
-    data:
-      - select * from profiles where id = bucket.user_id and deleted_at is null
-      - select * from beans where owner_id = bucket.user_id
-      - select * from brew_sessions where owner_id = bucket.user_id
-      - select * from brew_steps where owner_id = bucket.user_id
-      - select * from brew_reminders where owner_id = bucket.user_id
+# PowerSync sync rules for Diald.
+#
+# Uses edition 3 Sync Streams. Each stream is scoped to the authenticated
+# Supabase user and excludes soft-deleted rows where the schema supports it.
+
+config:
+  edition: 3
+
+streams:
+  user_profile:
+    auto_subscribe: true
+    query: select * from profiles where id = auth.user_id() and deleted_at is null
+
+  user_beans:
+    auto_subscribe: true
+    query: select * from beans where owner_id = auth.user_id() and deleted_at is null
+
+  user_brew_sessions:
+    auto_subscribe: true
+    query: select * from brew_sessions where owner_id = auth.user_id() and deleted_at is null
+
+  user_brew_steps:
+    auto_subscribe: true
+    query: select * from brew_steps where owner_id = auth.user_id() and deleted_at is null
+
+  user_brew_reminders:
+    auto_subscribe: true
+    query: select * from brew_reminders where owner_id = auth.user_id() and deleted_at is null
