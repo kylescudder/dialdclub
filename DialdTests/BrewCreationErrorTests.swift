@@ -19,7 +19,7 @@ final class BrewCreationErrorTests: XCTestCase {
             BrewCreationFailurePresentation.forError(.quotaSnapshotUnavailable),
             .alert(
                 title: "Finish syncing first",
-                message: "Diald needs to download your extraction allowance before you can save brews offline. Connect to the internet and try again."
+                message: "Diald needs to download your extraction allowance before you can save brews offline. Make sure you're online, wait for sync to finish, and try again."
             )
         )
         XCTAssertEqual(

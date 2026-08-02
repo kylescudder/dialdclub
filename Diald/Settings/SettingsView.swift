@@ -204,11 +204,11 @@ struct SettingsView: View {
             return "\(count) change\(count == 1 ? "" : "s") queued"
         }
         switch services.sync.status {
-        case .idle: "Waiting"
-        case .connecting: "Connecting"
-        case .connected: "Up to date"
-        case .offline: "Offline — changes will queue"
-        case .error: "Needs attention"
+        case .idle: return "Waiting"
+        case .connecting: return "Connecting"
+        case .connected: return "Up to date"
+        case .offline: return "Offline — changes will queue"
+        case .error: return "Needs attention"
         }
     }
 
