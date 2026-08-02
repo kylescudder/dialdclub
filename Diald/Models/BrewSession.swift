@@ -1,6 +1,7 @@
 import Foundation
+import PowerSync
 
-enum BrewMethod: String, Codable, CaseIterable, Identifiable {
+enum BrewMethod: String, Codable, CaseIterable, Identifiable, Sendable {
     case espresso, v60, aeropress, chemex, clever, moka, frenchPress = "french_press", other
     var id: String { rawValue }
     var label: String {
@@ -17,7 +18,7 @@ enum BrewMethod: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-struct BrewSession: Codable, Identifiable, Hashable {
+struct BrewSession: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     var ownerID: UUID
     var beanID: UUID?
@@ -63,5 +64,44 @@ struct BrewSession: Codable, Identifiable, Hashable {
 
     var timeText: String {
         "\(extractionSeconds / 60):" + String(format: "%02d", extractionSeconds % 60)
+    }
+}
+
+extension BrewSession {
+    static func from(cursor: SqlCursor) -> BrewSession? {
+        do {
+            guard let id = UUID(uuidString: try cursor.getString(name: "id")),
+                  let ownerID = UUID(uuidString: try cursor.getString(name: "owner_id")),
+                  let method = BrewMethod(rawValue: try cursor.getString(name: "method")),
+                  let brewedAt = parseISO8601Date(try cursor.getStringOptional(name: "brewed_at")) else {
+                return nil
+            }
+            let beanID = try cursor.getStringOptional(name: "bean_id").flatMap(UUID.init(uuidString:))
+            return BrewSession(
+                id: id,
+                ownerID: ownerID,
+                beanID: beanID,
+                method: method,
+                title: try cursor.getString(name: "title"),
+                doseGrams: try cursor.getDouble(name: "dose_grams"),
+                yieldGrams: try cursor.getDoubleOptional(name: "yield_grams"),
+                waterGrams: try cursor.getDoubleOptional(name: "water_grams"),
+                grindSetting: try cursor.getStringOptional(name: "grind_setting"),
+                waterTemperatureC: try cursor.getDoubleOptional(name: "water_temperature_c"),
+                extractionSeconds: try cursor.getInt(name: "extraction_seconds"),
+                rating: try cursor.getIntOptional(name: "rating"),
+                acidity: try cursor.getIntOptional(name: "acidity"),
+                sweetness: try cursor.getIntOptional(name: "sweetness"),
+                body: try cursor.getIntOptional(name: "body"),
+                clarity: try cursor.getIntOptional(name: "clarity"),
+                notes: try cursor.getStringOptional(name: "notes"),
+                brewedAt: brewedAt,
+                createdAt: parseISO8601Date(try cursor.getStringOptional(name: "created_at")),
+                updatedAt: parseISO8601Date(try cursor.getStringOptional(name: "updated_at")),
+                deletedAt: parseISO8601Date(try cursor.getStringOptional(name: "deleted_at"))
+            )
+        } catch {
+            return nil
+        }
     }
 }

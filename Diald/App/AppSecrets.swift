@@ -5,6 +5,7 @@ enum AppSecrets {
     private static let placeholderValues = [
         "your-project.supabase.co",
         "your-supabase-anon-key",
+        "your-instance.powersync.journeyapps.com",
         "placeholder.supabase.co"
     ]
 
@@ -43,6 +44,22 @@ enum AppSecrets {
 
     static let supabaseAnonKey: String = {
         rawString(for: "SUPABASE_ANON_KEY")
+    }()
+
+    static let powerSyncConfigurationError: String? = {
+        let rawURL = rawString(for: "POWERSYNC_URL")
+        if rawURL.isEmpty || rawURL.hasPrefix(unresolvedPrefix) || placeholderValues.contains(where: rawURL.contains) {
+            return "POWERSYNC_URL is not configured for this build."
+        }
+        guard URL(string: rawURL) != nil else {
+            return "POWERSYNC_URL is invalid for this build."
+        }
+        return nil
+    }()
+
+    static let powerSyncURL: URL? = {
+        guard powerSyncConfigurationError == nil else { return nil }
+        return URL(string: rawString(for: "POWERSYNC_URL"))
     }()
 
     static let sentryDSN: String = {

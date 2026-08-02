@@ -117,4 +117,25 @@ final class BrewCreationErrorTests: XCTestCase {
             .allowed
         )
     }
+
+    func testPowerSyncAcknowledgesOnlyKnownPermanentPostgresRejections() {
+        XCTAssertTrue(SupabaseConnector.isPermanentRejection(
+            PostgrestError(code: "DX001", message: "free extraction limit reached")
+        ))
+        XCTAssertTrue(SupabaseConnector.isPermanentRejection(
+            PostgrestError(code: "23514", message: "check constraint failed")
+        ))
+        XCTAssertFalse(SupabaseConnector.isPermanentRejection(
+            PostgrestError(code: "PGRST001", message: "database unavailable")
+        ))
+        XCTAssertFalse(SupabaseConnector.isPermanentRejection(
+            PostgrestError(code: "42501", message: "row-level security violation")
+        ))
+        XCTAssertFalse(SupabaseConnector.isPermanentRejection(
+            PostgrestError(code: "DX002", message: "authentication required")
+        ))
+        XCTAssertFalse(SupabaseConnector.isPermanentRejection(
+            NSError(domain: NSURLErrorDomain, code: NSURLErrorNotConnectedToInternet)
+        ))
+    }
 }

@@ -132,6 +132,10 @@ struct SettingsView: View {
                 .disabled(isDeleting)
             }
 
+            Section("Offline sync") {
+                LabeledContent("Status", value: syncStatusLabel)
+            }
+
             Section("About") {
                 LabeledContent("Version", value: appVersion)
                 Link("View Diald on GitHub", destination: URL(string: "https://github.com/kylescudder/dialdclub")!)
@@ -143,7 +147,11 @@ struct SettingsView: View {
         }
         .alert("Sign out of Diald?", isPresented: $showSignOutConfirm) {
             Button("Sign out", role: .destructive) {
-                Task { await services.auth.signOut() }
+                Task {
+                    if await services.auth.signOut() {
+                        await services.sync.wipe()
+                    }
+                }
             }
             Button("Cancel", role: .cancel) {}
         }
@@ -190,11 +198,26 @@ struct SettingsView: View {
         }
     }
 
+    private var syncStatusLabel: String {
+        if services.sync.pendingUploadCount > 0 {
+            let count = services.sync.pendingUploadCount
+            return "\(count) change\(count == 1 ? "" : "s") queued"
+        }
+        switch services.sync.status {
+        case .idle: "Waiting"
+        case .connecting: "Connecting"
+        case .connected: "Up to date"
+        case .offline: "Offline — changes will queue"
+        case .error: "Needs attention"
+        }
+    }
+
     private func deleteAccount() async {
         isDeleting = true
         defer { isDeleting = false }
         do {
             try await services.auth.deleteAccount()
+            await services.sync.wipe()
             successCount += 1
         } catch {
             deleteError = error.localizedDescription

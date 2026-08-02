@@ -84,13 +84,13 @@ else
     ok "Config/Secrets.xcconfig already exists; leaving it unchanged"
 fi
 
-note "Expected values: SUPABASE_URL, SUPABASE_ANON_KEY, and optional SENTRY_DSN."
+note "Expected values: SUPABASE_URL, SUPABASE_ANON_KEY, POWERSYNC_URL, and optional SENTRY_DSN."
 note 'xcconfig warning: write literal "//" as "/$()/" (for example, https:/$()/…) because "//" starts a comment.'
 note "OpenAI and Anthropic API keys are entered in Diald at runtime and stored in the Keychain, not in xcconfig."
 
 # Detect the placeholders used by the committed example in either a newly
 # created file or an existing local configuration.
-if grep -Eq 'your-supabase-anon-key|your-project\.supabase\.co' Config/Secrets.xcconfig 2>/dev/null; then
+if grep -Eq 'your-supabase-anon-key|your-project\.supabase\.co|your-instance\.powersync\.journeyapps\.com' Config/Secrets.xcconfig 2>/dev/null; then
     warn "Config/Secrets.xcconfig still contains placeholders. Edit it before building."
 fi
 
@@ -134,12 +134,10 @@ fi
 # --- 4. PowerSync ----------------------------------------------------------
 step "PowerSync"
 
-note "The future sync rules live at supabase/powersync/sync_rules.yaml."
-note "Diald currently talks directly to Supabase; it is not offline-first."
-note "No PowerSync client, local SQLite database, upload queue, or conflict lifecycle is wired into the app."
-note "Applying these rules alone does not make Diald offline-first, and POWERSYNC_URL is not a required xcconfig value."
-note "When a separate application implementation is ready, apply the rules via the PowerSync dashboard:"
-note "  1. https://powersync.com → your instance → Sync rules"
+note "The Edition 3 sync streams live at supabase/powersync/sync_rules.yaml."
+note "Diald reads and writes user data through PowerSync's local SQLite database."
+note "Set POWERSYNC_URL in Config/Secrets.xcconfig, then apply the streams via the PowerSync dashboard:"
+note "  1. https://powersync.com → your instance → Sync Streams"
 note "  2. Paste the contents of supabase/powersync/sync_rules.yaml"
 note "  3. Validate, then Deploy"
 
@@ -193,12 +191,15 @@ Developer tasks:
        SUPABASE_SERVICE_ROLE_KEY
        APPLE_APP_ID (the numeric App Store app ID)
      Never place the service-role key in either app target or xcconfig.
-  5. Verify the existing StoreKit/App Store Connect setup for
+  5. Connect PowerSync to Supabase, configure Supabase JWT verification, deploy
+     supabase/powersync/sync_rules.yaml, and put the instance URL in
+     POWERSYNC_URL inside Config/Secrets.xcconfig.
+  6. Verify the existing StoreKit/App Store Connect setup for
      club.diald.supporter.monthly, signing profiles for both targets, and
      App Store Server Notifications for iap-app-store-notifications as needed.
-  6. In Xcode → Signing & Capabilities, select the correct paid signing team
+  7. In Xcode → Signing & Capabilities, select the correct paid signing team
      for Diald and DialdWidgets before running on a device or archiving.
-  7. Deploy notify-brew-reminder only when its current behavior is appropriate:
+  8. Deploy notify-brew-reminder only when its current behavior is appropriate:
        supabase functions deploy notify-brew-reminder
      It currently identifies and logs intended recipients; it does not perform
      production APNs delivery.

@@ -12,7 +12,7 @@ Native iOS app for specialty coffee experiments: beans, extraction time, ratios,
 - WidgetKit extension with Home Screen quick actions and a brew stats widget
 - StoreKit subscription gating: 5 lifetime extractions, including deleted records, then Supporter Monthly for unlimited logging
 - TestFlight GitHub Actions workflow
-- PowerSync-compatible sync rules for an offline-first follow-up
+- Offline-first SQLite data with PowerSync sync to Supabase
 
 ## Setup
 
@@ -22,16 +22,17 @@ The fastest path is the bundled script:
 ./setup.sh
 ```
 
-It checks Bun and the required native/backend tools, reports optional Netlify and PostgreSQL CLIs, copies the secrets template without overwriting local values, verifies Supabase CLI login and local link state, offers migrations only for a linked project, explains the future PowerSync boundary, generates the Xcode project on macOS, and offers an unsigned simulator build.
+It checks Bun and the required native/backend tools, reports optional Netlify and PostgreSQL CLIs, copies the secrets template without overwriting local values, verifies Supabase CLI login and local link state, offers migrations only for a linked project, points to the PowerSync stream deployment, generates the Xcode project on macOS, and offers an unsigned simulator build.
 
 Manual version:
 
 1. Copy `Config/Secrets.xcconfig.example` to `Config/Secrets.xcconfig`.
-2. Fill `SUPABASE_URL` and `SUPABASE_ANON_KEY` from your Supabase project settings.
+2. Fill `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `POWERSYNC_URL` from your Supabase and PowerSync project settings.
 3. Run `supabase login`, then `supabase link --project-ref <ref>`.
 4. Run `supabase db push`.
-5. Run `xcodegen generate`.
-6. Open `Diald.xcodeproj`.
+5. Deploy `supabase/powersync/sync_rules.yaml` through the PowerSync dashboard.
+6. Run `xcodegen generate`.
+7. Open `Diald.xcodeproj`.
 
 In Supabase Auth, enable Email, Apple, and Google. Set the redirect URL to diald://auth-callback.
 
@@ -54,8 +55,10 @@ All user-owned tables use RLS and soft-delete tombstones.
 
 Database quota coverage runs with `supabase test db`. The two-session concurrency reproduction is `supabase/tests/extraction_creation_quota_concurrency.sh`, optionally followed by a database URL; it also runs the live-deployment lock reproduction. The durable event ledger intentionally rejects reuse of a historical hard-deleted `brew_session_id` as an idempotency and safety rule. Edge verification checks run with `deno test --allow-env --allow-net supabase/functions/_shared/apple_store_verification_test.ts`.
 
-## Current scope
+## Offline sync
 
-The first cut is a proper native scaffold with a usable brew logger, bean catalogue, stats view, auth, notifications, shortcuts, and backend schema. PowerSync rules are present, but the app currently talks directly to Supabase; wiring the local SQLite/PowerSync manager is the obvious next round.
+Profiles, beans, brews, and stats read reactively from PowerSync's local SQLite database. Bean, profile, and brew mutations are queued locally and upload to Supabase when connectivity returns. Explicit sign-out clears both user data and pending uploads; transient auth changes only disconnect sync.
+
+The database remains authoritative for the five-lifetime-extraction limit. Diald syncs the user's protected quota and verified entitlement snapshots for offline decisions and keeps a device-only pending-creation ledger. Known permanent upload rejections are acknowledged so PowerSync rolls the optimistic row back and Diald tells the user; network and temporary server failures stay queued for retry.
 
 The app now also has a Diald Widgets extension. It includes a quick-action widget for logging a brew or opening the extraction timer, plus a dashboard widget backed by an app-group snapshot written whenever brew data refreshes.

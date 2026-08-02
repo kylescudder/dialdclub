@@ -51,7 +51,7 @@ jobs:
           test -n "${IOS_SECRETS}" || (echo "::error::IOS_SECRETS_XCCONFIG is empty" && exit 1)
           mkdir -p Config
           printf '%s\n' "$IOS_SECRETS" > Config/Secrets.xcconfig
-      - name: Validate Supabase secrets
+      - name: Validate app service secrets
         run: |
           value_for() {
             awk -F= -v key="$1" '$1 ~ "^[[:space:]]*" key "[[:space:]]*$" {
@@ -64,7 +64,9 @@ jobs:
 
           supabase_url="$(value_for SUPABASE_URL)"
           supabase_key="$(value_for SUPABASE_ANON_KEY)"
+          powersync_url="$(value_for POWERSYNC_URL)"
           resolved_supabase_url="$(printf '%s' "$supabase_url" | sed 's#/[$]()#/#g')"
+          resolved_powersync_url="$(printf '%s' "$powersync_url" | sed 's#/[$]()#/#g')"
 
           case "$resolved_supabase_url" in
             ""|*\$"("*|*your-project.supabase.co*|*placeholder.supabase.co*)
@@ -81,6 +83,13 @@ jobs:
           esac
 
           test "${#supabase_key}" -gt 40 || (echo "::error::SUPABASE_ANON_KEY is unexpectedly short" && exit 1)
+
+          case "$resolved_powersync_url" in
+            ""|*\$"("*|*your-instance.powersync.journeyapps.com*)
+              echo "::error::POWERSYNC_URL is missing, unresolved, or still a placeholder"
+              exit 1
+              ;;
+          esac
       - name: Write App Store Connect API key
         env:
           API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
@@ -135,6 +144,7 @@ jobs:
 
           supabase_url="$(plutil -extract SUPABASE_URL raw -o - "$app_plist")"
           supabase_key="$(plutil -extract SUPABASE_ANON_KEY raw -o - "$app_plist")"
+          powersync_url="$(plutil -extract POWERSYNC_URL raw -o - "$app_plist")"
 
           case "$supabase_url" in
             ""|*\$"("*|*your-project.supabase.co*|*placeholder.supabase.co*)
@@ -151,6 +161,13 @@ jobs:
           esac
 
           test "${#supabase_key}" -gt 40 || (echo "::error::Archived app SUPABASE_ANON_KEY is unexpectedly short" && exit 1)
+
+          case "$powersync_url" in
+            ""|*\$"("*|*your-instance.powersync.journeyapps.com*)
+              echo "::error::Archived app has missing, unresolved, or placeholder POWERSYNC_URL"
+              exit 1
+              ;;
+          esac
       - name: Export IPA
         run: |
           xcodebuild -exportArchive \

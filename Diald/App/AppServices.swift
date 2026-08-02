@@ -5,9 +5,11 @@ import WidgetKit
 
 @MainActor
 final class AppServices: ObservableObject {
-    static let freeExtractionLimit = 5
+    nonisolated static let freeExtractionLimit = 5
 
     let auth: AuthClient
+    let sync: PowerSyncManager
+    let syncIssues: SyncIssueStore
     let billing: BillingRepository
     let beans: BeansRepository
     let brews: BrewsRepository
@@ -21,19 +23,23 @@ final class AppServices: ObservableObject {
 
     init() {
         let auth = AuthClient()
+        let syncIssues = SyncIssueStore()
+        let sync = PowerSyncManager(auth: auth, issues: syncIssues)
         let billing = BillingRepository(auth: auth)
         self.auth = auth
+        self.sync = sync
+        self.syncIssues = syncIssues
         self.billing = billing
-        self.beans = BeansRepository(auth: auth)
-        self.brews = BrewsRepository(auth: auth, billing: billing)
-        self.stats = StatsRepository(auth: auth)
+        self.beans = BeansRepository(database: sync.database)
+        self.brews = BrewsRepository(auth: auth, billing: billing, database: sync.database)
+        self.stats = StatsRepository(database: sync.database)
         self.notifications = NotificationManager.shared
-        self.profile = ProfileRepository(auth: auth)
+        self.profile = ProfileRepository(database: sync.database)
         let aiSettings = AISettingsStore()
         self.aiSettings = aiSettings
         self.analysis = AnalysisClient(settings: aiSettings)
 
-        for child: any ObservableObject in [auth, billing, beans, brews, stats, notifications, profile, aiSettings, analysis] {
+        for child: any ObservableObject in [auth, sync, syncIssues, billing, beans, brews, stats, notifications, profile, aiSettings, analysis] {
             (child.objectWillChange as? ObservableObjectPublisher)?
                 .sink { [weak self] in self?.objectWillChange.send() }
                 .store(in: &cancellables)
@@ -41,6 +47,7 @@ final class AppServices: ObservableObject {
 
         NotificationManager.shared.bind(auth: auth)
         billing.start()
+        Task { await sync.startObservingAuth() }
 
         auth.$state
             .removeDuplicates()
@@ -49,13 +56,27 @@ final class AppServices: ObservableObject {
                 Task { @MainActor in await self.applyAuth(state: state) }
             }
             .store(in: &cancellables)
+
+        Publishers.CombineLatest(brews.$brews, stats.$stats)
+            .debounce(for: .milliseconds(100), scheduler: RunLoop.main)
+            .sink { [weak self] _, _ in self?.publishWidgetSnapshot() }
+            .store(in: &cancellables)
     }
 
     private func applyAuth(state: AuthClient.State) async {
-        guard case .signedIn = state else {
+        guard case let .signedIn(userID, _) = state else {
             billing.resetForSignOut()
+            profile.stopWatching()
+            beans.stopWatching()
+            brews.stopWatching()
+            stats.stopWatching()
             return
         }
+        let id = userID.uuidString.lowercased()
+        profile.startWatching(userID: id)
+        beans.startWatching(userID: id)
+        brews.startWatching(userID: id)
+        stats.startWatching(userID: id)
         await billing.syncEntitlements()
         await refreshAll()
     }
@@ -71,7 +92,6 @@ final class AppServices: ObservableObject {
     func refreshBrewData() async {
         await brews.refresh()
         await stats.refresh()
-        publishWidgetSnapshot()
     }
 
     func publishWidgetSnapshot() {
@@ -91,10 +111,29 @@ final class AppServices: ObservableObject {
     }
 
     func canCreateNewExtraction() async -> ExtractionCreationAvailability {
+        if sync.status == .offline {
+            return await localExtractionCreationAvailability()
+        }
         do {
             let status = try await brews.extractionCreationStatus()
             return ExtractionCreationAvailability.resolve(
                 status: status,
+                subscriptionState: billing.subscriptionState
+            )
+        } catch {
+            let classified = BrewCreationError.classify(error, subscriptionState: billing.subscriptionState)
+            guard classified == .networkFailure || classified == .unknownFailure else {
+                return .failed(classified)
+            }
+            return await localExtractionCreationAvailability()
+        }
+    }
+
+    private func localExtractionCreationAvailability() async -> ExtractionCreationAvailability {
+        do {
+            let localStatus = try await brews.localExtractionCreationStatus()
+            return ExtractionCreationAvailability.resolve(
+                status: localStatus,
                 subscriptionState: billing.subscriptionState
             )
         } catch {

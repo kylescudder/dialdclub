@@ -1,7 +1,7 @@
 import Foundation
 import Supabase
 
-enum BrewCreationError: Error, Equatable, Identifiable {
+enum BrewCreationError: Error, Equatable, Identifiable, Sendable {
     case freeLimitReached
     case subscriptionVerificationPending
     case unauthenticated
@@ -53,7 +53,7 @@ enum BrewCreationError: Error, Equatable, Identifiable {
     }
 }
 
-enum BrewCreationFailurePresentation: Equatable {
+enum BrewCreationFailurePresentation: Equatable, Sendable {
     case paywall
     case verification(title: String, message: String)
     case alert(title: String, message: String)
@@ -91,7 +91,7 @@ enum BrewCreationFailurePresentation: Equatable {
     }
 }
 
-struct ExtractionCreationStatus: Decodable, Equatable {
+struct ExtractionCreationStatus: Decodable, Equatable, Sendable {
     let lifetimeCount: Int
     let freeLimit: Int
     let hasVerifiedEntitlement: Bool
@@ -103,7 +103,7 @@ struct ExtractionCreationStatus: Decodable, Equatable {
     }
 }
 
-enum ExtractionCreationAvailability: Equatable {
+enum ExtractionCreationAvailability: Equatable, Sendable {
     case allowed
     case limitReached
     case subscriptionVerificationPending
