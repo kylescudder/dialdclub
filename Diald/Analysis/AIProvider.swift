@@ -44,7 +44,7 @@ private enum KeychainAPIKeys {
     }
 }
 
-enum AIProvider: String, CaseIterable, Identifiable {
+enum AIProvider: String, CaseIterable, Identifiable, Codable {
     case openAI
     case anthropic
 
@@ -72,9 +72,7 @@ final class AISettingsStore: ObservableObject {
     @Published var provider: AIProvider {
         didSet {
             UserDefaults.standard.set(provider.rawValue, forKey: "ai.provider")
-            if model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                model = provider.defaultModel
-            }
+            model = provider.defaultModel
         }
     }
     @Published var openAIKey: String {
