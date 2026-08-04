@@ -146,6 +146,7 @@ struct AnalyseView: View {
 
 struct AIProviderSettingsView: View {
     @EnvironmentObject private var services: AppServices
+    @State private var selectedLab: AILab?
 
     private var analysisLabs: [AILab] {
         services.aiModelCatalog.labs.filter(\.isConnected)
@@ -165,12 +166,13 @@ struct AIProviderSettingsView: View {
 
             Section {
                 ForEach(analysisLabs) { lab in
-                    if let provider = lab.provider {
-                        NavigationLink(
-                            destination: AIProviderConnectionView(lab: lab, provider: provider)
-                        ) {
+                    if lab.provider != nil {
+                        Button {
+                            selectedLab = lab
+                        } label: {
                             labRow(lab, status: connectionStatus(for: lab))
                         }
+                        .buttonStyle(.plain)
                     }
                 }
             } header: {
@@ -179,9 +181,12 @@ struct AIProviderSettingsView: View {
 
             Section {
                 ForEach(catalogLabs) { lab in
-                    NavigationLink(destination: AICatalogLabView(lab: lab)) {
+                    Button {
+                        selectedLab = lab
+                    } label: {
                         labRow(lab, status: "Catalogue only")
                     }
+                    .buttonStyle(.plain)
                 }
             } header: {
                 Text("Model catalogue")
@@ -192,6 +197,9 @@ struct AIProviderSettingsView: View {
         .navigationTitle("Analysis labs")
         .task {
             await services.aiModelCatalog.refresh()
+        }
+        .sheet(item: $selectedLab) { lab in
+            labSheet(for: lab)
         }
     }
 
@@ -217,6 +225,22 @@ struct AIProviderSettingsView: View {
         guard let provider = lab.provider else { return "Catalogue only" }
         if services.aiSettings.provider == provider { return "Active" }
         return services.aiSettings.hasAPIKey(for: provider) ? "Ready" : "Set up"
+    }
+
+    private func labSheet(for lab: AILab) -> AnyView {
+        if let provider = lab.provider {
+            return AnyView(
+                NavigationStack {
+                    AIProviderConnectionView(lab: lab, provider: provider)
+                }
+                .environmentObject(services)
+            )
+        }
+        return AnyView(
+            NavigationStack {
+                AICatalogLabView(lab: lab)
+            }
+        )
     }
 }
 
