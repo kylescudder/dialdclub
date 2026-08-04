@@ -125,20 +125,7 @@ struct AnalyseView: View {
 
     @ViewBuilder
     private var selectedLabIcon: some View {
-        switch services.aiSettings.provider {
-        case .openAI:
-            Image("OpenAIBlossom")
-                .resizable()
-                .scaledToFit()
-                .padding(7)
-                .frame(width: 32, height: 32)
-                .background(.white, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
-        case .anthropic:
-            Image(systemName: "a.circle.fill")
-                .foregroundStyle(.white)
-                .frame(width: 32, height: 32)
-                .background(Theme.Colors.accent, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
-        }
+        AIProviderLogo(provider: services.aiSettings.provider)
     }
 
     private func runAnalysis() async {

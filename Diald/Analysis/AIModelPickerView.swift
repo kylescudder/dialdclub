@@ -88,14 +88,7 @@ struct AIModelPickerView: View {
 
     private func labRow(_ lab: AILab) -> some View {
         HStack(spacing: Theme.Spacing.md) {
-            Image(systemName: lab.symbol)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(lab.isConnected ? Theme.Colors.accent : Theme.Colors.textSecondary)
-                .frame(width: 34, height: 34)
-                .background(
-                    lab.isConnected ? Theme.Colors.accent.opacity(0.12) : Theme.Colors.surfaceElevated,
-                    in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous)
-                )
+            AILabLogo(lab: lab)
             VStack(alignment: .leading, spacing: 3) {
                 Text(lab.name)
                     .font(.body.weight(.semibold))
@@ -127,10 +120,7 @@ struct AIModelPickerView: View {
                             dismiss()
                         } label: {
                             HStack(spacing: Theme.Spacing.md) {
-                                Image(systemName: lab.symbol)
-                                    .font(.title3)
-                                    .foregroundStyle(Theme.Colors.accent)
-                                    .frame(width: 28)
+                                AILabLogo(lab: lab, size: 28)
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(model.displayName)
                                         .font(.body.weight(.semibold))
