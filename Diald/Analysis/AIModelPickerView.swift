@@ -149,7 +149,7 @@ struct AIModelPickerView: View {
             .listStyle(.insetGrouped)
         } else {
             ContentUnavailableView {
-                Label("\(lab.name) isn't connected", systemImage: "plug.disconnected")
+                Label("\(lab.name) isn't connected", systemImage: "bolt.slash.fill")
             } description: {
                 Text("This lab is visible in the model catalogue, but it cannot be added until Diald supports its API and authentication flow.")
             }
@@ -238,19 +238,5 @@ struct AILabLogo: View {
         case "openrouter": "OpenRouterLogo"
         default: "AppLogoIcon"
         }
-    }
-}
-
-struct AIProviderLogo: View {
-    let provider: AIProvider
-    var size: CGFloat = 32
-
-    var body: some View {
-        AILabLogo(
-            lab: provider == .openAI
-                ? AILab.fallback.first { $0.provider == .openAI }!
-                : AILab.fallback.first { $0.provider == .anthropic }!,
-            size: size
-        )
     }
 }

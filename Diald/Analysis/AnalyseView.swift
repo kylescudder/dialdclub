@@ -125,7 +125,12 @@ struct AnalyseView: View {
 
     @ViewBuilder
     private var selectedLabIcon: some View {
-        AIProviderLogo(provider: services.aiSettings.provider)
+        AILabLogo(
+            lab: services.aiSettings.provider == .openAI
+                ? AILab.fallback.first { $0.provider == .openAI }!
+                : AILab.fallback.first { $0.provider == .anthropic }!,
+            size: 32
+        )
     }
 
     private func runAnalysis() async {
