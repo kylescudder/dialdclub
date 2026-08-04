@@ -195,3 +195,62 @@ struct AIModelPickerView: View {
         }
     }
 }
+
+struct AILabLogo: View {
+    let lab: AILab
+    var size: CGFloat = 34
+
+    var body: some View {
+        Image(logoAssetName)
+            .resizable()
+            .scaledToFit()
+            .padding(size * 0.2)
+            .background(.white, in: tile)
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
+    }
+
+    private var tile: RoundedRectangle {
+        RoundedRectangle(cornerRadius: size * 0.25, style: .continuous)
+    }
+
+    private var logoAssetName: String {
+        switch lab.id {
+        case "openai": "OpenAIBlossom"
+        case "anthropic": "AnthropicLogo"
+        case "google": "GoogleLogo"
+        case "xai": "XAILogo"
+        case "meta": "MetaLogo"
+        case "mistral": "MistralLogo"
+        case "deepseek": "DeepSeekLogo"
+        case "cohere": "CohereLogo"
+        case "ai21": "AI21Logo"
+        case "qwen": "QwenLogo"
+        case "moonshot": "MoonshotLogo"
+        case "minimax": "MiniMaxLogo"
+        case "perplexity": "PerplexityLogo"
+        case "bedrock": "AWSLogo"
+        case "azure": "AzureLogo"
+        case "groq": "GroqLogo"
+        case "together": "TogetherLogo"
+        case "fireworks": "FireworksLogo"
+        case "nvidia": "NVIDIALogo"
+        case "openrouter": "OpenRouterLogo"
+        default: "AppLogoIcon"
+        }
+    }
+}
+
+struct AIProviderLogo: View {
+    let provider: AIProvider
+    var size: CGFloat = 32
+
+    var body: some View {
+        AILabLogo(
+            lab: provider == .openAI
+                ? AILab.fallback.first { $0.provider == .openAI }!
+                : AILab.fallback.first { $0.provider == .anthropic }!,
+            size: size
+        )
+    }
+}
