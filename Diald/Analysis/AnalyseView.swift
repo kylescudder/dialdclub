@@ -166,9 +166,9 @@ struct AIProviderSettingsView: View {
             Section {
                 ForEach(analysisLabs) { lab in
                     if let provider = lab.provider {
-                        NavigationLink {
-                            AIProviderConnectionView(lab: lab, provider: provider)
-                        } label: {
+                        NavigationLink(
+                            destination: AIProviderConnectionView(lab: lab, provider: provider)
+                        ) {
                             labRow(lab, status: connectionStatus(for: lab))
                         }
                     }
@@ -179,9 +179,7 @@ struct AIProviderSettingsView: View {
 
             Section {
                 ForEach(catalogLabs) { lab in
-                    NavigationLink {
-                        AICatalogLabView(lab: lab)
-                    } label: {
+                    NavigationLink(destination: AICatalogLabView(lab: lab)) {
                         labRow(lab, status: "Catalogue only")
                     }
                 }
