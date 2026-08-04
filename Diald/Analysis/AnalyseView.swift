@@ -45,10 +45,7 @@ struct AnalyseView: View {
                     showModelPicker = true
                 } label: {
                     HStack(spacing: Theme.Spacing.md) {
-                        Image(systemName: "flask.fill")
-                            .foregroundStyle(.white)
-                            .frame(width: 32, height: 32)
-                            .background(Theme.Colors.accent, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
+                        selectedLabIcon
                         VStack(alignment: .leading, spacing: 2) {
                             Text(selectedModelName)
                                 .foregroundStyle(Theme.Colors.textPrimary)
@@ -124,6 +121,24 @@ struct AnalyseView: View {
         services.aiModelCatalog.models(for: services.aiSettings.provider)
             .first(where: { $0.id == services.aiSettings.model })?
             .displayName ?? services.aiSettings.model
+    }
+
+    @ViewBuilder
+    private var selectedLabIcon: some View {
+        switch services.aiSettings.provider {
+        case .openAI:
+            Image("OpenAIBlossom")
+                .resizable()
+                .scaledToFit()
+                .padding(7)
+                .frame(width: 32, height: 32)
+                .background(.white, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
+        case .anthropic:
+            Image(systemName: "a.circle.fill")
+                .foregroundStyle(.white)
+                .frame(width: 32, height: 32)
+                .background(Theme.Colors.accent, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
+        }
     }
 
     private func runAnalysis() async {
