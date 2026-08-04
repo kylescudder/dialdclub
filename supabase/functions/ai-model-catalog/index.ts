@@ -14,6 +14,36 @@ type CatalogModel = {
   description: string;
 };
 
+type CatalogLab = {
+  id: string;
+  name: string;
+  subtitle: string;
+  provider: Provider | null;
+};
+
+const labs: CatalogLab[] = [
+  { id: "openai", name: "OpenAI", subtitle: "GPT models", provider: "openAI" },
+  { id: "anthropic", name: "Anthropic", subtitle: "Claude models", provider: "anthropic" },
+  { id: "google", name: "Google", subtitle: "Gemini models", provider: null },
+  { id: "xai", name: "xAI", subtitle: "Grok models", provider: null },
+  { id: "meta", name: "Meta", subtitle: "Llama models", provider: null },
+  { id: "mistral", name: "Mistral AI", subtitle: "Mistral models", provider: null },
+  { id: "deepseek", name: "DeepSeek", subtitle: "Reasoning models", provider: null },
+  { id: "cohere", name: "Cohere", subtitle: "Command models", provider: null },
+  { id: "ai21", name: "AI21 Labs", subtitle: "Jamba models", provider: null },
+  { id: "qwen", name: "Qwen", subtitle: "Qwen models", provider: null },
+  { id: "moonshot", name: "Moonshot AI", subtitle: "Kimi models", provider: null },
+  { id: "minimax", name: "MiniMax", subtitle: "MiniMax models", provider: null },
+  { id: "perplexity", name: "Perplexity", subtitle: "Sonar models", provider: null },
+  { id: "bedrock", name: "Amazon Bedrock", subtitle: "Foundation models", provider: null },
+  { id: "azure", name: "Azure AI", subtitle: "Hosted model catalog", provider: null },
+  { id: "groq", name: "Groq", subtitle: "Fast inference", provider: null },
+  { id: "together", name: "Together AI", subtitle: "Open models", provider: null },
+  { id: "fireworks", name: "Fireworks AI", subtitle: "Open models", provider: null },
+  { id: "nvidia", name: "NVIDIA NIM", subtitle: "Optimised inference", provider: null },
+  { id: "openrouter", name: "OpenRouter", subtitle: "Multi-lab routing", provider: null },
+];
+
 const supabaseURL = Deno.env.get("SUPABASE_URL");
 const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const catalogRefreshIntervalMs = 6 * 60 * 60 * 1000;
@@ -111,7 +141,7 @@ Deno.serve(async (req) => {
   const withinAutomaticCacheWindow = age < catalogRefreshIntervalMs;
   const withinManualCooldown = age < manualRefreshCooldownMs;
   if (cached && (!manualRefresh ? withinAutomaticCacheWindow : withinManualCooldown)) {
-    return json({ models: cached.models, updated_at: cached.updated_at, source: "cache" });
+    return json({ models: cached.models, labs, updated_at: cached.updated_at, source: "cache" });
   }
 
   const requests: Promise<CatalogModel[]>[] = [];
@@ -121,7 +151,7 @@ Deno.serve(async (req) => {
   if (anthropicKey) requests.push(anthropicModels(anthropicKey));
   if (requests.length === 0) {
     return cached
-      ? json({ models: cached.models, updated_at: cached.updated_at, source: "stale_cache" })
+      ? json({ models: cached.models, labs, updated_at: cached.updated_at, source: "stale_cache" })
       : json({ error: "catalog_not_configured" }, 503);
   }
 
@@ -133,7 +163,7 @@ Deno.serve(async (req) => {
   });
   if (models.length === 0) {
     return cached
-      ? json({ models: cached.models, updated_at: cached.updated_at, source: "stale_cache" })
+      ? json({ models: cached.models, labs, updated_at: cached.updated_at, source: "stale_cache" })
       : json({ error: "catalog_unavailable" }, 503);
   }
 
@@ -145,5 +175,5 @@ Deno.serve(async (req) => {
     console.error("Unable to write model catalog cache", cacheWriteError);
   }
 
-  return json({ models, updated_at: updatedAt, source: "provider" });
+  return json({ models, labs, updated_at: updatedAt, source: "provider" });
 });

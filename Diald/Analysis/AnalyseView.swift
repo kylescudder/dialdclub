@@ -41,17 +41,14 @@ struct AnalyseView: View {
             }
 
             Section {
-                Picker("Provider", selection: providerBinding) {
-                    ForEach(AIProvider.allCases) { provider in
-                        Text(provider.label).tag(provider)
-                    }
-                }
                 Button {
                     showModelPicker = true
                 } label: {
                     HStack(spacing: Theme.Spacing.md) {
-                        Image(systemName: "cpu")
-                            .foregroundStyle(Theme.Colors.accent)
+                        Image(systemName: "flask.fill")
+                            .foregroundStyle(.white)
+                            .frame(width: 32, height: 32)
+                            .background(Theme.Colors.accent, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
                         VStack(alignment: .leading, spacing: 2) {
                             Text(selectedModelName)
                                 .foregroundStyle(Theme.Colors.textPrimary)
@@ -69,7 +66,7 @@ struct AnalyseView: View {
                     AIProviderSettingsView()
                 }
             } header: {
-                Text("AI provider")
+                Text("Analysis lab")
             } footer: {
                 Text(services.aiSettings.hasActiveAPIKey ? "Your API key is stored in Keychain and sent only to the selected provider." : "Browse the current model catalog without a key. Add a provider API key only when you’re ready to analyse brew data.")
             }
@@ -147,19 +144,17 @@ struct AIProviderSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Picker("Provider", selection: providerBinding) {
-                    ForEach(AIProvider.allCases) { provider in
-                        Text(provider.label).tag(provider)
-                    }
-                }
                 SecureField("OpenAI API key", text: openAIKeyBinding)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                 SecureField("Anthropic API key", text: anthropicKeyBinding)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                Button("Clear selected provider key", role: .destructive) {
-                    services.aiSettings.clearActiveKey()
+                Button("Clear OpenAI API key", role: .destructive) {
+                    services.aiSettings.clearKey(for: .openAI)
+                }
+                Button("Clear Anthropic API key", role: .destructive) {
+                    services.aiSettings.clearKey(for: .anthropic)
                 }
             } header: {
                 Text("API keys")

@@ -24,6 +24,7 @@ struct AIModel: Codable, Identifiable, Hashable {
 @MainActor
 final class AIModelCatalog: ObservableObject {
     @Published private(set) var models: [AIModel]
+    @Published private(set) var labs: [AILab]
     @Published private(set) var isRefreshing = false
     @Published private(set) var lastUpdated: Date?
     @Published private(set) var lastRefreshError: String?
@@ -33,6 +34,7 @@ final class AIModelCatalog: ObservableObject {
     private let defaults: UserDefaults
 
     private static let cacheKey = "ai.modelCatalog.v1"
+    private static let labsCacheKey = "ai.modelCatalog.labs.v1"
     private static let cacheDateKey = "ai.modelCatalog.updatedAt"
 
     init(auth: AuthClient, session: URLSession = .shared, defaults: UserDefaults = .standard) {
@@ -40,12 +42,21 @@ final class AIModelCatalog: ObservableObject {
         self.session = session
         self.defaults = defaults
         models = Self.loadCachedModels(from: defaults) ?? AIModel.fallback
+        labs = Self.loadCachedLabs(from: defaults) ?? AILab.fallback
         lastUpdated = defaults.object(forKey: Self.cacheDateKey) as? Date
     }
 
     func models(for provider: AIProvider) -> [AIModel] {
         models.filter { $0.provider == provider }
             .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+    }
+
+    var connectedLabs: [AILab] {
+        labs.filter(\.isConnected)
+    }
+
+    var unconnectedLabs: [AILab] {
+        labs.filter { !$0.isConnected }
     }
 
     /// A refresh never removes the bundled and persisted catalog, so browsing models
@@ -84,6 +95,9 @@ final class AIModelCatalog: ObservableObject {
             guard !catalog.models.isEmpty else { throw AIModelCatalogError.empty }
 
             models = catalog.models
+            if let responseLabs = catalog.labs, !responseLabs.isEmpty {
+                labs = responseLabs
+            }
             lastUpdated = catalog.updatedAt ?? Date()
             lastRefreshError = nil
             saveCache()
@@ -96,6 +110,9 @@ final class AIModelCatalog: ObservableObject {
     private func saveCache() {
         guard let data = try? JSONEncoder().encode(models) else { return }
         defaults.set(data, forKey: Self.cacheKey)
+        if let labsData = try? JSONEncoder().encode(labs) {
+            defaults.set(labsData, forKey: Self.labsCacheKey)
+        }
         defaults.set(lastUpdated, forKey: Self.cacheDateKey)
     }
 
@@ -105,10 +122,18 @@ final class AIModelCatalog: ObservableObject {
               !models.isEmpty else { return nil }
         return models
     }
+
+    private static func loadCachedLabs(from defaults: UserDefaults) -> [AILab]? {
+        guard let data = defaults.data(forKey: labsCacheKey),
+              let labs = try? JSONDecoder().decode([AILab].self, from: data),
+              !labs.isEmpty else { return nil }
+        return labs
+    }
 }
 
 private struct CatalogResponse: Decodable {
     let models: [AIModel]
+    let labs: [AILab]?
     let updatedAt: Date?
 
     enum CodingKeys: String, CodingKey {
