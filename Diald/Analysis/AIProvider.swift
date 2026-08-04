@@ -153,6 +153,10 @@ final class AISettingsStore: ObservableObject {
     }
 
     var activeAPIKey: String {
+        apiKey(for: provider)
+    }
+
+    func apiKey(for provider: AIProvider) -> String {
         switch provider {
         case .openAI: openAIKey
         case .anthropic: anthropicKey
@@ -160,7 +164,11 @@ final class AISettingsStore: ObservableObject {
     }
 
     var hasActiveAPIKey: Bool {
-        !activeAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        hasAPIKey(for: provider)
+    }
+
+    func hasAPIKey(for provider: AIProvider) -> Bool {
+        !apiKey(for: provider).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     func resetModelToProviderDefault() {

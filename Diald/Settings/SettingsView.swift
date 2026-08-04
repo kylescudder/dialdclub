@@ -111,8 +111,8 @@ struct SettingsView: View {
                 Text("Free accounts can log up to \(AppServices.freeExtractionLimit) lifetime extractions; deleted extractions still count. Manage subscription opens Apple's system sheet, where you can cancel or change the subscription.")
             }
 
-            Section("AI provider") {
-                NavigationLink("OpenAI / Anthropic access") {
+            Section("Analysis labs") {
+                NavigationLink("Manage analysis labs") {
                     AIProviderSettingsView()
                 }
                 LabeledContent("Selected", value: services.aiSettings.provider.label)

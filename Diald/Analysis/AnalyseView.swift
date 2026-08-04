@@ -141,78 +141,211 @@ struct AnalyseView: View {
 
 struct AIProviderSettingsView: View {
     @EnvironmentObject private var services: AppServices
+
+    private var analysisLabs: [AILab] {
+        services.aiModelCatalog.labs.filter(\.isConnected)
+    }
+
+    private var catalogLabs: [AILab] {
+        services.aiModelCatalog.labs.filter { !$0.isConnected }
+    }
+
+    var body: some View {
+        List {
+            Section {
+                Text("Set up the lab you want to analyse your brew data. Keys stay in Keychain on this device.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+            }
+
+            Section("Ready for analysis") {
+                ForEach(analysisLabs) { lab in
+                    NavigationLink {
+                        if let provider = lab.provider {
+                            AIProviderConnectionView(lab: lab, provider: provider)
+                        }
+                    } label: {
+                        labRow(lab, status: connectionStatus(for: lab))
+                    }
+                }
+            }
+
+            Section("Model catalogue") {
+                ForEach(catalogLabs) { lab in
+                    NavigationLink {
+                        AICatalogLabView(lab: lab)
+                    } label: {
+                        labRow(lab, status: "Catalogue only")
+                    }
+                }
+            } footer: {
+                Text("These labs are shown so the catalogue can grow without an app update. They cannot be added as an analysis provider until Diald has that lab's request adapter and authentication flow.")
+            }
+        }
+        .navigationTitle("Analysis labs")
+        .task {
+            await services.aiModelCatalog.refresh()
+        }
+    }
+
+    private func labRow(_ lab: AILab, status: String) -> some View {
+        HStack(spacing: Theme.Spacing.md) {
+            AILabLogo(lab: lab)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(lab.name)
+                    .font(.body.weight(.semibold))
+                Text(lab.subtitle)
+                    .font(.footnote)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+            }
+            Spacer()
+            Text(status)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(status == "Active" ? Theme.Colors.accent : Theme.Colors.textSecondary)
+        }
+        .padding(.vertical, 3)
+    }
+
+    private func connectionStatus(for lab: AILab) -> String {
+        guard let provider = lab.provider else { return "Catalogue only" }
+        if services.aiSettings.provider == provider { return "Active" }
+        return services.aiSettings.hasAPIKey(for: provider) ? "Ready" : "Set up"
+    }
+}
+
+struct AIProviderConnectionView: View {
+    @EnvironmentObject private var services: AppServices
+    let lab: AILab
+    let provider: AIProvider
     @State private var showModelPicker = false
 
     var body: some View {
         Form {
             Section {
-                SecureField("OpenAI API key", text: openAIKeyBinding)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                SecureField("Anthropic API key", text: anthropicKeyBinding)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                Button("Clear OpenAI API key", role: .destructive) {
-                    services.aiSettings.clearKey(for: .openAI)
+                HStack(spacing: Theme.Spacing.md) {
+                    AILabLogo(lab: lab, size: 44)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(lab.name)
+                            .font(.headline)
+                        Text(lab.subtitle)
+                            .font(.footnote)
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
                 }
-                Button("Clear Anthropic API key", role: .destructive) {
-                    services.aiSettings.clearKey(for: .anthropic)
-                }
-            } header: {
-                Text("API keys")
-            } footer: {
-                Text("Diald supports bring-your-own OpenAI or Anthropic API keys today. Account OAuth can be wired here once provider OAuth credentials and redirect configuration are available.")
+                .padding(.vertical, Theme.Spacing.xs)
             }
 
-            Section("Model") {
-                Button {
+            Section("API key") {
+                SecureField("\(lab.name) API key", text: keyBinding)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                if services.aiSettings.hasAPIKey(for: provider) {
+                    Button("Remove API key", role: .destructive) {
+                        services.aiSettings.clearKey(for: provider)
+                    }
+                }
+            } footer: {
+                Text("Your key is stored only in Keychain on this device and is sent directly to \(lab.name) when you run an analysis.")
+            }
+
+            Section("Analysis") {
+                LabeledContent("Selected model", value: selectedModelName)
+                Button("Choose a model") {
                     showModelPicker = true
-                } label: {
-                    LabeledContent("Selected", value: selectedModelName)
                 }
-                Button("Use default for \(services.aiSettings.provider.label)") {
-                    services.aiSettings.resetModelToProviderDefault()
+                Button(services.aiSettings.provider == provider ? "Current analysis lab" : "Use \(lab.name) for analysis") {
+                    services.aiSettings.provider = provider
                 }
+                .disabled(services.aiSettings.provider == provider || !services.aiSettings.hasAPIKey(for: provider))
             }
         }
-        .navigationTitle("AI provider")
+        .navigationTitle(lab.name)
         .sheet(isPresented: $showModelPicker) {
-            AIModelPickerView(provider: providerBinding, modelID: modelBinding)
+            AIProviderModelPickerView(provider: provider, modelID: modelBinding)
                 .environmentObject(services)
         }
     }
 
-    private var providerBinding: Binding<AIProvider> {
+    private var keyBinding: Binding<String> {
         Binding(
-            get: { services.aiSettings.provider },
-            set: { services.aiSettings.provider = $0 }
-        )
-    }
-
-    private var openAIKeyBinding: Binding<String> {
-        Binding(
-            get: { services.aiSettings.openAIKey },
-            set: { services.aiSettings.openAIKey = $0 }
-        )
-    }
-
-    private var anthropicKeyBinding: Binding<String> {
-        Binding(
-            get: { services.aiSettings.anthropicKey },
-            set: { services.aiSettings.anthropicKey = $0 }
+            get: { services.aiSettings.apiKey(for: provider) },
+            set: { value in
+                switch provider {
+                case .openAI: services.aiSettings.openAIKey = value
+                case .anthropic: services.aiSettings.anthropicKey = value
+                }
+            }
         )
     }
 
     private var modelBinding: Binding<String> {
         Binding(
-            get: { services.aiSettings.model },
-            set: { services.aiSettings.model = $0 }
+            get: { services.aiSettings.provider == provider ? services.aiSettings.model : provider.defaultModel },
+            set: { model in
+                services.aiSettings.provider = provider
+                services.aiSettings.model = model
+            }
         )
     }
 
     private var selectedModelName: String {
-        services.aiModelCatalog.models(for: services.aiSettings.provider)
-            .first(where: { $0.id == services.aiSettings.model })?
-            .displayName ?? services.aiSettings.model
+        let model = services.aiSettings.provider == provider ? services.aiSettings.model : provider.defaultModel
+        return services.aiModelCatalog.models(for: provider)
+            .first(where: { $0.id == model })?
+            .displayName ?? model
+    }
+}
+
+struct AIProviderModelPickerView: View {
+    @EnvironmentObject private var services: AppServices
+    @Environment(\.dismiss) private var dismiss
+    let provider: AIProvider
+    @Binding var modelID: String
+
+    var body: some View {
+        NavigationStack {
+            List(services.aiModelCatalog.models(for: provider)) { model in
+                Button {
+                    modelID = model.id
+                    dismiss()
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(model.displayName)
+                                .foregroundStyle(Theme.Colors.textPrimary)
+                            Text(model.description)
+                                .font(.footnote)
+                                .foregroundStyle(Theme.Colors.textSecondary)
+                        }
+                        Spacer()
+                        if model.id == modelID {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(Theme.Colors.accent)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Choose a model")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+struct AICatalogLabView: View {
+    let lab: AILab
+
+    var body: some View {
+        ContentUnavailableView {
+            Label("\(lab.name) is not available for analysis yet", systemImage: "wrench.and.screwdriver")
+        } description: {
+            Text("Diald has a place for \(lab.name) in the model catalogue, but it does not yet have the API adapter or authentication flow needed to accept a key and run an analysis.")
+        }
+        .navigationTitle(lab.name)
+        .padding(.horizontal, Theme.Spacing.xl)
     }
 }

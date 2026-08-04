@@ -63,7 +63,7 @@ struct AIModelPickerView: View {
             }
 
             labSection("Connected labs", labs: matchingLabs.filter(\.isConnected))
-            labSection("Explore more labs", labs: matchingLabs.filter { !$0.isConnected })
+            labSection("Model catalogue", labs: matchingLabs.filter { !$0.isConnected })
 
             Section {
                 catalogStatus
@@ -98,7 +98,7 @@ struct AIModelPickerView: View {
                     .foregroundStyle(Theme.Colors.textSecondary)
             }
             Spacer()
-            Text(lab.isConnected ? "Connected" : "Explore")
+            Text(lab.isConnected ? "Connected" : "Catalogue only")
                 .font(.caption.weight(.medium))
                 .foregroundStyle(lab.isConnected ? Theme.Colors.accent : Theme.Colors.textSecondary)
             Image(systemName: "chevron.right")
@@ -151,7 +151,7 @@ struct AIModelPickerView: View {
             ContentUnavailableView {
                 Label("\(lab.name) isn't connected", systemImage: "plug.disconnected")
             } description: {
-                Text("Diald can display this lab today, but analysis needs its own API adapter and a secure key flow before its models can run.")
+                Text("This lab is visible in the model catalogue, but it cannot be added until Diald supports its API and authentication flow.")
             }
             .padding(.horizontal, Theme.Spacing.xl)
         }
