@@ -80,11 +80,11 @@ final class AIModelCatalog: ObservableObject {
             }
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            let response = try decoder.decode(CatalogResponse.self, from: data)
-            guard !response.models.isEmpty else { throw AIModelCatalogError.empty }
+            let catalog = try decoder.decode(CatalogResponse.self, from: data)
+            guard !catalog.models.isEmpty else { throw AIModelCatalogError.empty }
 
-            models = response.models
-            lastUpdated = response.updatedAt ?? Date()
+            models = catalog.models
+            lastUpdated = catalog.updatedAt ?? Date()
             lastRefreshError = nil
             saveCache()
         } catch {
@@ -123,8 +123,10 @@ private enum AIModelCatalogError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .unavailable: "The model catalog is unavailable."
-        case .empty: "The model catalog did not include any models."
+        case .unavailable:
+            return "The model catalog is unavailable."
+        case .empty:
+            return "The model catalog did not include any models."
         }
     }
 }
