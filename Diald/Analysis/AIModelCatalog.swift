@@ -138,6 +138,7 @@ private struct CatalogResponse: Decodable {
 
     enum CodingKeys: String, CodingKey {
         case models
+        case labs
         case updatedAt = "updated_at"
     }
 }
