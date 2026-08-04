@@ -163,19 +163,21 @@ struct AIProviderSettingsView: View {
                     .foregroundStyle(Theme.Colors.textSecondary)
             }
 
-            Section("Ready for analysis") {
+            Section {
                 ForEach(analysisLabs) { lab in
-                    NavigationLink {
-                        if let provider = lab.provider {
+                    if let provider = lab.provider {
+                        NavigationLink {
                             AIProviderConnectionView(lab: lab, provider: provider)
+                        } label: {
+                            labRow(lab, status: connectionStatus(for: lab))
                         }
-                    } label: {
-                        labRow(lab, status: connectionStatus(for: lab))
                     }
                 }
+            } header: {
+                Text("Ready for analysis")
             }
 
-            Section("Model catalogue") {
+            Section {
                 ForEach(catalogLabs) { lab in
                     NavigationLink {
                         AICatalogLabView(lab: lab)
@@ -183,6 +185,8 @@ struct AIProviderSettingsView: View {
                         labRow(lab, status: "Catalogue only")
                     }
                 }
+            } header: {
+                Text("Model catalogue")
             } footer: {
                 Text("These labs are shown so the catalogue can grow without an app update. They cannot be added as an analysis provider until Diald has that lab's request adapter and authentication flow.")
             }
