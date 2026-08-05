@@ -77,7 +77,7 @@ struct AnalyseView: View {
                         Text(services.analysis.isLoading ? "Analysing…" : "Analyse my brews")
                     }
                 }
-                .disabled(services.analysis.isLoading || matchingBrews.isEmpty || !services.aiSettings.hasActiveAPIKey)
+                .disabled(services.analysis.isLoading || matchingBrews.isEmpty || !services.aiSettings.canAnalyse(with: services.aiSettings.provider))
 
                 if let error = services.analysis.lastError {
                     Text(error)
@@ -127,12 +127,8 @@ struct AnalyseView: View {
 
     @ViewBuilder
     private var selectedLabIcon: some View {
-        AILabLogo(
-            lab: services.aiSettings.provider == .openAI
-                ? AILab.fallback.first { $0.provider == .openAI }!
-                : AILab.fallback.first { $0.provider == .anthropic }!,
-            size: 32
-        )
+        let lab = AILab.fallback.first { $0.provider == services.aiSettings.provider } ?? AILab.fallback[0]
+        AILabLogo(lab: lab, size: 32)
     }
 
     private func runAnalysis() async {
@@ -150,13 +146,7 @@ struct AIProviderSettingsView: View {
     @EnvironmentObject private var services: AppServices
     @State private var selectedLab: AILab?
 
-    private var analysisLabs: [AILab] {
-        services.aiModelCatalog.labs.filter(\.isConnected)
-    }
-
-    private var catalogLabs: [AILab] {
-        services.aiModelCatalog.labs.filter { !$0.isConnected }
-    }
+    private var analysisLabs: [AILab] { services.aiModelCatalog.labs }
 
     var body: some View {
         List {
@@ -168,32 +158,15 @@ struct AIProviderSettingsView: View {
 
             Section {
                 ForEach(analysisLabs) { lab in
-                    if lab.provider != nil {
-                        Button {
-                            selectedLab = lab
-                        } label: {
-                            labRow(lab, status: connectionStatus(for: lab))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            } header: {
-                Text("Ready for analysis")
-            }
-
-            Section {
-                ForEach(catalogLabs) { lab in
                     Button {
                         selectedLab = lab
                     } label: {
-                        labRow(lab, status: "Catalogue only")
+                        labRow(lab, status: connectionStatus(for: lab))
                     }
                     .buttonStyle(.plain)
                 }
             } header: {
-                Text("Model catalogue")
-            } footer: {
-                Text("These labs are shown so the catalogue can grow without an app update. They cannot be added as an analysis provider until Diald has that lab's request adapter and authentication flow.")
+                Text("Available analysis labs")
             }
         }
         .navigationTitle("Analysis labs")
@@ -224,24 +197,18 @@ struct AIProviderSettingsView: View {
     }
 
     private func connectionStatus(for lab: AILab) -> String {
-        guard let provider = lab.provider else { return "Catalogue only" }
+        guard let provider = lab.provider else { return "Set up" }
         if services.aiSettings.provider == provider { return "Active" }
-        return services.aiSettings.hasAPIKey(for: provider) ? "Ready" : "Set up"
+        return services.aiSettings.canAnalyse(with: provider) ? "Ready" : "Set up"
     }
 
     private func labSheet(for lab: AILab) -> AnyView {
-        if let provider = lab.provider {
-            return AnyView(
-                NavigationStack {
-                    AIProviderConnectionView(lab: lab, provider: provider)
-                }
-                .environmentObject(services)
-            )
-        }
+        let provider = lab.provider ?? .openAI
         return AnyView(
             NavigationStack {
-                AICatalogLabView(lab: lab)
+                AIProviderConnectionView(lab: lab, provider: provider)
             }
+            .environmentObject(services)
         )
     }
 }
@@ -272,6 +239,12 @@ struct AIProviderConnectionView: View {
                 SecureField("\(lab.name) API key", text: keyBinding)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                if provider.needsEndpoint {
+                    TextField("API endpoint", text: endpointBinding)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.URL)
+                }
                 if services.aiSettings.hasAPIKey(for: provider) {
                     Button("Remove API key", role: .destructive) {
                         services.aiSettings.clearKey(for: provider)
@@ -291,7 +264,7 @@ struct AIProviderConnectionView: View {
                 Button(services.aiSettings.provider == provider ? "Current analysis lab" : "Use \(lab.name) for analysis") {
                     services.aiSettings.provider = provider
                 }
-                .disabled(services.aiSettings.provider == provider || !services.aiSettings.hasAPIKey(for: provider))
+                .disabled(services.aiSettings.provider == provider || !services.aiSettings.canAnalyse(with: provider))
             } header: {
                 Text("Analysis")
             }
@@ -306,12 +279,14 @@ struct AIProviderConnectionView: View {
     private var keyBinding: Binding<String> {
         Binding(
             get: { services.aiSettings.apiKey(for: provider) },
-            set: { value in
-                switch provider {
-                case .openAI: services.aiSettings.openAIKey = value
-                case .anthropic: services.aiSettings.anthropicKey = value
-                }
-            }
+            set: { services.aiSettings.setAPIKey($0, for: provider) }
+        )
+    }
+
+    private var endpointBinding: Binding<String> {
+        Binding(
+            get: { services.aiSettings.endpoint(for: provider) },
+            set: { services.aiSettings.setEndpoint($0, for: provider) }
         )
     }
 
@@ -370,19 +345,5 @@ struct AIProviderModelPickerView: View {
                 }
             }
         }
-    }
-}
-
-struct AICatalogLabView: View {
-    let lab: AILab
-
-    var body: some View {
-        ContentUnavailableView {
-            Label("\(lab.name) is not available for analysis yet", systemImage: "wrench.and.screwdriver")
-        } description: {
-            Text("Diald has a place for \(lab.name) in the model catalogue, but it does not yet have the API adapter or authentication flow needed to accept a key and run an analysis.")
-        }
-        .navigationTitle(lab.name)
-        .padding(.horizontal, Theme.Spacing.xl)
     }
 }

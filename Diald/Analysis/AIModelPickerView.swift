@@ -223,8 +223,6 @@ struct AILabLogo: View {
         case "meta": "MetaLogo"
         case "mistral": "MistralLogo"
         case "deepseek": "DeepSeekLogo"
-        case "cohere": "CohereLogo"
-        case "ai21": "AI21Logo"
         case "qwen": "QwenLogo"
         case "moonshot": "MoonshotLogo"
         case "minimax": "MiniMaxLogo"
@@ -232,9 +230,6 @@ struct AILabLogo: View {
         case "bedrock": "AWSLogo"
         case "azure": "AzureLogo"
         case "groq": "GroqLogo"
-        case "together": "TogetherLogo"
-        case "fireworks": "FireworksLogo"
-        case "nvidia": "NVIDIALogo"
         case "openrouter": "OpenRouterLogo"
         default: "AppLogoIcon"
         }

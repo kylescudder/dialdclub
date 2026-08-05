@@ -5,7 +5,22 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-type Provider = "openAI" | "anthropic";
+type Provider =
+  | "openAI"
+  | "anthropic"
+  | "google"
+  | "xAI"
+  | "meta"
+  | "mistral"
+  | "deepseek"
+  | "qwen"
+  | "moonshot"
+  | "minimax"
+  | "perplexity"
+  | "bedrock"
+  | "azure"
+  | "groq"
+  | "openrouter";
 
 type CatalogModel = {
   id: string;
@@ -24,24 +39,19 @@ type CatalogLab = {
 const labs: CatalogLab[] = [
   { id: "openai", name: "OpenAI", subtitle: "GPT models", provider: "openAI" },
   { id: "anthropic", name: "Anthropic", subtitle: "Claude models", provider: "anthropic" },
-  { id: "google", name: "Google", subtitle: "Gemini models", provider: null },
-  { id: "xai", name: "xAI", subtitle: "Grok models", provider: null },
-  { id: "meta", name: "Meta", subtitle: "Llama models", provider: null },
-  { id: "mistral", name: "Mistral AI", subtitle: "Mistral models", provider: null },
-  { id: "deepseek", name: "DeepSeek", subtitle: "Reasoning models", provider: null },
-  { id: "cohere", name: "Cohere", subtitle: "Command models", provider: null },
-  { id: "ai21", name: "AI21 Labs", subtitle: "Jamba models", provider: null },
-  { id: "qwen", name: "Qwen", subtitle: "Qwen models", provider: null },
-  { id: "moonshot", name: "Moonshot AI", subtitle: "Kimi models", provider: null },
-  { id: "minimax", name: "MiniMax", subtitle: "MiniMax models", provider: null },
-  { id: "perplexity", name: "Perplexity", subtitle: "Sonar models", provider: null },
-  { id: "bedrock", name: "Amazon Bedrock", subtitle: "Foundation models", provider: null },
-  { id: "azure", name: "Azure AI", subtitle: "Hosted model catalog", provider: null },
-  { id: "groq", name: "Groq", subtitle: "Fast inference", provider: null },
-  { id: "together", name: "Together AI", subtitle: "Open models", provider: null },
-  { id: "fireworks", name: "Fireworks AI", subtitle: "Open models", provider: null },
-  { id: "nvidia", name: "NVIDIA NIM", subtitle: "Optimised inference", provider: null },
-  { id: "openrouter", name: "OpenRouter", subtitle: "Multi-lab routing", provider: null },
+  { id: "google", name: "Google", subtitle: "Gemini models", provider: "google" },
+  { id: "xai", name: "xAI", subtitle: "Grok models", provider: "xAI" },
+  { id: "meta", name: "Meta", subtitle: "Llama models", provider: "meta" },
+  { id: "mistral", name: "Mistral AI", subtitle: "Mistral models", provider: "mistral" },
+  { id: "deepseek", name: "DeepSeek", subtitle: "Reasoning models", provider: "deepseek" },
+  { id: "qwen", name: "Qwen", subtitle: "Qwen models", provider: "qwen" },
+  { id: "moonshot", name: "Moonshot AI", subtitle: "Kimi models", provider: "moonshot" },
+  { id: "minimax", name: "MiniMax", subtitle: "MiniMax models", provider: "minimax" },
+  { id: "perplexity", name: "Perplexity", subtitle: "Sonar models", provider: "perplexity" },
+  { id: "bedrock", name: "Amazon Bedrock", subtitle: "Foundation models", provider: "bedrock" },
+  { id: "azure", name: "Azure AI", subtitle: "Hosted model catalog", provider: "azure" },
+  { id: "groq", name: "Groq", subtitle: "Fast inference", provider: "groq" },
+  { id: "openrouter", name: "OpenRouter", subtitle: "Multi-lab routing", provider: "openrouter" },
 ];
 
 const supabaseURL = Deno.env.get("SUPABASE_URL");

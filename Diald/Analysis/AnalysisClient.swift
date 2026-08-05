@@ -33,8 +33,10 @@ final class AnalysisClient: ObservableObject {
 
     func analyse(brews: [BrewSession], beans: [CoffeeBean], filters: AnalysisFilters) async -> String? {
         lastError = nil
-        guard settings.hasActiveAPIKey else {
-            lastError = "Add an API key in AI settings before running an analysis."
+        guard settings.canAnalyse(with: settings.provider) else {
+            lastError = settings.provider.needsEndpoint
+                ? "Add an API key and endpoint in AI settings before running an analysis."
+                : "Add an API key in AI settings before running an analysis."
             return nil
         }
 
@@ -54,6 +56,11 @@ final class AnalysisClient: ObservableObject {
                 return try await requestOpenAI(prompt: prompt)
             case .anthropic:
                 return try await requestAnthropic(prompt: prompt)
+            case .google:
+                return try await requestGoogle(prompt: prompt)
+            case .xAI, .meta, .mistral, .deepseek, .qwen, .moonshot, .minimax,
+                    .perplexity, .bedrock, .azure, .groq, .openrouter:
+                return try await requestOpenAICompatible(prompt: prompt, provider: settings.provider)
             }
         } catch {
             lastError = error.localizedDescription
@@ -98,6 +105,53 @@ final class AnalysisClient: ObservableObject {
         throw AnalysisError.unreadableResponse
     }
 
+    private func requestGoogle(prompt: String) async throws -> String {
+        let encodedModel = cleanedModel.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? cleanedModel
+        let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(encodedModel):generateContent")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(settings.activeAPIKey, forHTTPHeaderField: "x-goog-api-key")
+        let body: [String: Any] = [
+            "systemInstruction": ["parts": [["text": coffeeCoachInstruction]]],
+            "contents": [["role": "user", "parts": [["text": prompt]]]],
+            "generationConfig": ["maxOutputTokens": 1200]
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let data = try await data(for: request)
+        if let text = try extractGoogleText(from: data) { return text }
+        throw AnalysisError.unreadableResponse
+    }
+
+    private func requestOpenAICompatible(prompt: String, provider: AIProvider) async throws -> String {
+        let endpoint = settings.endpoint(for: provider)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        guard !endpoint.isEmpty, let url = URL(string: "\(endpoint)/chat/completions") else {
+            throw AnalysisError.configuration("Add an API endpoint for \(provider.label) before running analysis.")
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if provider == .azure {
+            request.setValue(settings.activeAPIKey, forHTTPHeaderField: "api-key")
+        } else {
+            request.setValue("Bearer \(settings.activeAPIKey)", forHTTPHeaderField: "Authorization")
+        }
+        let body: [String: Any] = [
+            "model": cleanedModel,
+            "messages": [
+                ["role": "system", "content": coffeeCoachInstruction],
+                ["role": "user", "content": prompt]
+            ],
+            "max_tokens": 1200
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let data = try await data(for: request)
+        if let text = try extractChatCompletionText(from: data) { return text }
+        throw AnalysisError.unreadableResponse
+    }
+
     private func data(for request: URLRequest) async throws -> Data {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
@@ -110,6 +164,10 @@ final class AnalysisClient: ObservableObject {
     private var cleanedModel: String {
         let value = settings.model.trimmingCharacters(in: .whitespacesAndNewlines)
         return value.isEmpty ? settings.provider.defaultModel : value
+    }
+
+    private var coffeeCoachInstruction: String {
+        "You are a concise coffee coach. Give specific, testable brew improvements from the user's logged data."
     }
 
     private func promptText(brews: [BrewSession], beans: [CoffeeBean], filters: AnalysisFilters) -> String {
@@ -166,15 +224,34 @@ final class AnalysisClient: ObservableObject {
             .joined(separator: "\n")
             .nilIfBlank
     }
+
+    private func extractGoogleText(from data: Data) throws -> String? {
+        let object = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        let candidates = object?["candidates"] as? [[String: Any]]
+        let content = candidates?.first?["content"] as? [String: Any]
+        let parts = content?["parts"] as? [[String: Any]]
+        return parts?.compactMap { $0["text"] as? String }
+            .joined(separator: "\n")
+            .nilIfBlank
+    }
+
+    private func extractChatCompletionText(from data: Data) throws -> String? {
+        let object = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        let choices = object?["choices"] as? [[String: Any]]
+        let message = choices?.first?["message"] as? [String: Any]
+        return (message?["content"] as? String)?.nilIfBlank
+    }
 }
 
 private enum AnalysisError: LocalizedError {
     case provider(String)
+    case configuration(String)
     case unreadableResponse
 
     var errorDescription: String? {
         switch self {
         case let .provider(message): message
+        case let .configuration(message): message
         case .unreadableResponse: "The provider response did not include readable text."
         }
     }

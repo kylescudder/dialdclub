@@ -47,6 +47,19 @@ private enum KeychainAPIKeys {
 enum AIProvider: String, CaseIterable, Identifiable, Codable {
     case openAI
     case anthropic
+    case google
+    case xAI
+    case meta
+    case mistral
+    case deepseek
+    case qwen
+    case moonshot
+    case minimax
+    case perplexity
+    case bedrock
+    case azure
+    case groq
+    case openrouter
 
     var id: String { rawValue }
 
@@ -54,6 +67,19 @@ enum AIProvider: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .openAI: "OpenAI"
         case .anthropic: "Anthropic"
+        case .google: "Google"
+        case .xAI: "xAI"
+        case .meta: "Meta"
+        case .mistral: "Mistral AI"
+        case .deepseek: "DeepSeek"
+        case .qwen: "Qwen"
+        case .moonshot: "Moonshot AI"
+        case .minimax: "MiniMax"
+        case .perplexity: "Perplexity"
+        case .bedrock: "Amazon Bedrock"
+        case .azure: "Azure AI"
+        case .groq: "Groq"
+        case .openrouter: "OpenRouter"
         }
     }
 
@@ -61,10 +87,44 @@ enum AIProvider: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .openAI: "gpt-5-mini"
         case .anthropic: "claude-sonnet-4-20250514"
+        case .google: "gemini-2.5-flash"
+        case .xAI: "grok-4.1-fast"
+        case .meta: "Llama-4-Maverick-17B-128E-Instruct-FP8"
+        case .mistral: "mistral-large-latest"
+        case .deepseek: "deepseek-chat"
+        case .qwen: "qwen-plus"
+        case .moonshot: "kimi-k2.5"
+        case .minimax: "MiniMax-M2.5"
+        case .perplexity: "sonar-pro"
+        case .bedrock: "amazon.nova-pro-v1:0"
+        case .azure: "gpt-4.1-mini"
+        case .groq: "llama-3.3-70b-versatile"
+        case .openrouter: "openai/gpt-4.1-mini"
         }
     }
 
     var keychainAccount: String { "\(rawValue).apiKey" }
+
+    var defaultEndpoint: String {
+        switch self {
+        case .openAI: "https://api.openai.com/v1"
+        case .anthropic: "https://api.anthropic.com/v1"
+        case .google: "https://generativelanguage.googleapis.com/v1beta"
+        case .xAI: "https://api.x.ai/v1"
+        case .meta: "https://api.llama.com/v1"
+        case .mistral: "https://api.mistral.ai/v1"
+        case .deepseek: "https://api.deepseek.com/v1"
+        case .qwen: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+        case .moonshot: "https://api.moonshot.ai/v1"
+        case .minimax: "https://api.minimax.io/v1"
+        case .perplexity: "https://api.perplexity.ai"
+        case .bedrock, .azure: ""
+        case .groq: "https://api.groq.com/openai/v1"
+        case .openrouter: "https://openrouter.ai/api/v1"
+        }
+    }
+
+    var needsEndpoint: Bool { self == .bedrock || self == .azure }
 }
 
 struct AILab: Codable, Identifiable, Hashable {
@@ -84,8 +144,6 @@ struct AILab: Codable, Identifiable, Hashable {
         case "meta": "infinity"
         case "mistral": "wind"
         case "deepseek": "wave.3.right"
-        case "cohere": "circle.hexagongrid"
-        case "ai21": "flask.fill"
         case "qwen": "moon.stars.fill"
         case "moonshot": "moon.fill"
         case "minimax": "arrow.up.left.and.arrow.down.right"
@@ -93,9 +151,6 @@ struct AILab: Codable, Identifiable, Hashable {
         case "bedrock": "cube.fill"
         case "azure": "cloud.fill"
         case "groq": "bolt.fill"
-        case "together": "person.2.fill"
-        case "fireworks": "sparkles.rectangle.stack.fill"
-        case "nvidia": "eye.fill"
         case "openrouter": "arrow.triangle.branch"
         default: "flask.fill"
         }
@@ -104,24 +159,19 @@ struct AILab: Codable, Identifiable, Hashable {
     static let fallback: [AILab] = [
         AILab(id: "openai", name: "OpenAI", subtitle: "GPT models", provider: .openAI),
         AILab(id: "anthropic", name: "Anthropic", subtitle: "Claude models", provider: .anthropic),
-        AILab(id: "google", name: "Google", subtitle: "Gemini models", provider: nil),
-        AILab(id: "xai", name: "xAI", subtitle: "Grok models", provider: nil),
-        AILab(id: "meta", name: "Meta", subtitle: "Llama models", provider: nil),
-        AILab(id: "mistral", name: "Mistral AI", subtitle: "Mistral models", provider: nil),
-        AILab(id: "deepseek", name: "DeepSeek", subtitle: "Reasoning models", provider: nil),
-        AILab(id: "cohere", name: "Cohere", subtitle: "Command models", provider: nil),
-        AILab(id: "ai21", name: "AI21 Labs", subtitle: "Jamba models", provider: nil),
-        AILab(id: "qwen", name: "Qwen", subtitle: "Qwen models", provider: nil),
-        AILab(id: "moonshot", name: "Moonshot AI", subtitle: "Kimi models", provider: nil),
-        AILab(id: "minimax", name: "MiniMax", subtitle: "MiniMax models", provider: nil),
-        AILab(id: "perplexity", name: "Perplexity", subtitle: "Sonar models", provider: nil),
-        AILab(id: "bedrock", name: "Amazon Bedrock", subtitle: "Foundation models", provider: nil),
-        AILab(id: "azure", name: "Azure AI", subtitle: "Hosted model catalog", provider: nil),
-        AILab(id: "groq", name: "Groq", subtitle: "Fast inference", provider: nil),
-        AILab(id: "together", name: "Together AI", subtitle: "Open models", provider: nil),
-        AILab(id: "fireworks", name: "Fireworks AI", subtitle: "Open models", provider: nil),
-        AILab(id: "nvidia", name: "NVIDIA NIM", subtitle: "Optimised inference", provider: nil),
-        AILab(id: "openrouter", name: "OpenRouter", subtitle: "Multi-lab routing", provider: nil)
+        AILab(id: "google", name: "Google", subtitle: "Gemini models", provider: .google),
+        AILab(id: "xai", name: "xAI", subtitle: "Grok models", provider: .xAI),
+        AILab(id: "meta", name: "Meta", subtitle: "Llama models", provider: .meta),
+        AILab(id: "mistral", name: "Mistral AI", subtitle: "Mistral models", provider: .mistral),
+        AILab(id: "deepseek", name: "DeepSeek", subtitle: "Reasoning models", provider: .deepseek),
+        AILab(id: "qwen", name: "Qwen", subtitle: "Qwen models", provider: .qwen),
+        AILab(id: "moonshot", name: "Moonshot AI", subtitle: "Kimi models", provider: .moonshot),
+        AILab(id: "minimax", name: "MiniMax", subtitle: "MiniMax models", provider: .minimax),
+        AILab(id: "perplexity", name: "Perplexity", subtitle: "Sonar models", provider: .perplexity),
+        AILab(id: "bedrock", name: "Amazon Bedrock", subtitle: "Foundation models", provider: .bedrock),
+        AILab(id: "azure", name: "Azure AI", subtitle: "Hosted model catalog", provider: .azure),
+        AILab(id: "groq", name: "Groq", subtitle: "Fast inference", provider: .groq),
+        AILab(id: "openrouter", name: "OpenRouter", subtitle: "Multi-lab routing", provider: .openrouter)
     ]
 }
 
@@ -133,12 +183,7 @@ final class AISettingsStore: ObservableObject {
             model = provider.defaultModel
         }
     }
-    @Published var openAIKey: String {
-        didSet { save(key: openAIKey, for: .openAI) }
-    }
-    @Published var anthropicKey: String {
-        didSet { save(key: anthropicKey, for: .anthropic) }
-    }
+    @Published private var apiKeys: [AIProvider: String]
     @Published var model: String {
         didSet { UserDefaults.standard.set(model, forKey: "ai.model") }
     }
@@ -147,8 +192,9 @@ final class AISettingsStore: ObservableObject {
         let savedProvider = UserDefaults.standard.string(forKey: "ai.provider")
             .flatMap(AIProvider.init(rawValue:)) ?? .openAI
         provider = savedProvider
-        openAIKey = KeychainAPIKeys.load(account: AIProvider.openAI.keychainAccount)
-        anthropicKey = KeychainAPIKeys.load(account: AIProvider.anthropic.keychainAccount)
+        apiKeys = Dictionary(uniqueKeysWithValues: AIProvider.allCases.map {
+            ($0, KeychainAPIKeys.load(account: $0.keychainAccount))
+        })
         model = UserDefaults.standard.string(forKey: "ai.model") ?? savedProvider.defaultModel
     }
 
@@ -157,10 +203,7 @@ final class AISettingsStore: ObservableObject {
     }
 
     func apiKey(for provider: AIProvider) -> String {
-        switch provider {
-        case .openAI: openAIKey
-        case .anthropic: anthropicKey
-        }
+        apiKeys[provider, default: ""]
     }
 
     var hasActiveAPIKey: Bool {
@@ -176,10 +219,25 @@ final class AISettingsStore: ObservableObject {
     }
 
     func clearKey(for provider: AIProvider) {
-        switch provider {
-        case .openAI: openAIKey = ""
-        case .anthropic: anthropicKey = ""
-        }
+        setAPIKey("", for: provider)
+    }
+
+    func setAPIKey(_ key: String, for provider: AIProvider) {
+        apiKeys[provider] = key
+        save(key: key, for: provider)
+    }
+
+    func endpoint(for provider: AIProvider) -> String {
+        UserDefaults.standard.string(forKey: "ai.endpoint.\(provider.rawValue)") ?? provider.defaultEndpoint
+    }
+
+    func setEndpoint(_ endpoint: String, for provider: AIProvider) {
+        UserDefaults.standard.set(endpoint.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "ai.endpoint.\(provider.rawValue)")
+        objectWillChange.send()
+    }
+
+    func canAnalyse(with provider: AIProvider) -> Bool {
+        hasAPIKey(for: provider) && (!provider.needsEndpoint || !endpoint(for: provider).isEmpty)
     }
 
     private func save(key: String, for provider: AIProvider) {

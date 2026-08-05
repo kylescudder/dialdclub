@@ -17,7 +17,20 @@ struct AIModel: Codable, Identifiable, Hashable {
         AIModel(id: "gpt-5-mini", provider: .openAI, displayName: "GPT-5 mini", description: "OpenAI · fast, capable"),
         AIModel(id: "gpt-5", provider: .openAI, displayName: "GPT-5", description: "OpenAI · deeper analysis"),
         AIModel(id: "claude-sonnet-4-20250514", provider: .anthropic, displayName: "Claude Sonnet 4", description: "Anthropic · balanced analysis"),
-        AIModel(id: "claude-opus-4-20250514", provider: .anthropic, displayName: "Claude Opus 4", description: "Anthropic · deepest analysis")
+        AIModel(id: "claude-opus-4-20250514", provider: .anthropic, displayName: "Claude Opus 4", description: "Anthropic · deepest analysis"),
+        AIModel(id: "gemini-2.5-flash", provider: .google, displayName: "Gemini 2.5 Flash"),
+        AIModel(id: "grok-4.1-fast", provider: .xAI, displayName: "Grok 4.1 Fast"),
+        AIModel(id: "Llama-4-Maverick-17B-128E-Instruct-FP8", provider: .meta, displayName: "Llama 4 Maverick"),
+        AIModel(id: "mistral-large-latest", provider: .mistral, displayName: "Mistral Large"),
+        AIModel(id: "deepseek-chat", provider: .deepseek, displayName: "DeepSeek Chat"),
+        AIModel(id: "qwen-plus", provider: .qwen, displayName: "Qwen Plus"),
+        AIModel(id: "kimi-k2.5", provider: .moonshot, displayName: "Kimi K2.5"),
+        AIModel(id: "MiniMax-M2.5", provider: .minimax, displayName: "MiniMax M2.5"),
+        AIModel(id: "sonar-pro", provider: .perplexity, displayName: "Sonar Pro"),
+        AIModel(id: "amazon.nova-pro-v1:0", provider: .bedrock, displayName: "Amazon Nova Pro"),
+        AIModel(id: "gpt-4.1-mini", provider: .azure, displayName: "GPT-4.1 mini"),
+        AIModel(id: "llama-3.3-70b-versatile", provider: .groq, displayName: "Llama 3.3 70B"),
+        AIModel(id: "openai/gpt-4.1-mini", provider: .openrouter, displayName: "GPT-4.1 mini")
     ]
 }
 
@@ -41,8 +54,8 @@ final class AIModelCatalog: ObservableObject {
         self.auth = auth
         self.session = session
         self.defaults = defaults
-        models = Self.loadCachedModels(from: defaults) ?? AIModel.fallback
-        labs = Self.loadCachedLabs(from: defaults) ?? AILab.fallback
+        models = Self.mergingBundledModels(with: Self.loadCachedModels(from: defaults) ?? AIModel.fallback)
+        labs = Self.mergingBundledLabs(with: Self.loadCachedLabs(from: defaults) ?? AILab.fallback)
         lastUpdated = defaults.object(forKey: Self.cacheDateKey) as? Date
     }
 
@@ -94,9 +107,9 @@ final class AIModelCatalog: ObservableObject {
             let catalog = try decoder.decode(CatalogResponse.self, from: data)
             guard !catalog.models.isEmpty else { throw AIModelCatalogError.empty }
 
-            models = catalog.models
+            models = Self.mergingBundledModels(with: catalog.models)
             if let responseLabs = catalog.labs, !responseLabs.isEmpty {
-                labs = responseLabs
+                labs = Self.mergingBundledLabs(with: responseLabs)
             }
             lastUpdated = catalog.updatedAt ?? Date()
             lastRefreshError = nil
@@ -114,6 +127,26 @@ final class AIModelCatalog: ObservableObject {
             defaults.set(labsData, forKey: Self.labsCacheKey)
         }
         defaults.set(lastUpdated, forKey: Self.cacheDateKey)
+    }
+
+    private static func mergingBundledModels(with remoteModels: [AIModel]) -> [AIModel] {
+        let remoteIDs = Set(remoteModels.map { "\($0.provider.rawValue):\($0.id)" })
+        return remoteModels + AIModel.fallback.filter {
+            !remoteIDs.contains("\($0.provider.rawValue):\($0.id)")
+        }
+    }
+
+    private static func mergingBundledLabs(with remoteLabs: [AILab]) -> [AILab] {
+        let remoteByID = Dictionary(uniqueKeysWithValues: remoteLabs.map { ($0.id, $0) })
+        return AILab.fallback.map { bundled in
+            guard let remote = remoteByID[bundled.id] else { return bundled }
+            return AILab(
+                id: bundled.id,
+                name: remote.name,
+                subtitle: remote.subtitle,
+                provider: bundled.provider
+            )
+        }
     }
 
     private static func loadCachedModels(from defaults: UserDefaults) -> [AIModel]? {
