@@ -87,10 +87,12 @@ struct AnalyseView: View {
             }
 
             if !result.isEmpty {
-                Section("Recommendations") {
+                Section {
                     Text(result)
                         .textSelection(.enabled)
                         .padding(.vertical, Theme.Spacing.xs)
+                } header: {
+                    Text("Recommendations")
                 }
             }
         }
@@ -266,7 +268,7 @@ struct AIProviderConnectionView: View {
                 .padding(.vertical, Theme.Spacing.xs)
             }
 
-            Section("API key") {
+            Section {
                 SecureField("\(lab.name) API key", text: keyBinding)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -275,11 +277,13 @@ struct AIProviderConnectionView: View {
                         services.aiSettings.clearKey(for: provider)
                     }
                 }
+            } header: {
+                Text("API key")
             } footer: {
                 Text("Your key is stored only in Keychain on this device and is sent directly to \(lab.name) when you run an analysis.")
             }
 
-            Section("Analysis") {
+            Section {
                 LabeledContent("Selected model", value: selectedModelName)
                 Button("Choose a model") {
                     showModelPicker = true
@@ -288,6 +292,8 @@ struct AIProviderConnectionView: View {
                     services.aiSettings.provider = provider
                 }
                 .disabled(services.aiSettings.provider == provider || !services.aiSettings.hasAPIKey(for: provider))
+            } header: {
+                Text("Analysis")
             }
         }
         .navigationTitle(lab.name)
