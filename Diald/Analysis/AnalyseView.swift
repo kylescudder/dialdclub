@@ -47,9 +47,9 @@ struct AnalyseView: View {
                     HStack(spacing: Theme.Spacing.md) {
                         selectedLabIcon
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(selectedModelName)
+                            Text(analysisLabTitle)
                                 .foregroundStyle(Theme.Colors.textPrimary)
-                            Text(services.aiSettings.provider.label)
+                            Text(analysisLabSubtitle)
                                 .font(.footnote)
                                 .foregroundStyle(Theme.Colors.textSecondary)
                         }
@@ -59,13 +59,10 @@ struct AnalyseView: View {
                             .foregroundStyle(Theme.Colors.textSecondary)
                     }
                 }
-                NavigationLink("AI provider settings") {
-                    AIProviderSettingsView()
-                }
             } header: {
                 Text("Analysis lab")
             } footer: {
-                Text(services.aiSettings.hasActiveAPIKey ? "Your API key is stored in Keychain and sent only to the selected provider." : "Browse the current model catalog without a key. Add a provider API key only when you’re ready to analyse brew data.")
+                Text(isActiveLabConfigured ? "Your API key is stored in Keychain and sent only to the selected provider." : "Choose a lab to add its API key, then choose one of its models.")
             }
 
             Section {
@@ -125,10 +122,32 @@ struct AnalyseView: View {
             .displayName ?? services.aiSettings.model
     }
 
+    private var analysisLabTitle: String {
+        isActiveLabConfigured ? selectedModelName : "Choose an analysis lab"
+    }
+
+    private var analysisLabSubtitle: String {
+        isActiveLabConfigured
+            ? services.aiSettings.provider.label
+            : "Add a provider key to get started"
+    }
+
+    private var isActiveLabConfigured: Bool {
+        services.aiSettings.canAnalyse(with: services.aiSettings.provider)
+    }
+
     @ViewBuilder
     private var selectedLabIcon: some View {
-        let lab = AILab.fallback.first { $0.provider == services.aiSettings.provider } ?? AILab.fallback[0]
-        AILabLogo(lab: lab, size: 32)
+        if isActiveLabConfigured {
+            let lab = AILab.fallback.first { $0.provider == services.aiSettings.provider } ?? AILab.fallback[0]
+            AILabLogo(lab: lab, size: 32)
+        } else {
+            Image(systemName: "flask.fill")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 32, height: 32)
+                .background(Theme.Colors.accent, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
+        }
     }
 
     private func runAnalysis() async {
@@ -139,77 +158,6 @@ struct AnalyseView: View {
         ) {
             result = response
         }
-    }
-}
-
-struct AIProviderSettingsView: View {
-    @EnvironmentObject private var services: AppServices
-    @State private var selectedLab: AILab?
-
-    private var analysisLabs: [AILab] { services.aiModelCatalog.labs }
-
-    var body: some View {
-        List {
-            Section {
-                Text("Set up the lab you want to analyse your brew data. Keys stay in Keychain on this device.")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            }
-
-            Section {
-                ForEach(analysisLabs) { lab in
-                    Button {
-                        selectedLab = lab
-                    } label: {
-                        labRow(lab, status: connectionStatus(for: lab))
-                    }
-                    .buttonStyle(.plain)
-                }
-            } header: {
-                Text("Available analysis labs")
-            }
-        }
-        .navigationTitle("Analysis labs")
-        .task {
-            await services.aiModelCatalog.refresh()
-        }
-        .sheet(item: $selectedLab) { lab in
-            labSheet(for: lab)
-        }
-    }
-
-    private func labRow(_ lab: AILab, status: String) -> some View {
-        HStack(spacing: Theme.Spacing.md) {
-            AILabLogo(lab: lab)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(lab.name)
-                    .font(.body.weight(.semibold))
-                Text(lab.subtitle)
-                    .font(.footnote)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            }
-            Spacer()
-            Text(status)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(status == "Active" ? Theme.Colors.accent : Theme.Colors.textSecondary)
-        }
-        .padding(.vertical, 3)
-    }
-
-    private func connectionStatus(for lab: AILab) -> String {
-        guard let provider = lab.provider else { return "Set up" }
-        if services.aiSettings.provider == provider { return "Active" }
-        return services.aiSettings.canAnalyse(with: provider) ? "Ready" : "Set up"
-    }
-
-    private func labSheet(for lab: AILab) -> AnyView {
-        let provider = lab.provider ?? .openAI
-        return AnyView(
-            NavigationStack {
-                AIProviderConnectionView(lab: lab, provider: provider)
-            }
-            .environmentObject(services)
-        )
     }
 }
 

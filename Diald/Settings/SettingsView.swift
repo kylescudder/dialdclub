@@ -112,11 +112,15 @@ struct SettingsView: View {
             }
 
             Section("Analysis labs") {
-                NavigationLink("Manage analysis labs") {
-                    AIProviderSettingsView()
+                NavigationLink("Choose analysis lab") {
+                    AIModelPickerView(provider: providerBinding, modelID: modelBinding)
                 }
-                LabeledContent("Selected", value: services.aiSettings.provider.label)
-                LabeledContent("API key", value: services.aiSettings.hasActiveAPIKey ? "Configured" : "Not configured")
+                LabeledContent(
+                    "Selected",
+                    value: services.aiSettings.canAnalyse(with: services.aiSettings.provider)
+                        ? services.aiSettings.provider.label
+                        : "Not configured"
+                )
             }
 
             Section("Account") {
@@ -196,6 +200,20 @@ struct SettingsView: View {
         case .verifying: "Verifying Supporter"
         case .active: "Supporter Monthly"
         }
+    }
+
+    private var providerBinding: Binding<AIProvider> {
+        Binding(
+            get: { services.aiSettings.provider },
+            set: { services.aiSettings.provider = $0 }
+        )
+    }
+
+    private var modelBinding: Binding<String> {
+        Binding(
+            get: { services.aiSettings.model },
+            set: { services.aiSettings.model = $0 }
+        )
     }
 
     private var syncStatusLabel: String {

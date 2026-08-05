@@ -6,6 +6,7 @@ struct AIModelPickerView: View {
     @Binding var provider: AIProvider
     @Binding var modelID: String
     @State private var selectedLab: AILab?
+    @State private var labToConfigure: AILab?
     @State private var searchText = ""
 
     private var matchingLabs: [AILab] {
@@ -40,6 +41,17 @@ struct AIModelPickerView: View {
             .onChange(of: selectedLab) { _, _ in searchText = "" }
             .toolbar { toolbar }
         }
+        .task {
+            await services.aiModelCatalog.refresh()
+        }
+        .sheet(item: $labToConfigure) { lab in
+            if let labProvider = lab.provider {
+                NavigationStack {
+                    AIProviderConnectionView(lab: lab, provider: labProvider)
+                }
+                .environmentObject(services)
+            }
+        }
     }
 
     private var labShelf: some View {
@@ -62,8 +74,8 @@ struct AIModelPickerView: View {
                 .padding(.vertical, Theme.Spacing.xs)
             }
 
-            labSection("Connected labs", labs: matchingLabs.filter(\.isConnected))
-            labSection("Model catalogue", labs: matchingLabs.filter { !$0.isConnected })
+            labSection("Configured labs", labs: matchingLabs.filter { isConfigured($0) })
+            labSection("Add another lab", labs: matchingLabs.filter { !isConfigured($0) })
 
             Section {
                 catalogStatus
@@ -77,10 +89,11 @@ struct AIModelPickerView: View {
         if !labs.isEmpty {
             Section(title) {
                 ForEach(labs) { lab in
-                    Button { selectedLab = lab } label: {
+                    Button { open(lab) } label: {
                         labRow(lab)
                     }
-                    .accessibilityLabel("\(lab.name), \(lab.subtitle), \(lab.isConnected ? "connected" : "not connected")")
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(lab.name), \(lab.subtitle), \(configurationStatus(for: lab))")
                 }
             }
         }
@@ -98,9 +111,9 @@ struct AIModelPickerView: View {
                     .foregroundStyle(Theme.Colors.textSecondary)
             }
             Spacer()
-            Text(lab.isConnected ? "Connected" : "Catalogue only")
+            Text(configurationStatus(for: lab))
                 .font(.caption.weight(.medium))
-                .foregroundStyle(lab.isConnected ? Theme.Colors.accent : Theme.Colors.textSecondary)
+                .foregroundStyle(isConfigured(lab) ? Theme.Colors.accent : Theme.Colors.textSecondary)
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.Colors.textTertiary)
@@ -110,7 +123,7 @@ struct AIModelPickerView: View {
 
     @ViewBuilder
     private func modelShelf(for lab: AILab) -> some View {
-        if let provider = lab.provider {
+        if let provider = lab.provider, services.aiSettings.canAnalyse(with: provider) {
             List {
                 Section {
                     ForEach(matchingModels) { model in
@@ -149,12 +162,36 @@ struct AIModelPickerView: View {
             .listStyle(.insetGrouped)
         } else {
             ContentUnavailableView {
-                Label("\(lab.name) isn't connected", systemImage: "bolt.slash.fill")
+                Label("Set up \(lab.name) first", systemImage: "key.fill")
             } description: {
-                Text("This lab is visible in the model catalogue, but it cannot be added until Diald supports its API and authentication flow.")
+                Text("Add this lab's API key before choosing one of its models for analysis.")
             }
             .padding(.horizontal, Theme.Spacing.xl)
         }
+    }
+
+    private func open(_ lab: AILab) {
+        guard let labProvider = lab.provider else {
+            selectedLab = lab
+            return
+        }
+
+        if services.aiSettings.canAnalyse(with: labProvider) {
+            selectedLab = lab
+        } else {
+            labToConfigure = lab
+        }
+    }
+
+    private func isConfigured(_ lab: AILab) -> Bool {
+        guard let labProvider = lab.provider else { return false }
+        return services.aiSettings.canAnalyse(with: labProvider)
+    }
+
+    private func configurationStatus(for lab: AILab) -> String {
+        guard let labProvider = lab.provider else { return "Unavailable" }
+        guard services.aiSettings.canAnalyse(with: labProvider) else { return "Set up" }
+        return labProvider == provider ? "Selected" : "Ready"
     }
 
     @ToolbarContentBuilder
