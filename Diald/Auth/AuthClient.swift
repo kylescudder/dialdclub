@@ -18,6 +18,7 @@ final class AuthClient: ObservableObject {
 
     let supabase: SupabaseClient
     private var stateTask: Task<Void, Never>?
+    private var bootstrapTimeoutTask: Task<Void, Never>?
     private var pendingAppleNonce: String?
     private let configurationError = AppSecrets.supabaseConfigurationError
 
@@ -33,7 +34,10 @@ final class AuthClient: ObservableObject {
         )
     }
 
-    deinit { stateTask?.cancel() }
+    deinit {
+        stateTask?.cancel()
+        bootstrapTimeoutTask?.cancel()
+    }
 
     var currentUserID: UUID? {
         if case let .signedIn(id, _) = state { id } else { nil }
@@ -48,19 +52,16 @@ final class AuthClient: ObservableObject {
     }
 
     func bootstrap() async {
+        bootstrapTimeoutTask?.cancel()
+
         if let configurationError {
             Log.error(AppConfigurationError(message: configurationError), category: "auth.configuration")
             apply(session: nil)
             return
         }
 
-        do {
-            let session = try await supabase.auth.session
-            apply(session: session)
-        } catch {
-            apply(session: nil)
-        }
-
+        // Listen for the locally persisted session immediately. A slow or unavailable
+        // Supabase endpoint must not leave the whole app on the launch screen.
         stateTask?.cancel()
         stateTask = Task { [weak self] in
             guard let self else { return }
@@ -70,6 +71,29 @@ final class AuthClient: ObservableObject {
                 }
                 self.apply(session: session)
             }
+        }
+
+        bootstrapTimeoutTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: 5_000_000_000)
+            } catch {
+                return
+            }
+
+            guard let self, !Task.isCancelled, case .unknown = state else { return }
+            Log.breadcrumb("initial session lookup timed out; showing sign in", category: "auth.bootstrap")
+            apply(session: nil)
+        }
+        defer {
+            bootstrapTimeoutTask?.cancel()
+            bootstrapTimeoutTask = nil
+        }
+
+        do {
+            let session = try await supabase.auth.session
+            apply(session: session)
+        } catch {
+            apply(session: nil)
         }
     }
 
