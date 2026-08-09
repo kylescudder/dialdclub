@@ -29,15 +29,6 @@ final class AnalysisClient: ObservableObject {
     @Published private(set) var isLoading = false
     @Published var lastError: String?
 
-    var engineDescription: String {
-        #if canImport(FoundationModels)
-        if #available(iOS 26.0, *), SystemLanguageModel.default.isAvailable {
-            return "Apple Intelligence · on device"
-        }
-        #endif
-        return "Private insights · on device"
-    }
-
     func analyse(brews: [BrewSession], beans: [CoffeeBean], filters: AnalysisFilters) async -> String? {
         lastError = nil
         let selectedBrews = brews.filter(filters.matches).sorted { $0.brewedAt < $1.brewedAt }

@@ -40,31 +40,6 @@ struct AnalyseView: View {
             }
 
             Section {
-                HStack(spacing: Theme.Spacing.md) {
-                    Image(systemName: "flask.fill")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 36, height: 36)
-                        .background(
-                            Theme.Colors.accent,
-                            in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous)
-                        )
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Diald Local")
-                            .foregroundStyle(Theme.Colors.textPrimary)
-                        Text(services.analysis.engineDescription)
-                            .font(.footnote)
-                            .foregroundStyle(Theme.Colors.textSecondary)
-                    }
-                }
-                .padding(.vertical, Theme.Spacing.xs)
-            } header: {
-                Text("Analysis lab")
-            } footer: {
-                Text("No AI account, API key, or internet connection is required. Your brew data never leaves this device for analysis.")
-            }
-
-            Section {
                 Button {
                     Task { await runAnalysis() }
                 } label: {
@@ -84,6 +59,8 @@ struct AnalyseView: View {
                         .font(.footnote)
                         .foregroundStyle(.red)
                 }
+            } footer: {
+                Text("Analysis runs entirely on this device. No AI account, API key, or internet connection is required.")
             }
 
             if !result.isEmpty {
