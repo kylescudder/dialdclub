@@ -50,7 +50,11 @@ struct AddBrewView: View {
                     HStack {
                         Text("Grind setting")
                         Spacer()
-                        TextField("Optional", text: $draft.grindSetting)
+                        TextField(
+                            "Grind setting",
+                            text: $draft.grindSetting,
+                            prompt: Text("Optional")
+                        )
                             .multilineTextAlignment(.trailing)
                     }
                 }
