@@ -111,18 +111,6 @@ struct SettingsView: View {
                 Text("Free accounts can log up to \(AppServices.freeExtractionLimit) lifetime extractions; deleted extractions still count. Manage subscription opens Apple's system sheet, where you can cancel or change the subscription.")
             }
 
-            Section("Analysis labs") {
-                NavigationLink("Choose analysis lab") {
-                    AIModelPickerView(provider: providerBinding, modelID: modelBinding)
-                }
-                LabeledContent(
-                    "Selected",
-                    value: services.aiSettings.canAnalyse(with: services.aiSettings.provider)
-                        ? services.aiSettings.provider.label
-                        : "Not configured"
-                )
-            }
-
             Section("Account") {
                 if case let .signedIn(_, email) = services.auth.state, let email {
                     LabeledContent("Signed in as", value: email)
@@ -200,20 +188,6 @@ struct SettingsView: View {
         case .verifying: "Verifying Supporter"
         case .active: "Supporter Monthly"
         }
-    }
-
-    private var providerBinding: Binding<AIProvider> {
-        Binding(
-            get: { services.aiSettings.provider },
-            set: { services.aiSettings.provider = $0 }
-        )
-    }
-
-    private var modelBinding: Binding<String> {
-        Binding(
-            get: { services.aiSettings.model },
-            set: { services.aiSettings.model = $0 }
-        )
     }
 
     private var syncStatusLabel: String {

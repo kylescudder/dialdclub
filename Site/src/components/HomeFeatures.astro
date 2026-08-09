@@ -18,7 +18,7 @@ const features = [
   {
     icon: "✦",
     title: "Ask for a second opinion",
-    body: "Send only the brews you choose to OpenAI or Anthropic for practical recommendations, using an API key kept in your Keychain.",
+    body: "Turn the brews you choose into practical, evidence-led recommendations entirely on your device—no API key or internet connection required.",
   },
   {
     icon: "↗",
@@ -37,7 +37,9 @@ const features = [
   <div class="section-heading">
     <div>
       <p class="kicker">Built around the whole brew</p>
-      <h2 id="features-title">The details matter only when they help the next cup.</h2>
+      <h2 id="features-title">
+        The details matter only when they help the next cup.
+      </h2>
     </div>
     <p>
       Diald Club turns a pile of disconnected notes into a practical workflow:
@@ -48,7 +50,9 @@ const features = [
     {
       features.map((feature) => (
         <article class="feature-card">
-          <span class="feature-icon" aria-hidden="true">{feature.icon}</span>
+          <span class="feature-icon" aria-hidden="true">
+            {feature.icon}
+          </span>
           <h3>{feature.title}</h3>
           <p>{feature.body}</p>
         </article>

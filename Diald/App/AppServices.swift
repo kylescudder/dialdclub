@@ -16,13 +16,12 @@ final class AppServices: ObservableObject {
     let stats: StatsRepository
     let notifications: NotificationManager
     let profile: ProfileRepository
-    let aiSettings: AISettingsStore
-    let aiModelCatalog: AIModelCatalog
     let analysis: AnalysisClient
 
     private var cancellables = Set<AnyCancellable>()
 
     init() {
+        LegacyAIProviderCredentialCleanup.run()
         let auth = AuthClient()
         let syncIssues = SyncIssueStore()
         let sync = PowerSyncManager(auth: auth, issues: syncIssues)
@@ -36,12 +35,9 @@ final class AppServices: ObservableObject {
         self.stats = StatsRepository(database: sync.database)
         self.notifications = NotificationManager.shared
         self.profile = ProfileRepository(database: sync.database)
-        let aiSettings = AISettingsStore()
-        self.aiSettings = aiSettings
-        self.aiModelCatalog = AIModelCatalog(auth: auth)
-        self.analysis = AnalysisClient(settings: aiSettings)
+        self.analysis = AnalysisClient()
 
-        for child: any ObservableObject in [auth, sync, syncIssues, billing, beans, brews, stats, notifications, profile, aiSettings, aiModelCatalog, analysis] {
+        for child: any ObservableObject in [auth, sync, syncIssues, billing, beans, brews, stats, notifications, profile, analysis] {
             (child.objectWillChange as? ObservableObjectPublisher)?
                 .sink { [weak self] in self?.objectWillChange.send() }
                 .store(in: &cancellables)
