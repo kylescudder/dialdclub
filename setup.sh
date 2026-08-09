@@ -86,7 +86,7 @@ fi
 
 note "Expected values: SUPABASE_URL, SUPABASE_ANON_KEY, POWERSYNC_URL, and optional SENTRY_DSN."
 note 'xcconfig warning: write literal "//" as "/$()/" (for example, https:/$()/…) because "//" starts a comment.'
-note "OpenAI and Anthropic API keys are entered in Diald at runtime and stored in the Keychain, not in xcconfig."
+note "Brew analysis runs locally and does not require provider API keys."
 
 # Detect the placeholders used by the committed example in either a newly
 # created file or an existing local configuration.
