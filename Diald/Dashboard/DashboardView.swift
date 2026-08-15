@@ -3,6 +3,8 @@ import SwiftUI
 struct DashboardView: View {
     @EnvironmentObject private var services: AppServices
     @State private var showingAddBrew = false
+    @State private var startTimerOnOpen = false
+    @State private var initialRecipe: BrewSession?
     @State private var brewToEdit: BrewSession?
     @State private var brewPendingDeletion: BrewSession?
     @State private var filters = BrewFilters()
@@ -10,6 +12,7 @@ struct DashboardView: View {
 
     var body: some View {
         List {
+            readyToBrewSection
             filterSection
             brewsSection
         }
@@ -30,6 +33,8 @@ struct DashboardView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
+                    startTimerOnOpen = false
+                    initialRecipe = nil
                     showingAddBrew = true
                 } label: {
                     Image(systemName: "plus")
@@ -39,7 +44,10 @@ struct DashboardView: View {
         }
         .refreshable { await services.refreshAll() }
         .sheet(isPresented: $showingAddBrew) {
-            AddBrewView()
+            AddBrewView(
+                startTimerOnAppear: startTimerOnOpen,
+                initialRecipe: initialRecipe
+            )
         }
         .sheet(item: $brewToEdit) { brew in
             AddBrewView(brewToEdit: brew)
@@ -61,6 +69,27 @@ struct DashboardView: View {
             }
         } message: {
             Text("This removes the brew from your records.")
+        }
+    }
+
+    private var readyToBrewSection: some View {
+        Section {
+            ReadyToBrewCard(
+                brew: latestBrew,
+                beanName: latestBrew.flatMap(beanName(for:)),
+                startBrew: {
+                    startTimerOnOpen = true
+                    initialRecipe = latestBrew
+                    showingAddBrew = true
+                }
+            )
+            .listRowInsets(EdgeInsets(
+                top: Theme.Spacing.sm,
+                leading: Theme.Spacing.lg,
+                bottom: Theme.Spacing.sm,
+                trailing: Theme.Spacing.lg
+            ))
+            .listRowBackground(Color.clear)
         }
     }
 
@@ -125,7 +154,9 @@ struct DashboardView: View {
             }
         } header: {
             HStack {
-                BrewSectionHeader(title: "Recent brews")
+                Text("Recent Brews")
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(Theme.Colors.textPrimary)
                 Spacer()
                 if filters.isActive {
                     Text("\(filteredBrews.count) of \(services.brews.brews.count)")
@@ -138,6 +169,10 @@ struct DashboardView: View {
 
     private var filteredBrews: [BrewSession] {
         services.brews.brews.filter { filters.matches($0) }
+    }
+
+    private var latestBrew: BrewSession? {
+        services.brews.brews.max { $0.brewedAt < $1.brewedAt }
     }
 
     private var emptyTitle: String {
@@ -155,6 +190,98 @@ struct DashboardView: View {
     private func beanName(for brew: BrewSession) -> String? {
         guard let beanID = brew.beanID else { return nil }
         return services.beans.beans.first { $0.id == beanID }?.displayName
+    }
+}
+
+private struct ReadyToBrewCard: View {
+    let brew: BrewSession?
+    let beanName: String?
+    let startBrew: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
+            HStack(alignment: .top, spacing: Theme.Spacing.md) {
+                Image(systemName: "cup.and.saucer.fill")
+                    .font(.title3)
+                    .foregroundStyle(.tint)
+                    .frame(width: 44, height: 44)
+                    .background(.tint.opacity(0.14), in: Circle())
+
+                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                    Text("READY TO BREW")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.tint)
+                        .tracking(0.8)
+
+                    Text(title)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                        .lineLimit(1)
+
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            if let brew {
+                HStack(spacing: 0) {
+                    RecipeFact(value: String(format: "%.1fg", brew.doseGrams), label: "Dose")
+                    Divider().frame(height: 34)
+                    RecipeFact(value: brew.ratioText, label: "Ratio")
+                    Divider().frame(height: 34)
+                    RecipeFact(value: brew.timeText, label: "Time")
+                }
+                .padding(.vertical, Theme.Spacing.sm)
+                .background(Theme.Colors.background, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
+            }
+
+            Button(action: startBrew) {
+                Label(brew == nil ? "Start a brew" : "Brew again", systemImage: "timer")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+        }
+        .padding(Theme.Spacing.lg)
+        .background(Theme.Colors.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous)
+                .strokeBorder(Theme.Colors.separator.opacity(0.45))
+        }
+    }
+
+    private var title: String {
+        brew?.title ?? "Your next cup"
+    }
+
+    private var subtitle: String {
+        guard let brew else {
+            return "Start the timer and capture your first recipe."
+        }
+
+        let bean = beanName ?? "No bean selected"
+        return "\(bean) \u{2022} \(brew.method.label)"
+    }
+}
+
+private struct RecipeFact: View {
+    let value: String
+    let label: String
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.subheadline.monospacedDigit().weight(.semibold))
+                .foregroundStyle(Theme.Colors.textPrimary)
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(Theme.Colors.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
