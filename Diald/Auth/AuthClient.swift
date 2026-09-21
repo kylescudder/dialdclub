@@ -17,6 +17,8 @@ final class AuthClient: ObservableObject {
     @Published var isPasswordRecovery = false
 
     let supabase: SupabaseClient
+    var beforeSessionInvalidation: (() async -> Void)?
+    var afterSessionInvalidationFailure: (() async -> Void)?
     private var stateTask: Task<Void, Never>?
     private var bootstrapTimeoutTask: Task<Void, Never>?
     private var pendingAppleNonce: String?
@@ -189,7 +191,9 @@ final class AuthClient: ObservableObject {
     func signOut() async -> Bool {
         AuthClient.clearPendingRecoveryFlag()
         do {
-            try await supabase.auth.signOut()
+            try await performSessionInvalidatingOperation {
+                try await self.supabase.auth.signOut()
+            }
             return true
         } catch {
             Log.error(error, category: "auth.signOut")
@@ -200,8 +204,10 @@ final class AuthClient: ObservableObject {
 
     func deleteAccount() async throws {
         AuthClient.clearPendingRecoveryFlag()
-        try await supabase.rpc("delete_my_account").execute()
-        try await supabase.auth.signOut()
+        try await performSessionInvalidatingOperation {
+            try await self.supabase.rpc("delete_my_account").execute()
+            try await self.supabase.auth.signOut()
+        }
     }
 
     func sendPasswordReset(email: String) async -> Bool {
@@ -242,12 +248,26 @@ final class AuthClient: ObservableObject {
             _ = try await supabase.auth.update(user: UserAttributes(password: newPassword))
             isPasswordRecovery = false
             AuthClient.clearPendingRecoveryFlag()
-            try await supabase.auth.signOut()
+            try await performSessionInvalidatingOperation {
+                try await self.supabase.auth.signOut()
+            }
             return true
         } catch {
             lastError = error.localizedDescription
             Log.error(error, category: "auth.updatePassword")
             return false
+        }
+    }
+
+    func performSessionInvalidatingOperation<T>(
+        _ operation: () async throws -> T
+    ) async throws -> T {
+        await beforeSessionInvalidation?()
+        do {
+            return try await operation()
+        } catch {
+            await afterSessionInvalidationFailure?()
+            throw error
         }
     }
 
@@ -352,6 +372,16 @@ final class AuthClient: ObservableObject {
             Log.error(error, category: "auth.apple")
         }
         pendingAppleNonce = nil
+    }
+}
+
+extension AuthClient: PushIdentityProviding {
+    func currentPushIdentity() async -> PushIdentity? {
+        guard
+            let principalID = currentUserID?.uuidString.lowercased(),
+            let accessToken = await currentAccessToken()
+        else { return nil }
+        return PushIdentity(principalID: principalID, accessToken: accessToken)
     }
 }
 
