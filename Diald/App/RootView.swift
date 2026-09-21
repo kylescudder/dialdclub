@@ -25,6 +25,9 @@ struct RootView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 QuickActionRouter.activate()
+                if case .signedIn = services.auth.state {
+                    Task { await services.notifications.refreshRemoteRegistration() }
+                }
             }
         }
         .sheet(isPresented: Binding(

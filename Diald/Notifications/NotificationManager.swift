@@ -76,25 +76,78 @@ final class NotificationManager: NSObject, ObservableObject {
 
     @Published private(set) var authorizationStatus: UNAuthorizationStatus = .notDetermined
     @Published private(set) var localReminders: [BrewReminderSchedule] = []
-    weak var auth: AuthClient?
 
     private static let legacyLocalReminderIdentifier = "daily-brew-reminder"
     private static let localReminderIdentifierPrefix = "brew-reminder"
     private static let reminderStorageKey = "notifications.brewReminders"
+    private let notificationCenter: UNUserNotificationCenter
+    private var registrationLifecycle: PushRegistrationLifecycle?
 
     private override init() {
+        notificationCenter = .current()
         super.init()
-        UNUserNotificationCenter.current().delegate = self
+        notificationCenter.delegate = self
         Task {
             await refreshAuthorizationStatus()
             await refreshLocalReminderState()
         }
     }
 
-    func bind(auth: AuthClient) { self.auth = auth }
+    init(
+        registrationLifecycle: PushRegistrationLifecycle,
+        notificationCenter: UNUserNotificationCenter = .current()
+    ) {
+        self.registrationLifecycle = registrationLifecycle
+        self.notificationCenter = notificationCenter
+        super.init()
+    }
+
+    func bind(auth: AuthClient) {
+        guard registrationLifecycle == nil else { return }
+
+        let configuration = PushGatewayConfiguration.fromBundle
+        let transport: any PushRegistrationTransport
+        switch PushRegistrationTransportKind.selected(for: configuration) {
+        case .gateway:
+            guard let configuration else { return }
+            transport = GatewayPushRegistrationTransport(
+                configuration: configuration,
+                session: URLSession(configuration: .ephemeral)
+            )
+        case .legacy:
+            transport = LegacyPushRegistrationTransport(auth: auth)
+        }
+
+        registrationLifecycle = PushRegistrationLifecycle(
+            identityProvider: auth,
+            installationIDProvider: KeychainPushInstallationIDProvider(),
+            transport: transport,
+            remoteNotificationRegistrar: self,
+            environment: Self.apnsEnvironment,
+            errorHandler: { error in
+                Log.error(error, category: "notifications.token")
+            }
+        )
+    }
+
+    func activate() async {
+        await registrationLifecycle?.activate()
+    }
+
+    func refreshRemoteRegistration() async {
+        await registrationLifecycle?.refresh()
+    }
+
+    func deactivate() async {
+        await registrationLifecycle?.deactivate()
+    }
+
+    func resetForSignedOutState() {
+        registrationLifecycle?.resetForSignedOutState()
+    }
 
     func refreshAuthorizationStatus() async {
-        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        let settings = await notificationCenter.notificationSettings()
         authorizationStatus = settings.authorizationStatus
     }
 
@@ -105,7 +158,7 @@ final class NotificationManager: NSObject, ObservableObject {
             return
         }
 
-        let requests = await UNUserNotificationCenter.current().pendingNotificationRequests()
+        let requests = await notificationCenter.pendingNotificationRequests()
         guard let legacy = Self.migratedLegacyReminder(from: requests) else {
             localReminders = []
             return
@@ -117,7 +170,7 @@ final class NotificationManager: NSObject, ObservableObject {
     @discardableResult
     func requestAuthorization() async -> Bool {
         do {
-            let granted = try await UNUserNotificationCenter.current()
+            let granted = try await notificationCenter
                 .requestAuthorization(options: [.alert, .sound, .badge])
             await refreshAuthorizationStatus()
             if granted {
@@ -139,32 +192,11 @@ final class NotificationManager: NSObject, ObservableObject {
     }
 
     func didRegister(deviceToken data: Data) async {
-        let token = data.map { String(format: "%02x", $0) }.joined()
-        await upload(apnsToken: token)
+        await registrationLifecycle?.receivedDeviceToken(data)
     }
 
     func didFailToRegister(error: Error) {
         Log.error(error, category: "notifications.register")
-    }
-
-    private func upload(apnsToken token: String) async {
-        guard let auth, let userID = auth.currentUserID else { return }
-        let payload: [String: String] = [
-            "user_id": userID.uuidString.lowercased(),
-            "apns_token": token,
-            "device_name": UIDevice.current.name,
-            "bundle_id": Bundle.main.bundleIdentifier ?? "club.diald",
-            "environment": Self.apnsEnvironment
-        ]
-        do {
-            try await auth.supabase
-                .from("device_tokens")
-                .upsert(payload, onConflict: "user_id,apns_token")
-                .execute()
-            Log.breadcrumb("apns token uploaded", category: "notifications")
-        } catch {
-            Log.error(error, category: "notifications.token")
-        }
     }
 
     func replaceLocalReminders(_ reminders: [BrewReminderSchedule]) async {
@@ -213,7 +245,7 @@ final class NotificationManager: NSObject, ObservableObject {
                 trigger: trigger
             )
             do {
-                try await UNUserNotificationCenter.current().add(request)
+                try await notificationCenter.add(request)
             } catch {
                 Log.error(error, category: "notifications.local")
             }
@@ -221,14 +253,14 @@ final class NotificationManager: NSObject, ObservableObject {
     }
 
     private func cancelScheduledLocalReminders() async {
-        let requests = await UNUserNotificationCenter.current().pendingNotificationRequests()
+        let requests = await notificationCenter.pendingNotificationRequests()
         let identifiers = requests
             .map(\.identifier)
             .filter {
                 $0 == Self.legacyLocalReminderIdentifier
                     || $0.hasPrefix("\(Self.localReminderIdentifierPrefix)-")
             }
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: identifiers)
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: identifiers)
     }
 
     private static func identifier(for reminderID: UUID, weekday: Int) -> String {
@@ -260,14 +292,16 @@ final class NotificationManager: NSObject, ObservableObject {
         )
     }
 
-    private static var apnsEnvironment: String {
+    private static var apnsEnvironment: APNSEnvironment {
         #if DEBUG
-        "sandbox"
+        .sandbox
         #else
-        "production"
+        .production
         #endif
     }
 }
+
+extension NotificationManager: RemoteNotificationRegistering {}
 
 extension NotificationManager: UNUserNotificationCenterDelegate {
     nonisolated func userNotificationCenter(
