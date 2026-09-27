@@ -65,7 +65,7 @@ struct AnalyseView: View {
 
             if !result.isEmpty {
                 Section {
-                    Text(result)
+                    Text(renderedResult)
                         .textSelection(.enabled)
                         .padding(.vertical, Theme.Spacing.xs)
                 } header: {
@@ -75,6 +75,16 @@ struct AnalyseView: View {
         }
         .navigationTitle("Analyse")
         .refreshable { await services.refreshAll() }
+    }
+
+    private var renderedResult: AttributedString {
+        (try? AttributedString(
+            markdown: result,
+            options: .init(
+                interpretedSyntax: .full,
+                failurePolicy: .returnPartiallyParsedIfPossible
+            )
+        )) ?? AttributedString(result)
     }
 
     private func runAnalysis() async {
