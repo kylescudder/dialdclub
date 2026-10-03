@@ -65,7 +65,7 @@ struct AnalyseView: View {
 
             if !result.isEmpty {
                 Section {
-                    Text(result)
+                    Text(AnalysisMarkdown.render(result))
                         .textSelection(.enabled)
                         .padding(.vertical, Theme.Spacing.xs)
                 } header: {
