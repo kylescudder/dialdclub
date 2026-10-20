@@ -40,7 +40,7 @@ jobs:
       IOS_KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: xcodebuild -version
       - run: sudo xcodebuild -downloadPlatform iOS || true
       - run: brew install xcodegen
