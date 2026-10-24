@@ -43,6 +43,12 @@ final class AppServices: ObservableObject {
         }
 
         NotificationManager.shared.bind(auth: auth)
+        auth.beforeSessionInvalidation = { [weak notifications] in
+            await notifications?.deactivate()
+        }
+        auth.afterSessionInvalidationFailure = { [weak notifications] in
+            await notifications?.activate()
+        }
         billing.start()
         Task { await sync.startObservingAuth() }
 
@@ -62,6 +68,7 @@ final class AppServices: ObservableObject {
 
     private func applyAuth(state: AuthClient.State) async {
         guard case let .signedIn(userID, _) = state else {
+            notifications.resetForSignedOutState()
             billing.resetForSignOut()
             profile.stopWatching()
             beans.stopWatching()
@@ -69,20 +76,23 @@ final class AppServices: ObservableObject {
             stats.stopWatching()
             return
         }
+        await notifications.activate()
         let id = userID.uuidString.lowercased()
         profile.startWatching(userID: id)
         beans.startWatching(userID: id)
         brews.startWatching(userID: id)
         stats.startWatching(userID: id)
         await billing.syncEntitlements()
-        await refreshAll()
+        await refreshAll(refreshRemoteRegistration: false)
     }
 
-    func refreshAll() async {
+    func refreshAll(refreshRemoteRegistration: Bool = true) async {
         await profile.refresh()
         await beans.refresh()
         await refreshBrewData()
-        await notifications.registerIfAuthorized()
+        if refreshRemoteRegistration {
+            await notifications.refreshRemoteRegistration()
+        }
         await notifications.refreshLocalReminderState()
     }
 

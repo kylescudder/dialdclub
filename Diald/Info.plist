@@ -37,6 +37,10 @@
 	<string>Diald uses the camera to photograph bean bags and brew setups.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Diald saves bean and brew photos you choose to export.</string>
+	<key>PUSH_GATEWAY_APPLICATION_ID</key>
+	<string>$(PUSH_GATEWAY_APPLICATION_ID)</string>
+	<key>PUSH_GATEWAY_URL</key>
+	<string>$(PUSH_GATEWAY_URL)</string>
 	<key>SENTRY_DSN</key>
 	<string>$(SENTRY_DSN)</string>
 	<key>SUPABASE_ANON_KEY</key>
