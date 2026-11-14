@@ -8,7 +8,7 @@ import LegalArticle from "../components/LegalArticle.astro";
   description="Privacy policy for the Diald Club coffee tracking app."
   bodyClass="legal-page"
 >
-  <LegalArticle title="Privacy Policy" updated="9 August 2026">
+  <LegalArticle title="Privacy Policy" updated="14 November 2026">
     <p>
       This Privacy Policy explains how Diald Club ("the app", "we", "us")
       collects, uses, and protects your information when you use the Diald Club
@@ -74,8 +74,10 @@ import LegalArticle from "../components/LegalArticle.astro";
     <ul>
       <li>
         <strong>With service providers.</strong> We use service providers to host
-        and operate the app; Apple and Google for sign-in when selected; and Apple
-        for purchases and notifications.
+        and operate the app; Brevo for account confirmation and password reset emails;
+        Apple and Google for sign-in when selected; and Apple for purchases and
+        notifications. The replacement backend uses our hosted PostgreSQL database
+        and self-hosted PowerSync for device synchronization.
       </li>
       <li>
         <strong>When required by law.</strong> We may disclose information if required
@@ -89,7 +91,9 @@ import LegalArticle from "../components/LegalArticle.astro";
       delete beans, brews, notes, reminders, and other content from within the
       app at any time. The lifetime extraction count remains until you delete
       your account. When you delete your account, your associated personal data
-      is removed from our systems.
+      is removed from the active service. Encrypted recovery backups retain earlier
+      copies until their scheduled expiry. During a backend migration, the old
+      database is kept read-only for a limited recovery period before removal.
     </p>
 
     <h2>Security</h2>

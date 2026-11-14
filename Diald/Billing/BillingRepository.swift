@@ -28,8 +28,8 @@ final class BillingRepository: ObservableObject {
     func start() {
         transactionTask?.cancel()
         transactionTask = Task { [weak self] in
-            guard let self else { return }
             for await result in Transaction.updates {
+                guard let self else { return }
                 await self.handle(result)
             }
         }
@@ -208,31 +208,7 @@ final class BillingRepository: ObservableObject {
     }
 
     private func sync(jwsRepresentation: String) async throws -> TransactionSyncResponse {
-        guard let token = await auth.currentAccessToken() else {
-            throw BillingSyncError.unauthenticated
-        }
-
-        let url = AppSecrets.supabaseURL
-            .appendingPathComponent("functions")
-            .appendingPathComponent("v1")
-            .appendingPathComponent("iap-sync-transaction")
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue(AppSecrets.supabaseAnonKey, forHTTPHeaderField: "apikey")
-        request.httpBody = try JSONEncoder().encode(TransactionSyncRequest(
-            signedTransactionInfo: jwsRepresentation,
-            source: "ios"
-        ))
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse else {
-            throw BillingSyncError.invalidResponse
-        }
-        guard (200..<300).contains(http.statusCode) else {
-            throw BillingSyncError.badStatus(http.statusCode)
-        }
+        let data = try await auth.api.request("api/iap/transactions", method: "POST", body: JSONEncoder().encode(TransactionSyncRequest(signedTransactionInfo: jwsRepresentation, source: "ios")))
         return try JSONDecoder().decode(TransactionSyncResponse.self, from: data)
     }
 

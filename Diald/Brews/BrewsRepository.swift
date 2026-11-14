@@ -1,7 +1,6 @@
 import Combine
 import Foundation
 import PowerSync
-import Supabase
 
 @MainActor
 final class BrewsRepository: ObservableObject {
@@ -207,11 +206,8 @@ final class BrewsRepository: ObservableObject {
     func extractionCreationStatus() async throws -> ExtractionCreationStatus {
         guard auth.currentUserID != nil else { throw BrewCreationError.unauthenticated }
         do {
-            let rows: [ExtractionCreationStatus] = try await auth.supabase
-                .rpc("get_extraction_creation_status")
-                .execute()
-                .value
-            guard let status = rows.first else { throw BrewCreationError.serverValidationFailure }
+            let data = try await auth.api.request("api/extractions/status")
+            let status = try JSONDecoder().decode(ExtractionCreationStatus.self, from: data)
             return try await statusIncludingLocalPending(status)
         } catch {
             Log.error(error, category: "brews.creationStatus")
