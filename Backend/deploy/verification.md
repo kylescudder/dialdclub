@@ -36,7 +36,9 @@ GHCR release with workflow provenance.
   tests failed during Keychain cleanup in the unsigned test host, before their
   assertions. Tests now use an injected session store and private preferences
   suite while keeping real PowerSync SQLite. Production defaults retain the
-  Keychain and its error handling. Runtime recheck is pending.
+  Keychain and its error handling. CI on `cf53cde` reran the suite on an iOS
+  Simulator: all 14 tests passed, including both offline-upgrade/ambiguous-owner
+  tests (`TEST SUCCEEDED`, run 43606550110).
 - Astro production build/format check and workflow `actionlint`/shell syntax.
 - Production-built privacy page in T3 browser at 1280×900 and 390×844: new
   provider/retention copy present, no horizontal overflow, no console errors.
@@ -83,8 +85,9 @@ logs are in ignored `Backend/artifacts/` and `DerivedData/cutover-evidence/`.
   within 30 seconds. Open returned `No ios devices were found on host local`.
   Xcode reported the CoreSimulator service older than its installed build.
   Local native test execution and screenshots remain unavailable. CI native
-  test execution is reported above; no successful native OAuth, purchase/restore,
-  or Swift offline-upgrade/persistence result is claimed until its recheck passes.
+  test execution is reported above; the Swift offline-upgrade/persistence tests
+  pass there with an in-memory session store, so real-Keychain persistence across
+  an app upgrade is not proven. No native OAuth or purchase/restore result is claimed.
 - SSH to `kyle@herman.local` returned `Permission denied`; the secure credential
   request timed out. The separate source PostgreSQL URL request also timed out. Actual runbook/skills/recovery.py output, current capacity,
   private settings and installed deploy-core release were not re-audited. The
