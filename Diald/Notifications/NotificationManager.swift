@@ -148,19 +148,15 @@ final class NotificationManager: NSObject, ObservableObject {
     }
 
     private func upload(apnsToken token: String) async {
-        guard let auth, let userID = auth.currentUserID else { return }
+        guard let auth, auth.currentUserID != nil else { return }
         let payload: [String: String] = [
-            "user_id": userID.uuidString.lowercased(),
             "apns_token": token,
             "device_name": UIDevice.current.name,
             "bundle_id": Bundle.main.bundleIdentifier ?? "club.diald",
             "environment": Self.apnsEnvironment
         ]
         do {
-            try await auth.supabase
-                .from("device_tokens")
-                .upsert(payload, onConflict: "user_id,apns_token")
-                .execute()
+            _ = try await auth.api.json("api/devices", values: payload)
             Log.breadcrumb("apns token uploaded", category: "notifications")
         } catch {
             Log.error(error, category: "notifications.token")

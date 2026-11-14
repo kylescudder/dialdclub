@@ -2,363 +2,185 @@ import AuthenticationServices
 import Combine
 import CryptoKit
 import Foundation
-import Supabase
+import PowerSync
 
 @MainActor
 final class AuthClient: ObservableObject {
-    enum State: Equatable {
-        case unknown
-        case signedOut
-        case signedIn(UUID, String?)
-    }
-
+    enum State: Equatable { case unknown, signedOut, signedIn(UUID, String?) }
     @Published private(set) var state: State = .unknown
     @Published var lastError: String?
     @Published var isPasswordRecovery = false
-
-    let supabase: SupabaseClient
-    private var stateTask: Task<Void, Never>?
-    private var bootstrapTimeoutTask: Task<Void, Never>?
+    @Published private(set) var requiresReauthentication = false
+    let api = APIClient()
+    private let sessionStore: any SessionStore
+    private let defaults: UserDefaults
+    private var bindingValidated = false
     private var pendingAppleNonce: String?
-    private let configurationError = AppSecrets.supabaseConfigurationError
-
-    init() {
-        supabase = SupabaseClient(
-            supabaseURL: AppSecrets.supabaseURL,
-            supabaseKey: AppSecrets.supabaseAnonKey,
-            options: SupabaseClientOptions(
-                auth: SupabaseClientOptions.AuthOptions(
-                    emitLocalSessionAsInitialSession: true
-                )
-            )
-        )
+    private var resetToken: String?
+    private var lastHandledCallback: (url: String, at: Date)?
+    private static let recoveryPendingKey = "auth.recoveryPendingUntil"
+    static let ownerKey = "sync.boundOwner"
+    private struct User: Codable { let id: UUID; let email: String? }
+    private struct SavedSession: Codable { let token: String; let user: User }
+    private struct AuthResponse: Decodable { let token: String?; let user: User? }
+    private struct SessionResponse: Decodable { let user: User }
+    init(sessionStore: any SessionStore = KeychainSessionStore(), defaults: UserDefaults = .standard) {
+        self.sessionStore = sessionStore
+        self.defaults = defaults
+        api.onUnauthorized = { [weak self] in self?.requiresReauthentication = true }
     }
+    var currentUserID: UUID? { if case let .signedIn(id, _) = state { id } else { nil } }
 
-    deinit {
-        stateTask?.cancel()
-        bootstrapTimeoutTask?.cancel()
-    }
+    func currentAccessToken() async -> String? { requiresReauthentication ? nil : api.token }
 
-    var currentUserID: UUID? {
-        if case let .signedIn(id, _) = state { id } else { nil }
-    }
-
-    func currentAccessToken() async -> String? {
+    func bootstrap(database: PowerSyncDatabaseProtocol) async {
+        guard case .unknown = state else { return }
         do {
-            return try await supabase.auth.session.accessToken
-        } catch {
-            return nil
-        }
-    }
-
-    func bootstrap() async {
-        bootstrapTimeoutTask?.cancel()
-
-        if let configurationError {
-            Log.error(AppConfigurationError(message: configurationError), category: "auth.configuration")
-            apply(session: nil)
-            return
-        }
-
-        // Listen for the locally persisted session immediately. A slow or unavailable
-        // Supabase endpoint must not leave the whole app on the launch screen.
-        stateTask?.cancel()
-        stateTask = Task { [weak self] in
-            guard let self else { return }
-            for await (event, session) in supabase.auth.authStateChanges {
-                if event == .passwordRecovery {
-                    isPasswordRecovery = true
-                }
-                self.apply(session: session)
+            // Old PowerSync data is owner-scoped. Bind it before offering any sign-in.
+            // Do not use the old session, its network endpoints, or its credentials.
+            let ids = try await database.getAll(sql: "select id from profiles union select owner_id as id from beans union select owner_id as id from brew_sessions union select user_id as id from pending_extractions", parameters: [], mapper: { try $0.getString(name: "id") })
+            if defaults.string(forKey: Self.ownerKey) == nil {
+                guard ids.count <= 1 else { throw APIError(code: "owner_mismatch", message: "Offline account data needs recovery. Contact support before signing out.") }
+                if let id = ids.first { defaults.set(id.lowercased(), forKey: Self.ownerKey) }
             }
-        }
-
-        bootstrapTimeoutTask = Task { @MainActor [weak self] in
-            do {
-                try await Task.sleep(nanoseconds: 5_000_000_000)
-            } catch {
-                return
+            if let owner = defaults.string(forKey: Self.ownerKey), !ids.allSatisfy({ $0.lowercased() == owner }) {
+                throw APIError(code: "owner_mismatch", message: "Offline account data needs recovery. Contact support before signing out.")
             }
-
-            guard let self, !Task.isCancelled, case .unknown = state else { return }
-            Log.breadcrumb("initial session lookup timed out; showing sign in", category: "auth.bootstrap")
-            apply(session: nil)
-        }
-        defer {
-            bootstrapTimeoutTask?.cancel()
-            bootstrapTimeoutTask = nil
-        }
-
-        do {
-            let session = try await supabase.auth.session
-            apply(session: session)
+            bindingValidated = true
+            if let data = try sessionStore.read() {
+                let saved = try JSONDecoder().decode(SavedSession.self, from: data)
+                try adopt(saved)
+            } else if let owner = defaults.string(forKey: Self.ownerKey), let id = UUID(uuidString: owner) {
+                state = .signedIn(id, nil)
+                requiresReauthentication = true
+            } else { state = .signedOut }
         } catch {
-            apply(session: nil)
-        }
-    }
-
-    private func ensureSupabaseConfigured(category: String) -> Bool {
-        guard let configurationError else { return true }
-        lastError = "Auth isn't configured for this build. Please install the latest build."
-        Log.error(AppConfigurationError(message: configurationError), category: category)
-        return false
-    }
-
-    private func apply(session: Session?) {
-        if let session, !session.isExpired {
-            state = .signedIn(session.user.id, session.user.email)
-            Log.breadcrumb("session active", category: "auth")
-        } else {
+            lastError = error.localizedDescription
             state = .signedOut
-            Log.breadcrumb("signed out", category: "auth")
         }
     }
 
+    private func adopt(_ session: SavedSession) throws {
+        guard bindingValidated else { throw APIError(code: "owner_mismatch", message: "Offline account data must be checked before signing in.") }
+        let id = session.user.id.uuidString.lowercased()
+        if let owner = defaults.string(forKey: Self.ownerKey), owner != id {
+            throw APIError(code: "owner_mismatch", message: "Sign in with the original account to recover its offline changes. This account cannot access them.")
+        }
+        try sessionStore.write(JSONEncoder().encode(session))
+        defaults.set(id, forKey: Self.ownerKey)
+        api.token = session.token
+        requiresReauthentication = false
+        state = .signedIn(session.user.id, session.user.email)
+    }
+
+    private func authenticate(_ path: String, values: [String: Any]) async throws {
+        let data = try await api.json(path, values: values, authenticated: false)
+        let result = try JSONDecoder().decode(AuthResponse.self, from: data)
+        guard let token = result.token, let user = result.user else { throw APIError(code: "DX002", message: "Sign-in could not be completed.") }
+        try adopt(SavedSession(token: token, user: user))
+        defaults.removeObject(forKey: Self.recoveryPendingKey)
+    }
     func signIn(email: String, password: String) async {
         lastError = nil
-        guard ensureSupabaseConfigured(category: "auth.signIn.configuration") else { return }
-        do {
-            _ = try await supabase.auth.signIn(email: email, password: password)
-            AuthClient.clearPendingRecoveryFlag()
-        } catch {
-            lastError = error.localizedDescription
-            Log.error(error, category: "auth.signIn")
-        }
+        do { try await authenticate("api/auth/sign-in/email", values: ["email": email, "password": password]) }
+        catch { lastError = error.localizedDescription; Log.error(error, category: "auth.signIn") }
     }
-
-    enum SignUpResult: Equatable {
-        case signedIn
-        case needsEmailConfirmation(email: String)
-    }
-
+    enum SignUpResult: Equatable { case signedIn, needsEmailConfirmation(email: String) }
     func signUp(email: String, password: String, username: String) async -> SignUpResult? {
         lastError = nil
-        guard ensureSupabaseConfigured(category: "auth.signUp.configuration") else { return nil }
         do {
-            let response = try await supabase.auth.signUp(
-                email: email,
-                password: password,
-                data: [
-                    "username": .string(username),
-                    "display_name": .string(username)
-                ],
-                redirectTo: AppSecrets.authRedirectURL
-            )
-            AuthClient.clearPendingRecoveryFlag()
-            if response.session != nil {
-                apply(session: response.session)
-                return .signedIn
-            }
+            _ = try await api.json("api/auth/sign-up/email", values: ["email": email, "password": password, "name": username, "callbackURL": AppSecrets.authRedirectURL.absoluteString], authenticated: false)
             return .needsEmailConfirmation(email: email)
-        } catch {
-            if isConfirmationEmailFailure(error),
-               let fallback = await signInAfterConfirmationEmailFailure(email: email, password: password) {
-                return fallback
-            }
-            lastError = userFacingSignUpError(error)
-            Log.error(error, category: "auth.signUp")
-            return nil
-        }
+        } catch { lastError = error.localizedDescription; return nil }
     }
-
-    private func signInAfterConfirmationEmailFailure(email: String, password: String) async -> SignUpResult? {
+    @discardableResult func signOut() async -> Bool {
         do {
-            let response = try await supabase.auth.signIn(email: email, password: password)
-            AuthClient.clearPendingRecoveryFlag()
-            apply(session: response)
-            return .signedIn
-        } catch {
-            Log.error(error, category: "auth.signUp.fallbackSignIn")
-            return nil
-        }
-    }
-
-    private func userFacingSignUpError(_ error: Error) -> String {
-        if isConfirmationEmailFailure(error) {
-            return "Diald created the account, but the confirmation email could not be sent. Email confirmations are enabled on the server, so SMTP needs to be configured or confirmations need to be disabled."
-        }
-        return error.localizedDescription
-    }
-
-    private func isConfirmationEmailFailure(_ error: Error) -> Bool {
-        error.localizedDescription.localizedCaseInsensitiveContains("confirmation email")
-            || error.localizedDescription.localizedCaseInsensitiveContains("sending email")
-    }
-
-    @discardableResult
-    func signOut() async -> Bool {
-        AuthClient.clearPendingRecoveryFlag()
-        do {
-            try await supabase.auth.signOut()
+            if api.token != nil { _ = try await api.json("api/auth/sign-out", values: [:]) }
+            try sessionStore.write(nil)
+            api.token = nil
+            state = .signedOut
+            requiresReauthentication = false
+            defaults.removeObject(forKey: Self.recoveryPendingKey)
+            // The owner binding is removed by PowerSyncManager only after a successful wipe.
             return true
-        } catch {
-            Log.error(error, category: "auth.signOut")
-            lastError = error.localizedDescription
-            return false
-        }
+        } catch { lastError = error.localizedDescription; return false }
     }
-
     func deleteAccount() async throws {
-        AuthClient.clearPendingRecoveryFlag()
-        try await supabase.rpc("delete_my_account").execute()
-        try await supabase.auth.signOut()
+        _ = try await api.request("api/account", method: "DELETE")
+        try sessionStore.write(nil)
+        api.token = nil
+        state = .signedOut
     }
-
     func sendPasswordReset(email: String) async -> Bool {
-        lastError = nil
-        guard ensureSupabaseConfigured(category: "auth.resetPassword.configuration") else { return false }
         do {
-            try await supabase.auth.resetPasswordForEmail(email, redirectTo: AppSecrets.authRedirectURL)
-            UserDefaults.standard.set(
-                Date().addingTimeInterval(3600),
-                forKey: AuthClient.recoveryPendingKey
-            )
+            _ = try await api.json("api/auth/request-password-reset", values: ["email": email, "redirectTo": "diald://auth-callback?type=recovery"], authenticated: false)
+            defaults.set(Date().addingTimeInterval(3600), forKey: Self.recoveryPendingKey)
             return true
-        } catch {
-            lastError = error.localizedDescription
-            return false
-        }
+        } catch { lastError = error.localizedDescription; return false }
     }
-
-    private static let recoveryPendingKey = "auth.recoveryPendingUntil"
-
-    private static func consumePendingRecoveryFlag() -> Bool {
-        let key = AuthClient.recoveryPendingKey
-        guard let until = UserDefaults.standard.object(forKey: key) as? Date else {
-            return false
-        }
-        UserDefaults.standard.removeObject(forKey: key)
-        return until > Date()
-    }
-
-    private static func clearPendingRecoveryFlag() {
-        UserDefaults.standard.removeObject(forKey: AuthClient.recoveryPendingKey)
-    }
-
     func updatePassword(newPassword: String) async -> Bool {
-        lastError = nil
-        guard ensureSupabaseConfigured(category: "auth.updatePassword.configuration") else { return false }
         do {
-            _ = try await supabase.auth.update(user: UserAttributes(password: newPassword))
+            guard let resetToken else { throw APIError(code: "invalid_link", message: "Open the password reset link from your email again.") }
+            _ = try await api.json("api/auth/reset-password", values: ["token": resetToken, "newPassword": newPassword], authenticated: false)
+            self.resetToken = nil
             isPasswordRecovery = false
-            AuthClient.clearPendingRecoveryFlag()
-            try await supabase.auth.signOut()
+            defaults.removeObject(forKey: Self.recoveryPendingKey)
+            try sessionStore.write(nil)
+            api.token = nil
+            requiresReauthentication = true
+            // Keep cached account data and its pending queue for reauthentication.
             return true
-        } catch {
-            lastError = error.localizedDescription
-            Log.error(error, category: "auth.updatePassword")
-            return false
-        }
+        } catch { lastError = error.localizedDescription; return false }
     }
-
-    private var lastHandledCallback: (url: String, at: Date)?
-
     func handle(callbackURL url: URL) async {
-        guard ensureSupabaseConfigured(category: "auth.callback.configuration") else { return }
-
+        guard url.scheme == "diald", url.host == "auth-callback" else { return }
         let now = Date()
-        if let last = lastHandledCallback,
-           last.url == url.absoluteString,
-           now.timeIntervalSince(last.at) < 5 {
-            Log.breadcrumb("auth callback ignored (duplicate within 5s)", category: "auth.callback")
-            return
-        }
+        if let last = lastHandledCallback, last.url == url.absoluteString, now.timeIntervalSince(last.at) < 5 { return }
         lastHandledCallback = (url.absoluteString, now)
-
-        let isRecovery = AuthClient.urlContainsTypeRecovery(url) || AuthClient.consumePendingRecoveryFlag()
-        if isRecovery {
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        let value: (String) -> String? = { key in items.first { $0.name == key }?.value }
+        let pending = (defaults.object(forKey: Self.recoveryPendingKey) as? Date).map { $0 > now } ?? false
+        if let token = value("token"), value("type") == "recovery" || pending {
+            resetToken = token
             isPasswordRecovery = true
-        }
-        do {
-            try await supabase.auth.session(from: url)
-            Log.breadcrumb("auth callback session established", category: "auth.callback")
-        } catch {
-            if isRecovery {
-                isPasswordRecovery = false
-            }
-            lastError = "Couldn't finish from this link: \(error.localizedDescription)"
-            Log.error(error, category: "auth.callback")
-        }
+        } else if value("error") != nil { lastError = "This link is invalid or has expired. Request a new link." }
     }
-
-    private static func urlContainsTypeRecovery(_ url: URL) -> Bool {
-        guard let comps = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-            return false
-        }
-        if comps.queryItems?.contains(where: { $0.name == "type" && $0.value == "recovery" }) == true {
-            return true
-        }
-        if let fragment = comps.fragment {
-            for pair in fragment.split(separator: "&") {
-                let parts = pair.split(separator: "=", maxSplits: 1).map(String.init)
-                if parts.count == 2, parts[0] == "type", parts[1] == "recovery" {
-                    return true
-                }
-            }
-        }
-        return false
-    }
-
     func signInWithGoogle() async {
         lastError = nil
-        guard ensureSupabaseConfigured(category: "auth.google.configuration") else { return }
         do {
-            let url = try supabase.auth.getOAuthSignInURL(
-                provider: .google,
-                scopes: "openid email profile",
-                redirectTo: AppSecrets.authRedirectURL
-            )
+            guard AppSecrets.apiConfigurationError == nil else { throw APIError(code: "configuration", message: "Auth isn't configured for this build. Please install the latest build.") }
+            let verifier = AppleNonce.random(length: 64)
+            let challenge = Data(SHA256.hash(data: Data(verifier.utf8))).base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
+            let url = AppSecrets.apiURL.appendingPathComponent("api/native/google").appending(queryItems: [URLQueryItem(name: "challenge", value: challenge)])
             let callback = try await GoogleSignIn.start(authURL: url, callbackScheme: "diald")
-            try await supabase.auth.session(from: callback)
-            AuthClient.clearPendingRecoveryFlag()
-        } catch {
-            lastError = error.localizedDescription
-            Log.error(error, category: "auth.google")
-        }
+            guard let code = URLComponents(url: callback, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "code" })?.value else { throw URLError(.badServerResponse) }
+            let data = try await api.json("api/native/exchange", values: ["code": code, "verifier": verifier], authenticated: false)
+            struct Exchange: Decodable { let token: String }
+            let token = try JSONDecoder().decode(Exchange.self, from: data).token
+            let candidate = APIClient()
+            candidate.token = token
+            let user = try JSONDecoder().decode(SessionResponse.self, from: await candidate.request("api/auth/get-session")).user
+            try adopt(SavedSession(token: token, user: user))
+        } catch { lastError = error.localizedDescription; Log.error(error, category: "auth.google") }
     }
-
     func beginAppleSignIn(request: ASAuthorizationAppleIDRequest) {
         let nonce = AppleNonce.random()
         pendingAppleNonce = nonce
         request.requestedScopes = [.fullName, .email]
         request.nonce = AppleNonce.sha256(nonce)
     }
-
     func completeAppleSignIn(result: Result<ASAuthorization, Error>) async {
-        guard ensureSupabaseConfigured(category: "auth.apple.configuration") else {
-            pendingAppleNonce = nil
-            return
-        }
-
+        defer { pendingAppleNonce = nil }
         do {
             let authorization = try result.get()
             guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
-                  let tokenData = credential.identityToken,
-                  let idToken = String(data: tokenData, encoding: .utf8),
-                  let nonce = pendingAppleNonce else { return }
-            let session = try await supabase.auth.signInWithIdToken(
-                credentials: .init(provider: .apple, idToken: idToken, nonce: nonce)
-            )
-            AuthClient.clearPendingRecoveryFlag()
-            apply(session: session)
-            if let firstName = credential.fullName?.givenName?.trimmingCharacters(in: .whitespaces),
-               !firstName.isEmpty {
-                _ = try? await supabase
-                    .rpc("fill_profile_display_name", params: ["candidate": firstName])
-                    .execute()
+                  let data = credential.identityToken, let token = String(data: data, encoding: .utf8), let nonce = pendingAppleNonce else { return }
+            try await authenticate("api/auth/sign-in/social", values: ["provider": "apple", "idToken": ["token": token, "nonce": nonce]])
+            if let name = credential.fullName?.givenName, !name.isEmpty {
+                _ = try? await api.json("api/profile/name", values: ["name": name])
             }
-        } catch {
-            lastError = error.localizedDescription
-            Log.error(error, category: "auth.apple")
-        }
-        pendingAppleNonce = nil
+        } catch { lastError = error.localizedDescription; Log.error(error, category: "auth.apple") }
     }
-}
-
-private struct AppConfigurationError: LocalizedError {
-    let message: String
-
-    var errorDescription: String? { message }
 }
 
 enum AppleNonce {

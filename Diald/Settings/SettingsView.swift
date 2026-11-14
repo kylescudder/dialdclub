@@ -12,6 +12,7 @@ struct SettingsView: View {
     @State private var successCount = 0
     @State private var errorCount = 0
     @State private var showPaywall = false
+    @State private var showReauthentication = false
 
     var body: some View {
         Form {
@@ -112,6 +113,10 @@ struct SettingsView: View {
             }
 
             Section("Account") {
+                if services.auth.requiresReauthentication {
+                    Text("Sign in again with your original account to sync. Your offline changes are kept on this device.")
+                    Button("Sign in to sync") { showReauthentication = true }
+                }
                 if case let .signedIn(_, email) = services.auth.state, let email {
                     LabeledContent("Signed in as", value: email)
                 }
@@ -134,6 +139,10 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("Settings")
+        .sheet(isPresented: $showReauthentication) { NavigationStack { SignInView() } }
+        .onChange(of: services.auth.requiresReauthentication) { _, required in
+            if !required { showReauthentication = false }
+        }
         .task {
             await services.notifications.refreshLocalReminderState()
         }

@@ -1,0 +1,17 @@
+{
+  "name": "diald-api",
+  "title": "Diald API",
+  "repo": "kylescudder/dialdclub",
+  "image": "ghcr.io/kylescudder/dialdclub-api",
+  "image_var": "DIALD_API_IMAGE",
+  "service": "diald-api",
+  "workflow": "release-backend.yml",
+  "branch": "main",
+  "compose_file": "compose.yaml",
+  "app_dir": "diald-api",
+  "enabled": false,
+  "installed_hooks": true,
+  "bind_source_digest": true,
+  "require_host": true,
+  "backups": true
+}

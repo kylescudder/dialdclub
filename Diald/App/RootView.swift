@@ -19,12 +19,15 @@ struct RootView: View {
                 }
             }
         }
-        .task { await services.auth.bootstrap() }
+        .task { await services.auth.bootstrap(database: services.sync.database) }
+        .disabled(services.sync.isMigrating)
+        .overlay { if services.sync.isMigrating { LoadingView() } }
         .onOpenURL { url in handle(url: url) }
         .onAppear { QuickActionRouter.activate() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 QuickActionRouter.activate()
+                Task { await services.sync.retryConnection() }
             }
         }
         .sheet(isPresented: Binding(
