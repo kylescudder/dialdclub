@@ -41,6 +41,20 @@ final class APIClient {
     }
 }
 
+/// Session persistence is an OS boundary. Unsigned simulator tests supply an
+/// in-memory store; release builds always default to the Keychain adapter.
+@MainActor
+protocol SessionStore {
+    func read() throws -> Data?
+    func write(_ data: Data?) throws
+}
+
+@MainActor
+struct KeychainSessionStore: SessionStore {
+    func read() throws -> Data? { try SessionKeychain.read() }
+    func write(_ data: Data?) throws { try SessionKeychain.write(data) }
+}
+
 enum SessionKeychain {
     static func read() throws -> Data? {
         var query = base

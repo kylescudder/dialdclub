@@ -32,6 +32,11 @@ GHCR release with workflow provenance.
   it is **not** execution of the Swift migration code.
 - `xcodebuild build` and `build-for-testing`, unsigned generic iOS Simulator,
   Xcode 27.2. The new Swift offline-upgrade/ambiguous-owner tests compile.
+  CI on `66ec324` also ran the 14-test native suite: 12 passed, and the two new
+  tests failed during Keychain cleanup in the unsigned test host, before their
+  assertions. Tests now use an injected session store and private preferences
+  suite while keeping real PowerSync SQLite. Production defaults retain the
+  Keychain and its error handling. Runtime recheck is pending.
 - Astro production build/format check and workflow `actionlint`/shell syntax.
 - Production-built privacy page in T3 browser at 1280×900 and 390×844: new
   provider/retention copy present, no horizontal overflow, no console errors.
@@ -77,8 +82,9 @@ logs are in ignored `Backend/artifacts/` and `DerivedData/cutover-evidence/`.
 - T3 device discovery timed out: `xcrun simctl list devices --json` did not respond
   within 30 seconds. Open returned `No ios devices were found on host local`.
   Xcode reported the CoreSimulator service older than its installed build.
-  No native test execution, screenshots, native OAuth, purchase/restore,
-  or actual Swift offline-upgrade/persistence test is claimed.
+  Local native test execution and screenshots remain unavailable. CI native
+  test execution is reported above; no successful native OAuth, purchase/restore,
+  or Swift offline-upgrade/persistence result is claimed until its recheck passes.
 - SSH to `kyle@herman.local` returned `Permission denied`; the secure credential
   request timed out. The separate source PostgreSQL URL request also timed out. Actual runbook/skills/recovery.py output, current capacity,
   private settings and installed deploy-core release were not re-audited. The

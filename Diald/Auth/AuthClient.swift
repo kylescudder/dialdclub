@@ -12,6 +12,8 @@ final class AuthClient: ObservableObject {
     @Published var isPasswordRecovery = false
     @Published private(set) var requiresReauthentication = false
     let api = APIClient()
+    private let sessionStore: any SessionStore
+    private let defaults: UserDefaults
     private var bindingValidated = false
     private var pendingAppleNonce: String?
     private var resetToken: String?
@@ -22,7 +24,11 @@ final class AuthClient: ObservableObject {
     private struct SavedSession: Codable { let token: String; let user: User }
     private struct AuthResponse: Decodable { let token: String?; let user: User? }
     private struct SessionResponse: Decodable { let user: User }
-    init() { api.onUnauthorized = { [weak self] in self?.requiresReauthentication = true } }
+    init(sessionStore: any SessionStore = KeychainSessionStore(), defaults: UserDefaults = .standard) {
+        self.sessionStore = sessionStore
+        self.defaults = defaults
+        api.onUnauthorized = { [weak self] in self?.requiresReauthentication = true }
+    }
     var currentUserID: UUID? { if case let .signedIn(id, _) = state { id } else { nil } }
 
     func currentAccessToken() async -> String? { requiresReauthentication ? nil : api.token }
@@ -33,18 +39,18 @@ final class AuthClient: ObservableObject {
             // Old PowerSync data is owner-scoped. Bind it before offering any sign-in.
             // Do not use the old session, its network endpoints, or its credentials.
             let ids = try await database.getAll(sql: "select id from profiles union select owner_id as id from beans union select owner_id as id from brew_sessions union select user_id as id from pending_extractions", parameters: [], mapper: { try $0.getString(name: "id") })
-            if UserDefaults.standard.string(forKey: Self.ownerKey) == nil {
+            if defaults.string(forKey: Self.ownerKey) == nil {
                 guard ids.count <= 1 else { throw APIError(code: "owner_mismatch", message: "Offline account data needs recovery. Contact support before signing out.") }
-                if let id = ids.first { UserDefaults.standard.set(id.lowercased(), forKey: Self.ownerKey) }
+                if let id = ids.first { defaults.set(id.lowercased(), forKey: Self.ownerKey) }
             }
-            if let owner = UserDefaults.standard.string(forKey: Self.ownerKey), !ids.allSatisfy({ $0.lowercased() == owner }) {
+            if let owner = defaults.string(forKey: Self.ownerKey), !ids.allSatisfy({ $0.lowercased() == owner }) {
                 throw APIError(code: "owner_mismatch", message: "Offline account data needs recovery. Contact support before signing out.")
             }
             bindingValidated = true
-            if let data = try SessionKeychain.read() {
+            if let data = try sessionStore.read() {
                 let saved = try JSONDecoder().decode(SavedSession.self, from: data)
                 try adopt(saved)
-            } else if let owner = UserDefaults.standard.string(forKey: Self.ownerKey), let id = UUID(uuidString: owner) {
+            } else if let owner = defaults.string(forKey: Self.ownerKey), let id = UUID(uuidString: owner) {
                 state = .signedIn(id, nil)
                 requiresReauthentication = true
             } else { state = .signedOut }
@@ -57,11 +63,11 @@ final class AuthClient: ObservableObject {
     private func adopt(_ session: SavedSession) throws {
         guard bindingValidated else { throw APIError(code: "owner_mismatch", message: "Offline account data must be checked before signing in.") }
         let id = session.user.id.uuidString.lowercased()
-        if let owner = UserDefaults.standard.string(forKey: Self.ownerKey), owner != id {
+        if let owner = defaults.string(forKey: Self.ownerKey), owner != id {
             throw APIError(code: "owner_mismatch", message: "Sign in with the original account to recover its offline changes. This account cannot access them.")
         }
-        try SessionKeychain.write(JSONEncoder().encode(session))
-        UserDefaults.standard.set(id, forKey: Self.ownerKey)
+        try sessionStore.write(JSONEncoder().encode(session))
+        defaults.set(id, forKey: Self.ownerKey)
         api.token = session.token
         requiresReauthentication = false
         state = .signedIn(session.user.id, session.user.email)
@@ -72,7 +78,7 @@ final class AuthClient: ObservableObject {
         let result = try JSONDecoder().decode(AuthResponse.self, from: data)
         guard let token = result.token, let user = result.user else { throw APIError(code: "DX002", message: "Sign-in could not be completed.") }
         try adopt(SavedSession(token: token, user: user))
-        UserDefaults.standard.removeObject(forKey: Self.recoveryPendingKey)
+        defaults.removeObject(forKey: Self.recoveryPendingKey)
     }
     func signIn(email: String, password: String) async {
         lastError = nil
@@ -90,25 +96,25 @@ final class AuthClient: ObservableObject {
     @discardableResult func signOut() async -> Bool {
         do {
             if api.token != nil { _ = try await api.json("api/auth/sign-out", values: [:]) }
-            try SessionKeychain.write(nil)
+            try sessionStore.write(nil)
             api.token = nil
             state = .signedOut
             requiresReauthentication = false
-            UserDefaults.standard.removeObject(forKey: Self.recoveryPendingKey)
+            defaults.removeObject(forKey: Self.recoveryPendingKey)
             // The owner binding is removed by PowerSyncManager only after a successful wipe.
             return true
         } catch { lastError = error.localizedDescription; return false }
     }
     func deleteAccount() async throws {
         _ = try await api.request("api/account", method: "DELETE")
-        try SessionKeychain.write(nil)
+        try sessionStore.write(nil)
         api.token = nil
         state = .signedOut
     }
     func sendPasswordReset(email: String) async -> Bool {
         do {
             _ = try await api.json("api/auth/request-password-reset", values: ["email": email, "redirectTo": "diald://auth-callback?type=recovery"], authenticated: false)
-            UserDefaults.standard.set(Date().addingTimeInterval(3600), forKey: Self.recoveryPendingKey)
+            defaults.set(Date().addingTimeInterval(3600), forKey: Self.recoveryPendingKey)
             return true
         } catch { lastError = error.localizedDescription; return false }
     }
@@ -118,8 +124,8 @@ final class AuthClient: ObservableObject {
             _ = try await api.json("api/auth/reset-password", values: ["token": resetToken, "newPassword": newPassword], authenticated: false)
             self.resetToken = nil
             isPasswordRecovery = false
-            UserDefaults.standard.removeObject(forKey: Self.recoveryPendingKey)
-            try SessionKeychain.write(nil)
+            defaults.removeObject(forKey: Self.recoveryPendingKey)
+            try sessionStore.write(nil)
             api.token = nil
             requiresReauthentication = true
             // Keep cached account data and its pending queue for reauthentication.
@@ -133,7 +139,7 @@ final class AuthClient: ObservableObject {
         lastHandledCallback = (url.absoluteString, now)
         let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
         let value: (String) -> String? = { key in items.first { $0.name == key }?.value }
-        let pending = (UserDefaults.standard.object(forKey: Self.recoveryPendingKey) as? Date).map { $0 > now } ?? false
+        let pending = (defaults.object(forKey: Self.recoveryPendingKey) as? Date).map { $0 > now } ?? false
         if let token = value("token"), value("type") == "recovery" || pending {
             resetToken = token
             isPasswordRecovery = true
