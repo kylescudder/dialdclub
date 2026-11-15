@@ -28,9 +28,16 @@ before host changes. Host SSH access was unavailable during implementation.
 `deploy-core-candidate/` contains proposed app-specific central hooks/registry
 metadata. Review and install these in a proper central release, never edit an
 installed immutable release. The existing static-site receiver is unrelated.
-Provision a separate receiver through deploy-core's image/provenance machinery;
-its URL and Access/HMAC secrets must be established on Herman before wiring a
-release request. This branch deliberately does not enable a deploy webhook.
+Deploys go through deploy-core app `diald-api` (kylescudder/deploy-core#17): the
+`deploy` job in `release-backend.yml` signs a request to
+`https://deploy-diald-api.kylescudder.co.uk/hooks/diald-api` (Cloudflare Access +
+HMAC, secrets `API_DEPLOY_WEBHOOK_SECRET`, `API_CF_ACCESS_CLIENT_ID`,
+`API_CF_ACCESS_CLIENT_SECRET` in the main-only `production` environment) and
+waits for the receiver to report the digest deployed. Herman verifies provenance,
+backs up `dialdclub`, runs owner migrations and runs `deploy/verify.ts` before
+switching. The job runs only when the repository variable `API_DEPLOY_ENABLED`
+is `true`; optional `API_BASE_URL` adds a public `/health/live` check. Deploying
+is not cutover: the API stays fenced until `TARGET_WRITES_ENABLED` is reviewed.
 
 Run `provision-roles.sql` once as DBA before owner migrations. Owner migrations
 must use the private owner credential, never the API's runtime URL. After

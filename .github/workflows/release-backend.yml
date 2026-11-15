@@ -1,5 +1,5 @@
 # Publishes a checked, attested image for every commit on main that changes the
-# site (workflow_dispatch redeploys on demand). GitHub holds
+# API (workflow_dispatch redeploys on demand), then asks Herman to deploy it. GitHub holds
 # only webhook/Access credentials, never machine shell access.
 name: Backend · Release
 
@@ -119,4 +119,93 @@ jobs:
           DIGEST: ${{ steps.manifest.outputs.digest }}
         run: docker buildx imagetools create -t "$IMAGE:main" "$IMAGE@$DIGEST"
 
-  # Installation and cutover require a reviewed deploy-core release and native acceptance.
+  # Asks Herman's deploy-core (app `diald-api`) to deploy the attested digest, then
+  # waits for the host to report it deployed. The host verifies the attestation,
+  # backs up the database, runs owner migrations and accepts the container itself,
+  # so the webhook secret can only trigger a release this workflow built from main.
+  # Deploying is not cutover: the API stays fenced (TARGET_WRITES_ENABLED unset)
+  # and no client points at it until native acceptance.
+  deploy:
+    needs: publish
+    if: vars.API_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+      attestations: read
+    environment:
+      name: production
+    concurrency:
+      group: production-api
+      cancel-in-progress: false
+    env:
+      DEPLOY_HOST: https://deploy-diald-api.kylescudder.co.uk
+      DEPLOY_URL: https://deploy-diald-api.kylescudder.co.uk/hooks/diald-api
+      HEALTH_URL: ${{ vars.API_BASE_URL && format('{0}/health/live', vars.API_BASE_URL) || '' }}
+    steps:
+      - name: Check deploy endpoint protection
+        env:
+          CF_ACCESS_CLIENT_ID: ${{ secrets.API_CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.API_CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          [[ -n "$CF_ACCESS_CLIENT_ID" && -n "$CF_ACCESS_CLIENT_SECRET" ]] || { echo '::error::Configure the API Cloudflare Access service-token secrets.'; exit 1; }
+          headers=$(mktemp)
+          trap 'rm -f "$headers"' EXIT
+          status=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' \
+            --dump-header "$headers" -X POST "$DEPLOY_URL")
+          [[ "$status" = 401 || "$status" = 403 ]] || { echo "::error::Cloudflare Access did not block an unauthenticated request ($status)."; exit 1; }
+          ! grep -qi '^x-diald-deploy-hook: 1' "$headers" || { echo '::error::Unauthenticated request reached the receiver.'; exit 1; }
+          for path in / /healthz /other; do
+            status=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' \
+              -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
+              "$DEPLOY_HOST$path")
+            [[ "$status" = 404 ]] || { echo "::error::Non-webhook path returned $status."; exit 1; }
+          done
+          status=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' \
+            --dump-header "$headers" \
+            -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
+            -H 'X-Diald-Signature: sha256=invalid' --data '{}' "$DEPLOY_URL")
+          [[ "$status" = 401 ]] || { echo "::error::Invalid webhook signature returned $status."; exit 1; }
+          grep -qi '^x-diald-deploy-hook: 1' "$headers" || { echo '::error::Service token did not reach the receiver.'; exit 1; }
+      - name: Request deploy
+        env:
+          DIGEST: ${{ needs.publish.outputs.digest }}
+          WEBHOOK_SECRET: ${{ secrets.API_DEPLOY_WEBHOOK_SECRET }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.API_CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.API_CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          body=$(jq -cn --arg digest "$DIGEST" --arg revision "$GITHUB_SHA" --arg registryToken "$REGISTRY_TOKEN" --argjson timestamp "$(date +%s)" \
+            '{digest: $digest, revision: $revision, timestamp: $timestamp, registryToken: $registryToken}')
+          signature=$(printf '%s' "$body" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" -hex | awk '{print $NF}')
+          curl --fail-with-body --silent --show-error --max-time 30 "$DEPLOY_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-Diald-Signature: sha256=$signature" \
+            -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
+            --data "$body"
+      - name: Wait for host acceptance
+        env:
+          DIGEST: ${{ needs.publish.outputs.digest }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.API_CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.API_CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          for _attempt in $(seq 60); do
+            accepted=$(curl --fail --silent --max-time 10 \
+              -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
+              -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" "$DEPLOY_URL" \
+              | jq -r --arg revision "$GITHUB_SHA" --arg image "$IMAGE@$DIGEST" \
+                'if .revision == $revision and .image == $image then .status else "pending" end' || true)
+            if [ "$accepted" = deployed ]; then
+              if [ -n "$HEALTH_URL" ]; then
+                curl --fail --silent --show-error --max-time 10 --output /dev/null "$HEALTH_URL" \
+                  || { echo "::error::Host accepted $GITHUB_SHA but $HEALTH_URL is not live."; exit 1; }
+              fi
+              echo "Herman migrated, accepted and is running \`$IMAGE@$DIGEST\` ($GITHUB_SHA)" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Herman did not report $GITHUB_SHA deployed within 10 minutes. Check apps/diald-api/state/deploy.log on the host."
+          exit 1
