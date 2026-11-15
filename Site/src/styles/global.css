@@ -254,6 +254,17 @@ a:focus-visible {
     background 180ms ease;
 }
 
+.app-store-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  border-radius: var(--radius);
+}
+
+.app-store-badge img {
+  width: 10rem;
+  height: auto;
+}
+
 .button:hover {
   transform: translateY(-2px);
 }
@@ -887,6 +898,15 @@ a:focus-visible {
     font-size: clamp(3.8rem, 18vw, 5.8rem);
   }
 
+  .cta-row {
+    justify-content: center;
+  }
+
+  .app-store-badge img {
+    width: auto;
+    height: 3rem;
+  }
+
   .brew-scene {
     min-height: 42rem;
     margin-top: 2.5rem;
@@ -951,6 +971,16 @@ a:focus-visible {
 
   .button {
     width: 100%;
+  }
+
+  .cta-row {
+    gap: 0.5rem;
+  }
+
+  .cta-row .button {
+    width: auto;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.8125rem;
   }
 
   .phone-shell {
