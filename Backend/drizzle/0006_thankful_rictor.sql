@@ -1,0 +1,1 @@
+ALTER TABLE "source_auth_archive" ADD CONSTRAINT "source_auth_archive_id_auth_user_id_fk" FOREIGN KEY ("id") REFERENCES "public"."auth_user"("id") ON DELETE cascade ON UPDATE no action;

@@ -6,6 +6,40 @@ This file provides guidance to coding agents when working with code in this repo
 
 Diald Club — native iOS 17+ SwiftUI app for recording specialty-coffee beans, recipes, extraction times, tasting notes, reminders, and brew statistics, plus a static Astro marketing and compliance site. The backend is Supabase (Postgres + Auth + Edge Functions), StoreKit provides the Supporter subscription, and the app includes AppIntents and WidgetKit extensions.
 
+## Replacement backend on this branch
+
+This branch prepares direct Supabase removal; production has not cut over. The
+new runtime is `Backend/` (Bun 1.4.4, TypeScript, PostgreSQL/Drizzle, Better Auth,
+Brevo and self-hosted PowerSync). Read `Backend/deploy/README.md` and
+`Backend/deploy/verification.md` before release work. Do not run the historical
+Supabase deployment commands below against production as part of this port.
+
+- Native builds require `API_URL`, `POWERSYNC_URL`, optional `SENTRY_DSN`.
+- `AuthClient` uses `APIClient` and a Keychain session, binds cached data to the
+  original UUID, and preserves SQLite/queues for reauthentication. Never use
+  Settings sign-out or reset-password success to perform migration reauth.
+- `APIConnector` is the upload boundary. Restricted runtime transactions enforce
+  owner RLS, lifetime quota, durable UUID replay rules and tombstones.
+- The old `diald.sqlite` never connects its checkpoints to the new service. After
+  strict queue replay, `diald-v2.sqlite` stages a fresh sync, carries the pending
+  quota ledger, and switches the composition root. Failed staging preserves the
+  old cache. Explicit sign-out wipes both files before allowing another owner.
+- JWT `sub` is the original UUID, issuer is `BETTER_AUTH_URL`, audience is the
+  exact public `POWERSYNC_URL`. Sync config is `Backend/deploy/powersync/`.
+- Drizzle migrations are under `Backend/drizzle/`. All authoritative tables have
+  statement and deferred COMMIT recovery guards; the API cannot refresh the lease.
+- Verified IAP endpoints are `/api/iap/transactions` and `/api/iap/notifications`.
+  Cryptographic Apple verification is in `Backend/src/apple-verification.ts`.
+- `supabase/` remains the historical source schema/functions and rollback/test
+  evidence until cutover acceptance and the explicit source-retirement approval.
+  References below to its SDK/client wiring describe the pre-cutover implementation.
+
+Backend checks: `cd Backend && bun install --frozen-lockfile`, `bun run typecheck`,
+`bun run lint`, `bun run format:check`, `TEST_DATABASE_URL=... bun test`,
+`bun run build`. Tests require a disposable PostgreSQL database and create/drop
+additional fixture databases. Never point them at production. Native runtime and
+screenshots require a functioning simulator; build-only checks are not flow proof.
+
 ## Common commands
 
 The Xcode project is generated from `project.yml` and is git-ignored — regenerate after any source, target, signing, or dependency change.
