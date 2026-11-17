@@ -24,4 +24,7 @@ ENV DIALD_REVISION=${DIALD_REVISION}
 LABEL org.opencontainers.image.revision=${DIALD_REVISION}
 USER 1000:1000
 EXPOSE 3147
+# Health ownership: deploy/healthcheck.md at the repository root.
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
+  CMD ["bun", "-e", "const r = await fetch('http://127.0.0.1:3147/health/live', { signal: AbortSignal.timeout(3000) }); if (!r.ok || (await r.json()).ok !== true) process.exit(1)"]
 CMD ["bun", "dist/index.js"]
