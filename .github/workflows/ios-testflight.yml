@@ -47,10 +47,25 @@ jobs:
       - name: Write Secrets.xcconfig
         env:
           IOS_SECRETS: ${{ secrets.IOS_SECRETS_XCCONFIG }}
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          POWERSYNC_BASE_URL: ${{ vars.POWERSYNC_BASE_URL }}
         run: |
-          test -n "${IOS_SECRETS}" || (echo "::error::IOS_SECRETS_XCCONFIG is empty" && exit 1)
           mkdir -p Config
-          printf '%s\n' "$IOS_SECRETS" > Config/Secrets.xcconfig
+          python3 - <<'PYCONFIG'
+          import os
+          import re
+          from pathlib import Path
+
+          config = os.environ["IOS_SECRETS"]
+          for key, variable in [("API_URL", "API_BASE_URL"), ("POWERSYNC_URL", "POWERSYNC_BASE_URL")]:
+              url = os.environ[variable]
+              if not re.fullmatch(r"https://[a-zA-Z0-9.-]+", url):
+                  raise SystemExit(f"::error::{variable} must be an HTTPS origin")
+              config = re.sub(rf"(?m)^\s*{key}\s*=.*$", "", config)
+              escaped = url.replace("//", "/$()/", 1)
+              config += f"\n{key} = {escaped}\n"
+          Path("Config/Secrets.xcconfig").write_text(config)
+          PYCONFIG
       - name: Validate app service secrets
         run: |
           value_for() {
