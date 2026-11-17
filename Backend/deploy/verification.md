@@ -1,6 +1,6 @@
 # Verification and open release gates
 
-Source: `t3/diald-cutover-app-changes`, originating at
+Source originally based on
 `448597a6aec61b64570ab9cde67dec94739c2713`; original unpublished skeleton preserved
 from `codex/self-hosted-backend` without modifying its checkout. Implementation
 and evidence date: 14 November 2026. The PR head and ignored evidence manifest
@@ -77,7 +77,7 @@ bun scripts/verification/sync-smoke.ts
 
 The script uses temporary SQLite files and prints only result flags. Test-only
 source identities and credentials must not be reused for deployment. Supporting
-logs are in ignored `Backend/artifacts/` and `DerivedData/cutover-evidence/`.
+logs are in ignored `Backend/artifacts/` and `DerivedData/`.
 
 ## Not yet verified / genuine gates
 
@@ -107,4 +107,3 @@ logs are in ignored `Backend/artifacts/` and `DerivedData/cutover-evidence/`.
   coordination, <=1-hour downtime record and Kyle's actual native smoke test.
 
 Keep the PR a draft until these implementation/acceptance gaps are resolved.
-Never describe the migration or production cutover as complete from this evidence.

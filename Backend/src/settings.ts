@@ -30,7 +30,6 @@ export function loadSettings(
       GOOGLE_CLIENT_ID: z.string().min(1),
       GOOGLE_CLIENT_SECRET: z.string().min(1),
       NOTIFICATION_SPOOL: z.string().min(1),
-      TARGET_WRITES_ENABLED: z.enum(['true', 'false']).default('false'),
       PORT: z.coerce.number().int().min(1024).max(65535).default(3147)
     })
     .safeParse(env)

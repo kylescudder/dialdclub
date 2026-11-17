@@ -31,8 +31,8 @@ Supabase deployment commands below against production as part of this port.
 - Verified IAP endpoints are `/api/iap/transactions` and `/api/iap/notifications`.
   Cryptographic Apple verification is in `Backend/src/apple-verification.ts`.
 - `supabase/` remains the historical source schema/functions and rollback/test
-  evidence until cutover acceptance and the explicit source-retirement approval.
-  References below to its SDK/client wiring describe the pre-cutover implementation.
+  evidence for the legacy implementation.
+  References below to its SDK/client wiring describe the legacy implementation.
 
 Backend checks: `cd Backend && bun install --frozen-lockfile`, `bun run typecheck`,
 `bun run lint`, `bun run format:check`, `TEST_DATABASE_URL=... bun test`,
