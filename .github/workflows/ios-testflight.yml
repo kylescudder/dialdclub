@@ -23,7 +23,7 @@ concurrency:
 jobs:
   build:
     name: Archive & upload
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 45
     env:
       SCHEME: Diald
@@ -41,7 +41,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - run: xcodebuild -version
+      - name: Verify Xcode 27 and iOS 27 SDK
+        run: |
+          xcodebuild -version
+          xcodebuild -version | grep -Eq '^Xcode 27([.]|$)'
+          sdk_version="$(xcrun --sdk iphoneos --show-sdk-version)"
+          echo "iOS SDK: $sdk_version"
+          [[ "$sdk_version" == 27 || "$sdk_version" == 27.* ]]
       - run: sudo xcodebuild -downloadPlatform iOS || true
       - run: brew install xcodegen
       - name: Write Secrets.xcconfig
