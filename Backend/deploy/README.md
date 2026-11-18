@@ -1,8 +1,4 @@
-# Diald API release and cutover
-
-This is a deployment candidate, not an installed backend. Production cutover is
-blocked until all gates below pass. Existing Supabase stays authoritative until
-the coordinated final export. No live source writes were fenced by this work.
+# Diald API deployment
 
 ## Image and deployment contract
 
@@ -36,8 +32,7 @@ HMAC, secrets `API_DEPLOY_WEBHOOK_SECRET`, `API_CF_ACCESS_CLIENT_ID`,
 waits for the receiver to report the digest deployed. Herman verifies provenance,
 backs up `dialdclub`, runs owner migrations and runs `deploy/verify.ts` before
 switching. The job runs only when the repository variable `API_DEPLOY_ENABLED`
-is `true`; optional `API_BASE_URL` adds a public `/health/live` check. Deploying
-is not cutover: the API stays fenced until `TARGET_WRITES_ENABLED` is reviewed.
+is `true`; optional `API_BASE_URL` adds a public `/health/live` check.
 
 Run `provision-roles.sql` once as DBA before owner migrations. Owner migrations
 must use the private owner credential, never the API's runtime URL. After
@@ -53,9 +48,7 @@ API users create/admin/replication rights. Do not prune shared host images.
 Create the notification spool mode 0700 owned by the container UID, include it
 in encrypted project backups, and retain signed bytes across endpoint changes.
 Mount `.env` files mode 0600 from the protected project directory. Fill the
-example settings without printing values. Default `TARGET_WRITES_ENABLED=false`
-fails closed even when an image runs. It may change only at the reviewed first
-write boundary after reconciliation/native release availability.
+example settings without printing values.
 
 ## Recovery lease
 
@@ -141,26 +134,5 @@ explicit policy resolution; no source accounts are silently omitted.
 Nonempty source object storage currently blocks import. The current native schema
 has no persisted object references, but actual source inventory has not been
 available: if it contains objects, implement and reconcile bytes, ACLs, metadata
-and URL references before cutover. Do not waive this gate or claim zero files.
+and URL references before import. Do not waive this gate or claim zero files.
 Likewise, unknown source columns/schema drift abort rather than dropping data.
-
-## Cutover and rollback
-
-Before starting the at-most-one-hour planned downtime, establish live project
-IDs/config, source row/file sizes, actual bundled URLs, OAuth provider settings,
-Apple notification endpoints, Brevo sender delivery, capacity and key recovery.
-Make the tested native release available. Old binaries cannot be assumed to show
-an upgrade message or follow new URLs.
-
-Fence every old writer (auth, API, upload, entitlement callbacks/background jobs),
-drain transactions, final-export, import and reconcile all rows/permissions/quota
-and ledger state. Retain and replay signed notifications across the switch.
-Coordinate callback/provider settings and bundled URLs; validate immutable image
-health, fresh lease, sync, sign-in, subscriptions and offline-upgrade recovery.
-Record downtime and the exact first target-write boundary, then obtain Kyle's
-actual native smoke test. Do not migrate another app in this work.
-
-Before any target-only writes, restore the old authority only after proving none
-exist. After target writes, an image or endpoint rollback alone loses data: reconcile
-new accounts/writes/tombstones/files/entitlements or repair forward. Keep the old
-Supabase fenced for 14 days; deleting it requires explicit approval.

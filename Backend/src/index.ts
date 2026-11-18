@@ -41,18 +41,11 @@ const server = Bun.serve({
   hostname: '0.0.0.0',
   maxRequestBodySize: 128 * 1024,
   idleTimeout: 60,
-  fetch: (request) => {
-    if (
-      settings.TARGET_WRITES_ENABLED !== 'true' &&
-      new URL(request.url).pathname !== '/health/live'
-    )
-      return Response.json({ code: 'cutover_not_enabled' }, { status: 503 })
-    return app(request)
-  }
+  fetch: app
 })
 let replaying = false
 const timer = setInterval(async () => {
-  if (replaying || settings.TARGET_WRITES_ENABLED !== 'true') return
+  if (replaying) return
   replaying = true
   try {
     await spool.replay((payload) =>

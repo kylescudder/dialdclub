@@ -62,7 +62,7 @@ signed payloads after recovery proof and imported accounts are available.
 
 See [Backend/deploy/README.md](Backend/deploy/README.md) for the deployment
 candidate, recovery lease contract, export/import/reconciliation, JWT contract,
-resource limits, and cutover/rollback gates. See
+resource limits, and recovery checks. See
 [Backend/deploy/verification.md](Backend/deploy/verification.md) for evidence and
 remaining access/device gaps. Main CI publishes an attested image; this branch
 has no automatic production deployment. Never route old binaries to an unfinished
