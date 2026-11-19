@@ -44,12 +44,9 @@ Google through `ASWebAuthenticationSession`. Native sessions are stored in the
 Keychain. The API issues short-lived JWTs for PowerSync; user UUIDs remain the
 original IDs used by StoreKit `appAccountToken` and all owner data.
 
-Repositories retain local SQLite reads and writes. Migration reauthentication
-preserves the old cache and queue and rejects a different account. Legacy queues
-replay through the new owner-scoped API, then a separate SQLite database performs
-a fresh first sync. The app switches databases only after that staging succeeds;
-old service checkpoints are never reused on the new service. Explicit sign-out
-and account deletion clear both databases and pending writes.
+The app opens `diald-v2.sqlite` directly for offline reads, writes and sync.
+Reauthentication preserves its queue and requires the same account. Explicit
+sign-out and account deletion clear the active database and its pending writes.
 
 Apple JWS verification retains the official server library and bundled Apple
 roots, exact product/bundle/environment/account binding, expiry, revocation and
