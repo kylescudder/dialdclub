@@ -2,18 +2,17 @@ import AuthenticationServices
 import Combine
 import CryptoKit
 import Foundation
-import PowerSync
 
 @MainActor
 final class AuthClient: ObservableObject {
-    enum State: Equatable { case unknown, signedOut, signedIn(UUID, String?) }
+    enum State: Equatable { case unknown, signedOut, signedIn(userID: UUID, email: String?) }
     @Published private(set) var state: State = .unknown
     @Published var lastError: String?
     @Published var isPasswordRecovery = false
     @Published private(set) var requiresReauthentication = false
     var beforeSessionInvalidation: (() async -> Void)?
     var afterSessionInvalidationFailure: (() async -> Void)?
-    let api = APIClient()
+    let api: APIClient
     private let sessionStore: any SessionStore
     private let defaults: UserDefaults
     private var bindingValidated = false
@@ -26,40 +25,62 @@ final class AuthClient: ObservableObject {
     private struct SavedSession: Codable { let token: String; let user: User }
     private struct AuthResponse: Decodable { let token: String?; let user: User? }
     private struct SessionResponse: Decodable { let user: User }
-    init(sessionStore: any SessionStore = KeychainSessionStore(), defaults: UserDefaults = .standard) {
+    init(sessionStore: any SessionStore = KeychainSessionStore(), defaults: UserDefaults = .standard, api: APIClient = APIClient()) {
+        self.api = api
         self.sessionStore = sessionStore
         self.defaults = defaults
         api.onUnauthorized = { [weak self] in self?.requiresReauthentication = true }
     }
     var currentUserID: UUID? { if case let .signedIn(id, _) = state { id } else { nil } }
 
-    func currentAccessToken() async -> String? { requiresReauthentication ? nil : api.token }
+    func currentAccessToken() async -> String? {
+        guard !requiresReauthentication, !isPasswordRecovery,
+              let owner = currentUserID, owner == offlineOwner else { return nil }
+        return api.token
+    }
 
-    func bootstrap(database: PowerSyncDatabaseProtocol) async {
+    func currentAccessToken(for owner: UUID) async -> String? {
+        guard currentUserID == owner else { return nil }
+        return await currentAccessToken()
+    }
+
+    func bootstrap(offlineAccount: () async throws -> (owners: Set<UUID>, hasPendingWrites: Bool)) async {
         guard case .unknown = state else { return }
         do {
-            // Old PowerSync data is owner-scoped. Bind it before offering any sign-in.
-            // Do not use the old session, its network endpoints, or its credentials.
-            let ids = try await database.getAll(sql: "select id from profiles union select owner_id as id from beans union select owner_id as id from brew_sessions union select user_id as id from pending_extractions", parameters: [], mapper: { try $0.getString(name: "id") })
-            if defaults.string(forKey: Self.ownerKey) == nil {
-                guard ids.count <= 1 else { throw APIError(code: "owner_mismatch", message: "Offline account data needs recovery. Contact support before signing out.") }
-                if let id = ids.first { defaults.set(id.lowercased(), forKey: Self.ownerKey) }
+            let account = try await offlineAccount()
+            var owners = account.owners
+            if let owner = offlineOwner { owners.insert(owner) }
+            // Keychain access can be unavailable before the first device unlock.
+            // A verified local owner can still use the offline library.
+            let stored = (try? sessionStore.read()).flatMap {
+                try? JSONDecoder().decode(SavedSession.self, from: $0)
             }
-            if let owner = defaults.string(forKey: Self.ownerKey), !ids.allSatisfy({ $0.lowercased() == owner }) {
-                throw APIError(code: "owner_mismatch", message: "Offline account data needs recovery. Contact support before signing out.")
+            if let stored { owners.insert(stored.user.id) }
+            guard owners.count <= 1, !owners.isEmpty || !account.hasPendingWrites else {
+                throw APIError(code: "owner_mismatch", message: "The original account for the offline changes could not be verified.")
             }
+            if let owner = owners.first { defaults.set(owner.uuidString.lowercased(), forKey: Self.ownerKey) }
             bindingValidated = true
-            if let data = try sessionStore.read() {
-                let saved = try JSONDecoder().decode(SavedSession.self, from: data)
-                try adopt(saved)
-            } else if let owner = defaults.string(forKey: Self.ownerKey), let id = UUID(uuidString: owner) {
-                state = .signedIn(id, nil)
+            if let stored {
+                try adopt(stored)
+            } else if let owner = owners.first {
+                state = .signedIn(userID: owner, email: nil)
                 requiresReauthentication = true
-            } else { state = .signedOut }
+            } else {
+                state = .signedOut
+            }
         } catch {
             lastError = error.localizedDescription
-            state = .signedOut
+            state = AuthAppConfiguration.bootstrapFailureState
         }
+    }
+
+    private var offlineOwner: UUID? {
+        defaults.string(forKey: Self.ownerKey).flatMap(UUID.init(uuidString:))
+    }
+
+    func clearOfflineOwner() {
+        defaults.removeObject(forKey: Self.ownerKey)
     }
 
     private func adopt(_ session: SavedSession) throws {
@@ -72,7 +93,7 @@ final class AuthClient: ObservableObject {
         defaults.set(id, forKey: Self.ownerKey)
         api.token = session.token
         requiresReauthentication = false
-        state = .signedIn(session.user.id, session.user.email)
+        state = .signedIn(userID: session.user.id, email: session.user.email)
     }
 
     private func authenticate(_ path: String, values: [String: Any]) async throws {
@@ -88,17 +109,30 @@ final class AuthClient: ObservableObject {
         catch { lastError = error.localizedDescription; Log.error(error, category: "auth.signIn") }
     }
     enum SignUpResult: Equatable { case signedIn, needsEmailConfirmation(email: String) }
-    func signUp(email: String, password: String, username: String) async -> SignUpResult? {
+    func signUp(email: String, password: String, displayName: String?) async -> SignUpResult? {
         lastError = nil
         do {
-            _ = try await api.json("api/auth/sign-up/email", values: ["email": email, "password": password, "name": username, "callbackURL": AppSecrets.authRedirectURL.absoluteString], authenticated: false)
+            _ = try await api.json("api/auth/sign-up/email", values: ["email": email, "password": password, "name": displayName ?? "", "callbackURL": AppSecrets.authRedirectURL.absoluteString], authenticated: false)
             return .needsEmailConfirmation(email: email)
         } catch { lastError = error.localizedDescription; return nil }
     }
+    func resendSignupConfirmation(email: String) async -> Bool {
+        lastError = nil
+        do {
+            _ = try await api.json("api/auth/send-verification-email", values: [
+                "email": email, "callbackURL": AppSecrets.authRedirectURL.absoluteString
+            ], authenticated: false)
+            return true
+        } catch {
+            lastError = error.localizedDescription
+            return false
+        }
+    }
+
     @discardableResult func signOut() async -> Bool {
         do {
-            return try await performSessionInvalidatingOperation {
-                if api.token != nil { _ = try await api.json("api/auth/sign-out", values: [:]) }
+            return try await performSessionInvalidation {
+                if await currentAccessToken() != nil { _ = try await api.json("api/auth/sign-out", values: [:]) }
                 try sessionStore.write(nil)
                 api.token = nil
                 state = .signedOut
@@ -110,7 +144,7 @@ final class AuthClient: ObservableObject {
         } catch { lastError = error.localizedDescription; return false }
     }
     func deleteAccount() async throws {
-        try await performSessionInvalidatingOperation {
+        try await performSessionInvalidation {
             _ = try await api.request("api/account", method: "DELETE")
             try sessionStore.write(nil)
             api.token = nil
@@ -119,14 +153,14 @@ final class AuthClient: ObservableObject {
     }
     func sendPasswordReset(email: String) async -> Bool {
         do {
-            _ = try await api.json("api/auth/request-password-reset", values: ["email": email, "redirectTo": "diald://auth-callback?type=recovery"], authenticated: false)
+            _ = try await api.json("api/auth/request-password-reset", values: ["email": email, "redirectTo": "\(AuthAppConfiguration.callbackScheme)://auth-callback?type=recovery"], authenticated: false)
             defaults.set(Date().addingTimeInterval(3600), forKey: Self.recoveryPendingKey)
             return true
         } catch { lastError = error.localizedDescription; return false }
     }
     func updatePassword(newPassword: String) async -> Bool {
         do {
-            return try await performSessionInvalidatingOperation {
+            return try await performSessionInvalidation {
                 guard let resetToken else { throw APIError(code: "invalid_link", message: "Open the password reset link from your email again.") }
                 _ = try await api.json("api/auth/reset-password", values: ["token": resetToken, "newPassword": newPassword], authenticated: false)
                 self.resetToken = nil
@@ -140,20 +174,23 @@ final class AuthClient: ObservableObject {
             }
         } catch { lastError = error.localizedDescription; return false }
     }
-    func performSessionInvalidatingOperation<T>(
-        _ operation: () async throws -> T
-    ) async throws -> T {
+    func cancelPasswordRecovery() {
+        resetToken = nil
+        isPasswordRecovery = false
+        defaults.removeObject(forKey: Self.recoveryPendingKey)
+    }
+
+    func performSessionInvalidation<T>(_ operation: () async throws -> T) async rethrows -> T {
         await beforeSessionInvalidation?()
-        do {
-            return try await operation()
-        } catch {
+        do { return try await operation() }
+        catch {
             await afterSessionInvalidationFailure?()
             throw error
         }
     }
 
     func handle(callbackURL url: URL) async {
-        guard url.scheme == "diald", url.host == "auth-callback" else { return }
+        guard url.scheme == AuthAppConfiguration.callbackScheme, url.host == "auth-callback" else { return }
         let now = Date()
         if let last = lastHandledCallback, last.url == url.absoluteString, now.timeIntervalSince(last.at) < 5 { return }
         lastHandledCallback = (url.absoluteString, now)
@@ -172,7 +209,7 @@ final class AuthClient: ObservableObject {
             let verifier = AppleNonce.random(length: 64)
             let challenge = Data(SHA256.hash(data: Data(verifier.utf8))).base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
             let url = AppSecrets.apiURL.appendingPathComponent("api/native/google").appending(queryItems: [URLQueryItem(name: "challenge", value: challenge)])
-            let callback = try await GoogleSignIn.start(authURL: url, callbackScheme: "diald")
+            let callback = try await GoogleSignIn.start(authURL: url, callbackScheme: AuthAppConfiguration.callbackScheme)
             guard let code = URLComponents(url: callback, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "code" })?.value else { throw URLError(.badServerResponse) }
             let data = try await api.json("api/native/exchange", values: ["code": code, "verifier": verifier], authenticated: false)
             struct Exchange: Decodable { let token: String }
@@ -197,40 +234,8 @@ final class AuthClient: ObservableObject {
                   let data = credential.identityToken, let token = String(data: data, encoding: .utf8), let nonce = pendingAppleNonce else { return }
             try await authenticate("api/auth/sign-in/social", values: ["provider": "apple", "idToken": ["token": token, "nonce": nonce]])
             if let name = credential.fullName?.givenName, !name.isEmpty {
-                _ = try? await api.json("api/profile/name", values: ["name": name])
+                _ = try? await api.json(AuthAppConfiguration.initialDisplayNamePath, values: ["name": name])
             }
         } catch { lastError = error.localizedDescription; Log.error(error, category: "auth.apple") }
-    }
-}
-
-extension AuthClient: PushIdentityProviding {
-    func currentPushIdentity() async -> PushIdentity? {
-        guard let principalID = currentUserID?.uuidString.lowercased(),
-              let accessToken = await currentAccessToken(),
-              currentUserID?.uuidString.lowercased() == principalID else { return nil }
-        return PushIdentity(principalID: principalID, accessToken: accessToken)
-    }
-}
-
-enum AppleNonce {
-    static func random(length: Int = 32) -> String {
-        precondition(length > 0)
-        let charset = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
-        var result = ""
-        var remaining = length
-        while remaining > 0 {
-            var random: UInt8 = 0
-            let status = SecRandomCopyBytes(kSecRandomDefault, 1, &random)
-            if status == errSecSuccess, random < charset.count {
-                result.append(charset[Int(random)])
-                remaining -= 1
-            }
-        }
-        return result
-    }
-
-    static func sha256(_ input: String) -> String {
-        let digest = SHA256.hash(data: Data(input.utf8))
-        return digest.map { String(format: "%02x", $0) }.joined()
     }
 }
