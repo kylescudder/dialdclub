@@ -569,3 +569,43 @@ test('the verified-entitlement SQL boundary preserves revocation/event ordering 
   await record('active', now + 3000, now - 1000)
   expect(await active()).toBe(false)
 })
+
+test('device unregister removes only the authenticated owner token and is idempotent', async () => {
+  const owner = await nativeAccount('device-owner@example.test')
+  const other = await nativeAccount('device-other@example.test')
+  const token = 'ab'.repeat(32)
+  for (const account of [owner, other]) {
+    expect(
+      (
+        await dataRequest('/api/devices', account.token, {
+          apns_token: token,
+          device_name: 'Test device',
+          bundle_id: 'club.diald',
+          environment: 'sandbox'
+        })
+      ).status
+    ).toBe(200)
+  }
+  const { createApplication } = await import('../src/application')
+  const app = createApplication({ auth, pool })
+  const unregister = (bearer: string, apnsToken = token) =>
+    app(
+      new Request('http://localhost:3147/api/devices', {
+        method: 'DELETE',
+        headers: {
+          authorization: 'Bearer ' + bearer,
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({ apns_token: apnsToken })
+      })
+    )
+  expect((await unregister('')).status).toBe(401)
+  expect((await unregister(owner.token, 'invalid')).status).toBe(400)
+  expect((await unregister(owner.token)).status).toBe(200)
+  expect((await unregister(owner.token)).status).toBe(200)
+  const remaining = await pool.query(
+    'select user_id from device_tokens where apns_token=$1',
+    [token]
+  )
+  expect(remaining.rows).toEqual([{ user_id: other.id }])
+})

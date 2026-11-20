@@ -189,6 +189,16 @@ export function createApplication({
               )
             )
           }
+          if (url.pathname === '/api/devices' && request.method === 'DELETE') {
+            const body = z
+              .object({ apns_token: z.string().regex(/^[0-9a-f]{32,256}$/) })
+              .parse(await request.json())
+            await client.query(
+              'delete from device_tokens where user_id=$1 and apns_token=$2',
+              [userID, body.apns_token]
+            )
+            return Response.json({ accepted: true })
+          }
           if (url.pathname === '/api/devices' && request.method === 'POST') {
             const body = z
               .object({

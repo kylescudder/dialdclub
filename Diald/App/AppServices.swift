@@ -43,12 +43,18 @@ final class AppServices: ObservableObject {
         }
 
         NotificationManager.shared.bind(auth: auth)
+        auth.beforeSessionInvalidation = { [weak notifications] in
+            await notifications?.deactivate()
+        }
+        auth.afterSessionInvalidationFailure = { [weak notifications] in
+            await notifications?.activate()
+        }
         billing.start()
         Task { await sync.startObservingAuth() }
 
-        auth.$state
-            .removeDuplicates()
-            .sink { [weak self] state in
+        auth.$state.combineLatest(auth.$requiresReauthentication)
+            .removeDuplicates { $0.0 == $1.0 && $0.1 == $1.1 }
+            .sink { [weak self] state, _ in
                 guard let self else { return }
                 Task { @MainActor in await self.applyAuth(state: state) }
             }
@@ -61,7 +67,9 @@ final class AppServices: ObservableObject {
     }
 
     private func applyAuth(state: AuthClient.State) async {
+        guard auth.state == state else { return }
         guard case let .signedIn(userID, _) = state else {
+            notifications.resetForSignedOutState()
             billing.resetForSignOut()
             profile.stopWatching()
             beans.stopWatching()
@@ -74,15 +82,20 @@ final class AppServices: ObservableObject {
         beans.startWatching(userID: id)
         brews.startWatching(userID: id)
         stats.startWatching(userID: id)
+        // Install watches before suspension so a later sign-out can stop them.
+        await notifications.activate()
+        guard auth.state == state else { return }
         await billing.syncEntitlements()
-        await refreshAll()
+        await refreshAll(refreshRemoteRegistration: false)
     }
 
-    func refreshAll() async {
+    func refreshAll(refreshRemoteRegistration: Bool = true) async {
         await profile.refresh()
         await beans.refresh()
         await refreshBrewData()
-        await notifications.registerIfAuthorized()
+        if refreshRemoteRegistration {
+            await notifications.refreshRemoteRegistration()
+        }
         await notifications.refreshLocalReminderState()
     }
 

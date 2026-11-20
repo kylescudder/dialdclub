@@ -79,6 +79,8 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         API_URL: $(API_URL)
         POWERSYNC_URL: $(POWERSYNC_URL)
+        PUSH_GATEWAY_URL: $(PUSH_GATEWAY_URL)
+        PUSH_GATEWAY_APPLICATION_ID: $(PUSH_GATEWAY_APPLICATION_ID)
         SENTRY_DSN: $(SENTRY_DSN)
     settings:
       base:
