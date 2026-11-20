@@ -8,6 +8,8 @@ on:
     branches: [main]
     paths:
       - "Backend/**"
+      - ".dockerignore"
+      - "Scripts/*infra*"
       - ".github/workflows/ci-backend.yml"
       - ".github/workflows/release-backend.yml"
   workflow_dispatch:
@@ -20,7 +22,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE: ghcr.io/kylescudder/dialdclub-api
+  IMAGE: ghcr.io/${{ github.repository }}-api
 
 jobs:
   ci:
@@ -53,13 +55,14 @@ jobs:
       - id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
-          context: Backend
+          context: .
+          file: Backend/Dockerfile
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
-          build-args: DIALD_REVISION=${{ github.sha }}
+          build-args: SOURCE_REVISION=${{ github.sha }}
           provenance: false
           sbom: false
       - name: Record digest
@@ -119,15 +122,14 @@ jobs:
           DIGEST: ${{ steps.manifest.outputs.digest }}
         run: docker buildx imagetools create -t "$IMAGE:main" "$IMAGE@$DIGEST"
 
-  # Asks Herman's deploy-core (app `diald-api`) to deploy the attested digest, then
+  # Asks the app's reviewed deploy-core receiver to deploy the attested digest, then
   # waits for the host to report it deployed. The host verifies the attestation,
   # backs up the database, runs owner migrations and accepts the container itself,
   # so the webhook secret can only trigger a release this workflow built from main.
-  # Deploying is not cutover: the API stays fenced (TARGET_WRITES_ENABLED unset)
-  # and no client points at it until native acceptance.
+  # Deployment does not import production data or waive native/restore acceptance.
   deploy:
     needs: publish
-    if: vars.API_DEPLOY_ENABLED == 'true'
+    if: vars.API_DEPLOY_ENABLED == 'true' && vars.API_DEPLOY_CONTRACT == 'shared-backend-v1'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -140,10 +142,21 @@ jobs:
       group: production-api
       cancel-in-progress: false
     env:
-      DEPLOY_HOST: https://deploy-diald-api.kylescudder.co.uk
-      DEPLOY_URL: https://deploy-diald-api.kylescudder.co.uk/hooks/diald-api
+      CONFIGURED_DEPLOY_URL: ${{ vars.API_DEPLOY_URL }}
       HEALTH_URL: ${{ vars.API_BASE_URL && format('{0}/health/live', vars.API_BASE_URL) || '' }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Load reviewed app receiver configuration
+        run: |
+          url="${CONFIGURED_DEPLOY_URL:-$(jq -r .deployURL Backend/deploy/app.json)}"
+          [[ "$url" == https://* && "$url" != *$'\n'* ]] || { echo '::error::Configure API_DEPLOY_URL after installing the reviewed receiver.'; exit 1; }
+          host=$(python3 -c 'import sys,urllib.parse; u=urllib.parse.urlsplit(sys.argv[1]); print(u.scheme+"://"+u.netloc)' "$url")
+          {
+            echo "DEPLOY_URL=$url"
+            echo "DEPLOY_HOST=$host"
+            echo "SIGNATURE_HEADER=$(jq -r .signatureHeader Backend/deploy/app.json)"
+            echo "RECEIVER_HEADER=$(jq -r .receiverHeader Backend/deploy/app.json)"
+          } >> "$GITHUB_ENV"
       - name: Check deploy endpoint protection
         env:
           CF_ACCESS_CLIENT_ID: ${{ secrets.API_CF_ACCESS_CLIENT_ID }}
@@ -155,7 +168,7 @@ jobs:
           status=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' \
             --dump-header "$headers" -X POST "$DEPLOY_URL")
           [[ "$status" = 401 || "$status" = 403 ]] || { echo "::error::Cloudflare Access did not block an unauthenticated request ($status)."; exit 1; }
-          ! grep -qi '^x-diald-deploy-hook: 1' "$headers" || { echo '::error::Unauthenticated request reached the receiver.'; exit 1; }
+          ! grep -qi "^$RECEIVER_HEADER: 1" "$headers" || { echo '::error::Unauthenticated request reached the receiver.'; exit 1; }
           for path in / /healthz /other; do
             status=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' \
               -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
@@ -165,9 +178,9 @@ jobs:
           status=$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' \
             --dump-header "$headers" \
             -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
-            -H 'X-Diald-Signature: sha256=invalid' --data '{}' "$DEPLOY_URL")
+            -H "$SIGNATURE_HEADER: sha256=invalid" --data '{}' "$DEPLOY_URL")
           [[ "$status" = 401 ]] || { echo "::error::Invalid webhook signature returned $status."; exit 1; }
-          grep -qi '^x-diald-deploy-hook: 1' "$headers" || { echo '::error::Service token did not reach the receiver.'; exit 1; }
+          grep -qi "^$RECEIVER_HEADER: 1" "$headers" || { echo '::error::Service token did not reach the receiver.'; exit 1; }
       - name: Request deploy
         env:
           DIGEST: ${{ needs.publish.outputs.digest }}
@@ -181,7 +194,7 @@ jobs:
           signature=$(printf '%s' "$body" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" -hex | awk '{print $NF}')
           curl --fail-with-body --silent --show-error --max-time 30 "$DEPLOY_URL" \
             -H "Content-Type: application/json" \
-            -H "X-Diald-Signature: sha256=$signature" \
+            -H "$SIGNATURE_HEADER: sha256=$signature" \
             -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
             -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
             --data "$body"
@@ -207,5 +220,5 @@ jobs:
             fi
             sleep 10
           done
-          echo "::error::Herman did not report $GITHUB_SHA deployed within 10 minutes. Check apps/diald-api/state/deploy.log on the host."
+          echo "::error::Herman did not report $GITHUB_SHA deployed within 10 minutes. Check this API application deploy-core log on the host."
           exit 1

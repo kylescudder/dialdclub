@@ -3,7 +3,7 @@
   "title": "Diald API",
   "repo": "kylescudder/dialdclub",
   "image": "ghcr.io/kylescudder/dialdclub-api",
-  "image_var": "DIALD_API_IMAGE",
+  "image_var": "BACKEND_IMAGE",
   "service": "diald-api",
   "workflow": "release-backend.yml",
   "branch": "main",
