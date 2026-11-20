@@ -1,3 +1,5 @@
+import { isPublicAuthPath } from './auth-routes'
+import { NativeAuthError } from './auth-error'
 import { VerificationException } from '@apple/app-store-server-library'
 import type { Pool, PoolClient } from 'pg'
 import type { Auth } from './auth'
@@ -38,22 +40,6 @@ export async function transaction<T>(
   }
 }
 
-const publicAuthPaths = new Set([
-  'sign-in/email',
-  'sign-up/email',
-  'sign-in/social',
-  'sign-out',
-  'get-session',
-  'verify-email',
-  'send-verification-email',
-  'request-password-reset',
-  'reset-password',
-  'change-password',
-  'jwks',
-  'token',
-  'callback/google',
-  'callback/apple'
-])
 export function createApplication({
   auth,
   pool,
@@ -92,11 +78,7 @@ export function createApplication({
       }
       if (url.pathname.startsWith('/api/auth/')) {
         const path = url.pathname.slice('/api/auth/'.length)
-        if (
-          !publicAuthPaths.has(path) &&
-          !/^reset-password\/[A-Za-z0-9_-]+$/.test(path)
-        )
-          return new Response(null, { status: 404 })
+        if (!isPublicAuthPath(path)) return new Response(null, { status: 404 })
         return auth.handler(request)
       }
       const native = await nativeOAuth(request, auth, pool, origin)
@@ -247,6 +229,11 @@ export function createApplication({
       response.headers.set('cache-control', 'no-store')
       return response
     } catch (error) {
+      if (error instanceof NativeAuthError)
+        return Response.json(
+          { code: error.code, message: error.message },
+          { status: error.status }
+        )
       if (error instanceof RequestError)
         return Response.json(
           { code: error.code, message: error.message },

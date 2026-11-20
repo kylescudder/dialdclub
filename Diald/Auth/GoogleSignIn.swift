@@ -2,9 +2,7 @@ import AuthenticationServices
 import UIKit
 
 enum GoogleSignIn {
-    /// Presents an ASWebAuthenticationSession that opens the Diald OAuth URL
-    /// and waits for the diald:// callback. Returns the callback URL so
-    /// Diald can exchange its proof-bound code.
+    /// Exchanges the app-specific OAuth proof-bound callback.
     @MainActor
     static func start(authURL: URL, callbackScheme: String) async throws -> URL {
         try await withCheckedThrowingContinuation { continuation in

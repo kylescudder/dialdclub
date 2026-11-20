@@ -13,6 +13,8 @@ on:
       - 'Scripts/ci/**'
       - 'Scripts/check-shared-push-core.sh'
       - 'Scripts/shared-push-core.sha256'
+      - 'Scripts/check-shared-auth.sh'
+      - 'Scripts/shared-auth.sha256'
       - '.github/workflows/ios-build.yml'
 
 permissions:
@@ -36,6 +38,9 @@ jobs:
 
       - name: Verify shared push core checksums
         run: sh Scripts/check-shared-push-core.sh
+
+      - name: Verify shared auth checksums
+        run: sh Scripts/check-shared-auth.sh
 
       - name: Show Xcode version
         run: xcodebuild -version
