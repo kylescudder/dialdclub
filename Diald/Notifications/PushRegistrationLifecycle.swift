@@ -2,19 +2,17 @@ import Foundation
 
 @MainActor
 protocol RemoteNotificationRegistering: AnyObject {
-    func registerIfAuthorized() async
+    func registerForRemoteNotifications()
 }
 
 @MainActor
 final class PushRegistrationLifecycle {
-    typealias ErrorHandler = @MainActor (Error) -> Void
-
     private let identityProvider: any PushIdentityProviding
     private let installationIDProvider: any PushInstallationIDProviding
     private let transport: any PushRegistrationTransport
-    private weak var remoteNotificationRegistrar: (any RemoteNotificationRegistering)?
+    private let remoteNotificationRegistrar: any RemoteNotificationRegistering
     private let environment: APNSEnvironment
-    private let errorHandler: ErrorHandler
+    private let reportError: (Error, String) -> Void
 
     private var pendingOperation: Task<Void, Never>?
     private var generation = UUID()
@@ -29,18 +27,62 @@ final class PushRegistrationLifecycle {
         transport: any PushRegistrationTransport,
         remoteNotificationRegistrar: any RemoteNotificationRegistering,
         environment: APNSEnvironment,
-        errorHandler: @escaping ErrorHandler
+        reportError: @escaping (Error, String) -> Void
     ) {
         self.identityProvider = identityProvider
         self.installationIDProvider = installationIDProvider
         self.transport = transport
         self.remoteNotificationRegistrar = remoteNotificationRegistrar
         self.environment = environment
-        self.errorHandler = errorHandler
+        self.reportError = reportError
     }
 
-    func activate() async {
+    func activate(isAuthorized: Bool) async {
         isActive = true
+        await refreshIdentityAndRegistration(isAuthorized: isAuthorized)
+    }
+
+    func deactivate() async {
+        let previousIdentity = identity
+        sessionEnded()
+        // Drain the PUT before DELETE; canceling a request cannot undo a
+        // registration that the remote gateway has already accepted.
+        await enqueue {
+            guard let previousIdentity else { return }
+            guard let identity = await self.identityProvider.currentPushIdentity(),
+                  identity.principalID == previousIdentity.principalID else {
+                self.reportError(PushLifecycleError.identityUnavailable, "push.unregister")
+                return
+            }
+            do {
+                try await self.transport.unregister(
+                    installationID: self.installationIDProvider.installationID(),
+                    identity: identity
+                )
+            } catch {
+                self.reportError(error, "push.unregister")
+            }
+        }
+    }
+
+    func sessionEnded() {
+        generation = UUID()
+        isActive = false
+        identity = nil
+    }
+
+    func receivedDeviceToken(_ data: Data) async {
+        latestDeviceToken = data
+        guard isActive else { return }
+        await refreshIdentityAndRegistration(isAuthorized: false)
+    }
+
+    func refreshRegistration(isAuthorized: Bool) async {
+        guard isActive, isAuthorized else { return }
+        await refreshIdentityAndRegistration(isAuthorized: true)
+    }
+
+    private func refreshIdentityAndRegistration(isAuthorized: Bool) async {
         let generation = generation
         await enqueue {
             guard self.generation == generation else { return }
@@ -48,48 +90,9 @@ final class PushRegistrationLifecycle {
             guard self.generation == generation else { return }
             self.identity = identity
             await self.registerLatestTokenIfPossible()
-            guard self.generation == generation else { return }
-            await self.remoteNotificationRegistrar?.registerIfAuthorized()
+            guard self.generation == generation, isAuthorized else { return }
+            self.remoteNotificationRegistrar.registerForRemoteNotifications()
         }
-    }
-
-    func refresh() async {
-        // Foreground refresh must not reactivate credentials during sign-out.
-        guard isActive else { return }
-        await activate()
-    }
-
-    func receivedDeviceToken(_ data: Data) async {
-        latestDeviceToken = data
-        let generation = generation
-        await enqueue {
-            guard self.generation == generation else { return }
-            await self.registerLatestTokenIfPossible()
-        }
-    }
-
-    func deactivate() async {
-        let identity = identity
-        resetForSignedOutState()
-        // Drain any in-flight PUT before DELETE; cancellation alone cannot undo
-        // a registration that the gateway has already accepted.
-        await enqueue {
-            guard let identity else { return }
-            do {
-                try await self.transport.unregister(
-                    installationID: self.installationIDProvider.installationID(),
-                    identity: identity
-                )
-            } catch {
-                self.errorHandler(error)
-            }
-        }
-    }
-
-    func resetForSignedOutState() {
-        isActive = false
-        generation = UUID()
-        identity = nil
     }
 
     private func enqueue(_ operation: @escaping @MainActor () async -> Void) async {
@@ -112,7 +115,11 @@ final class PushRegistrationLifecycle {
                 identity: identity
             )
         } catch {
-            errorHandler(error)
+            reportError(error, "push.registration")
         }
     }
+}
+
+private enum PushLifecycleError: Error {
+    case identityUnavailable
 }

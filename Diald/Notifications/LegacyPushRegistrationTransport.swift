@@ -50,3 +50,12 @@ final class LegacyPushRegistrationTransport: PushRegistrationTransport {
         self.registeredToken = nil
     }
 }
+
+enum PushRegistrationTransportKind: Equatable {
+    case gateway
+    case legacy
+
+    static func selected(for configuration: PushGatewayConfiguration?) -> Self {
+        configuration == nil ? .legacy : .gateway
+    }
+}
