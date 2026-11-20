@@ -82,6 +82,7 @@ final class NotificationManager: NSObject, ObservableObject {
     private static let reminderStorageKey = "notifications.brewReminders"
     private let notificationCenter: UNUserNotificationCenter
     private var registrationLifecycle: PushRegistrationLifecycle?
+    private var sessionGeneration = UUID()
 
     private override init() {
         notificationCenter = .current()
@@ -122,28 +123,34 @@ final class NotificationManager: NSObject, ObservableObject {
             identityProvider: auth,
             installationIDProvider: KeychainPushInstallationIDProvider(),
             transport: transport,
-            remoteNotificationRegistrar: self,
+            remoteNotificationRegistrar: SystemRemoteNotificationRegistrar(),
             environment: Self.apnsEnvironment,
-            errorHandler: { error in
-                Log.error(error, category: "notifications.token")
+            reportError: { error, category in
+                Log.error(error, category: category)
             }
         )
     }
 
     func activate() async {
-        await registrationLifecycle?.activate()
+        let generation = sessionGeneration
+        await refreshAuthorizationStatus()
+        guard generation == sessionGeneration else { return }
+        await registrationLifecycle?.activate(isAuthorized: isAuthorized)
     }
 
     func refreshRemoteRegistration() async {
-        await registrationLifecycle?.refresh()
+        await refreshAuthorizationStatus()
+        await registrationLifecycle?.refreshRegistration(isAuthorized: isAuthorized)
     }
 
     func deactivate() async {
+        sessionGeneration = UUID()
         await registrationLifecycle?.deactivate()
     }
 
     func resetForSignedOutState() {
-        registrationLifecycle?.resetForSignedOutState()
+        sessionGeneration = UUID()
+        registrationLifecycle?.sessionEnded()
     }
 
     func refreshAuthorizationStatus() async {
@@ -181,6 +188,12 @@ final class NotificationManager: NSObject, ObservableObject {
             Log.error(error, category: "notifications.authorization")
             return false
         }
+    }
+
+    private var isAuthorized: Bool {
+        authorizationStatus == .authorized
+            || authorizationStatus == .provisional
+            || authorizationStatus == .ephemeral
     }
 
     func registerIfAuthorized() async {
@@ -301,7 +314,12 @@ final class NotificationManager: NSObject, ObservableObject {
     }
 }
 
-extension NotificationManager: RemoteNotificationRegistering {}
+@MainActor
+final class SystemRemoteNotificationRegistrar: RemoteNotificationRegistering {
+    func registerForRemoteNotifications() {
+        UIApplication.shared.registerForRemoteNotifications()
+    }
+}
 
 extension NotificationManager: UNUserNotificationCenterDelegate {
     nonisolated func userNotificationCenter(

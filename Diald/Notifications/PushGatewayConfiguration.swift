@@ -9,11 +9,13 @@ struct PushGatewayConfiguration: Equatable, Sendable {
     }
 
     static func from(bundle: Bundle) -> PushGatewayConfiguration? {
+        from(infoDictionary: bundle.infoDictionary ?? [:])
+    }
+
+    static func from(infoDictionary: [String: Any]) -> PushGatewayConfiguration? {
         make(
-            rawURL: bundle.object(forInfoDictionaryKey: "PUSH_GATEWAY_URL") as? String,
-            applicationID: bundle.object(
-                forInfoDictionaryKey: "PUSH_GATEWAY_APPLICATION_ID"
-            ) as? String
+            rawURL: infoDictionary["PUSH_GATEWAY_URL"] as? String,
+            applicationID: infoDictionary["PUSH_GATEWAY_APPLICATION_ID"] as? String
         )
     }
 

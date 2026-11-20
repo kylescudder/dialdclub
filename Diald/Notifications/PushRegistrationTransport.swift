@@ -17,10 +17,17 @@ protocol PushInstallationIDProviding: Sendable {
 enum APNSEnvironment: String, Codable, Sendable {
     case sandbox
     case production
+
+    static var current: APNSEnvironment {
+        #if DEBUG
+        .sandbox
+        #else
+        .production
+        #endif
+    }
 }
 
 protocol PushRegistrationTransport: Sendable {
-    @MainActor
     func register(
         installationID: UUID,
         deviceToken: Data,
@@ -28,18 +35,8 @@ protocol PushRegistrationTransport: Sendable {
         identity: PushIdentity
     ) async throws
 
-    @MainActor
     func unregister(
         installationID: UUID,
         identity: PushIdentity
     ) async throws
-}
-
-enum PushRegistrationTransportKind: Equatable {
-    case gateway
-    case legacy
-
-    static func selected(for configuration: PushGatewayConfiguration?) -> Self {
-        configuration == nil ? .legacy : .gateway
-    }
 }

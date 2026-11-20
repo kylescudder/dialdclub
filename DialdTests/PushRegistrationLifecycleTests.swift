@@ -18,7 +18,7 @@ final class PushRegistrationLifecycleTests: XCTestCase {
         XCTAssertTrue(transport.calls.isEmpty)
 
         identity.identity = accountA
-        await lifecycle.activate()
+        await lifecycle.activate(isAuthorized: true)
 
         XCTAssertEqual(transport.calls, [.register(accountA, installationID, Data([0x01]))])
         XCTAssertEqual(registrar.registrationCount, 1)
@@ -30,7 +30,7 @@ final class PushRegistrationLifecycleTests: XCTestCase {
         let registrar = FakeRemoteNotificationRegistrar()
         let lifecycle = makeLifecycle(identity: identity, transport: transport, registrar: registrar)
 
-        await lifecycle.activate()
+        await lifecycle.activate(isAuthorized: true)
         XCTAssertTrue(transport.calls.isEmpty)
         XCTAssertEqual(registrar.registrationCount, 1)
 
@@ -44,9 +44,9 @@ final class PushRegistrationLifecycleTests: XCTestCase {
         let registrar = FakeRemoteNotificationRegistrar()
         let lifecycle = makeLifecycle(identity: identity, transport: transport, registrar: registrar)
 
-        await lifecycle.activate()
+        await lifecycle.activate(isAuthorized: true)
         await lifecycle.receivedDeviceToken(Data([0x0a]))
-        await lifecycle.refresh()
+        await lifecycle.refreshRegistration(isAuthorized: true)
 
         XCTAssertEqual(registrar.registrationCount, 2)
         XCTAssertEqual(
@@ -66,7 +66,7 @@ final class PushRegistrationLifecycleTests: XCTestCase {
             transport: transport,
             registrar: FakeRemoteNotificationRegistrar()
         )
-        await lifecycle.activate()
+        await lifecycle.activate(isAuthorized: true)
 
         await lifecycle.receivedDeviceToken(Data([0x01]))
         await lifecycle.receivedDeviceToken(Data([0x01]))
@@ -88,7 +88,7 @@ final class PushRegistrationLifecycleTests: XCTestCase {
                 if let error = error as? TestError { errors.append(error) }
             }
         )
-        await lifecycle.activate()
+        await lifecycle.activate(isAuthorized: true)
 
         await lifecycle.deactivate()
 
@@ -105,7 +105,7 @@ final class PushRegistrationLifecycleTests: XCTestCase {
             transport: transport,
             registrar: FakeRemoteNotificationRegistrar()
         )
-        await lifecycle.activate()
+        await lifecycle.activate(isAuthorized: true)
         var events: [String] = []
         transport.eventHandler = { events.append($0) }
 
@@ -127,12 +127,12 @@ final class PushRegistrationLifecycleTests: XCTestCase {
             transport: transport,
             registrar: FakeRemoteNotificationRegistrar()
         )
-        await lifecycle.activate()
+        await lifecycle.activate(isAuthorized: true)
         await lifecycle.receivedDeviceToken(Data([0xaa]))
 
         await lifecycle.deactivate()
         identity.identity = accountB
-        await lifecycle.activate()
+        await lifecycle.activate(isAuthorized: true)
 
         XCTAssertEqual(
             transport.calls,
@@ -152,13 +152,13 @@ final class PushRegistrationLifecycleTests: XCTestCase {
             transport: transport,
             registrar: FakeRemoteNotificationRegistrar()
         )
-        await lifecycle.activate()
+        await lifecycle.activate(isAuthorized: true)
         await lifecycle.receivedDeviceToken(Data([0xbb]))
         transport.unregisterError = TestError.expected
 
         await lifecycle.deactivate()
         identity.identity = accountB
-        await lifecycle.activate()
+        await lifecycle.activate(isAuthorized: true)
 
         XCTAssertEqual(transport.calls.last, .register(accountB, installationID, Data([0xbb])))
     }
@@ -169,10 +169,10 @@ final class PushRegistrationLifecycleTests: XCTestCase {
         let registrar = FakeRemoteNotificationRegistrar(authorizationAllowsRegistration: false)
         let lifecycle = makeLifecycle(identity: identity, transport: transport, registrar: registrar)
 
-        await lifecycle.activate()
-        await lifecycle.refresh()
+        await lifecycle.activate(isAuthorized: false)
+        await lifecycle.refreshRegistration(isAuthorized: false)
 
-        XCTAssertEqual(registrar.authorizationCheckCount, 2)
+        XCTAssertEqual(registrar.authorizationCheckCount, 0)
         XCTAssertEqual(registrar.registrationCount, 0)
         XCTAssertTrue(transport.calls.isEmpty)
     }
@@ -271,11 +271,11 @@ final class PushRegistrationLifecycleTests: XCTestCase {
         let identity = FakePushIdentityProvider()
         let transport = FakePushRegistrationTransport()
         let lifecycle = makeLifecycle(identity: identity, transport: transport, registrar: FakeRemoteNotificationRegistrar())
-        await lifecycle.activate()
+        await lifecycle.activate(isAuthorized: true)
         await lifecycle.receivedDeviceToken(Data([0xaa]))
         XCTAssertTrue(transport.calls.isEmpty)
         identity.identity = accountA
-        await lifecycle.refresh()
+        await lifecycle.refreshRegistration(isAuthorized: true)
         XCTAssertEqual(transport.calls, [.register(accountA, installationID, Data([0xaa]))])
     }
 
@@ -284,12 +284,12 @@ final class PushRegistrationLifecycleTests: XCTestCase {
         let transport = FakePushRegistrationTransport()
         let registrar = FakeRemoteNotificationRegistrar()
         let lifecycle = makeLifecycle(identity: identity, transport: transport, registrar: registrar)
-        await lifecycle.activate()
+        await lifecycle.activate(isAuthorized: true)
         let gate = AsyncGate()
         transport.registerGate = gate
         let registration = Task { await lifecycle.receivedDeviceToken(Data([0xaa])) }
         await gate.waitUntilEntered()
-        let refresh = Task { await lifecycle.refresh() }
+        let refresh = Task { await lifecycle.refreshRegistration(isAuthorized: true) }
         let logout = Task { await lifecycle.deactivate() }
         // Yield until deactivation has synchronously invalidated registration.
         while lifecycle.identity != nil { await Task.yield() }
@@ -299,7 +299,7 @@ final class PushRegistrationLifecycleTests: XCTestCase {
         await refresh.value
         await logout.value
         // Auth credentials can still exist until the invalidation hook returns.
-        await lifecycle.refresh()
+        await lifecycle.refreshRegistration(isAuthorized: true)
         XCTAssertEqual(transport.calls, [
             .register(accountA, installationID, Data([0xaa])),
             .unregister(accountA, installationID)
@@ -312,14 +312,14 @@ final class PushRegistrationLifecycleTests: XCTestCase {
         let identity = FakePushIdentityProvider(identity: accountA)
         let transport = FakePushRegistrationTransport()
         let lifecycle = makeLifecycle(identity: identity, transport: transport, registrar: FakeRemoteNotificationRegistrar())
-        await lifecycle.activate()
+        await lifecycle.activate(isAuthorized: true)
         await lifecycle.receivedDeviceToken(Data([0xbb]))
         let gate = AsyncGate()
         transport.unregisterGate = gate
         let logout = Task { await lifecycle.deactivate() }
         await gate.waitUntilEntered()
         identity.identity = accountB
-        let activation = Task { await lifecycle.activate() }
+        let activation = Task { await lifecycle.activate(isAuthorized: true) }
         await Task.yield()
         XCTAssertEqual(transport.calls.count, 2)
         gate.release()
@@ -341,9 +341,9 @@ final class PushRegistrationLifecycleTests: XCTestCase {
         await lifecycle.receivedDeviceToken(Data([0xaa]))
         let gate = AsyncGate()
         identity.gate = gate
-        let activation = Task { await lifecycle.activate() }
+        let activation = Task { await lifecycle.activate(isAuthorized: true) }
         await gate.waitUntilEntered()
-        lifecycle.resetForSignedOutState()
+        lifecycle.sessionEnded()
         gate.release()
         await activation.value
         XCTAssertNil(lifecycle.identity)
@@ -355,7 +355,7 @@ final class PushRegistrationLifecycleTests: XCTestCase {
         identity: FakePushIdentityProvider,
         transport: FakePushRegistrationTransport,
         registrar: FakeRemoteNotificationRegistrar,
-        errorHandler: @escaping PushRegistrationLifecycle.ErrorHandler = { _ in }
+        errorHandler: @escaping @MainActor (Error) -> Void = { _ in }
     ) -> PushRegistrationLifecycle {
         PushRegistrationLifecycle(
             identityProvider: identity,
@@ -363,7 +363,7 @@ final class PushRegistrationLifecycleTests: XCTestCase {
             transport: transport,
             remoteNotificationRegistrar: registrar,
             environment: .sandbox,
-            errorHandler: errorHandler
+            reportError: { error, _ in errorHandler(error) }
         )
     }
 }
@@ -404,7 +404,7 @@ private final class FakeRemoteNotificationRegistrar: RemoteNotificationRegisteri
         self.authorizationAllowsRegistration = authorizationAllowsRegistration
     }
 
-    func registerIfAuthorized() async {
+    func registerForRemoteNotifications() {
         authorizationCheckCount += 1
         if authorizationAllowsRegistration {
             registrationCount += 1
