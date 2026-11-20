@@ -67,6 +67,7 @@ final class AppServices: ObservableObject {
     }
 
     private func applyAuth(state: AuthClient.State) async {
+        guard auth.state == state else { return }
         guard case let .signedIn(userID, _) = state else {
             notifications.resetForSignedOutState()
             billing.resetForSignOut()
@@ -76,12 +77,14 @@ final class AppServices: ObservableObject {
             stats.stopWatching()
             return
         }
-        await notifications.activate()
         let id = userID.uuidString.lowercased()
         profile.startWatching(userID: id)
         beans.startWatching(userID: id)
         brews.startWatching(userID: id)
         stats.startWatching(userID: id)
+        // Install watches before suspension so a later sign-out can stop them.
+        await notifications.activate()
+        guard auth.state == state else { return }
         await billing.syncEntitlements()
         await refreshAll(refreshRemoteRegistration: false)
     }

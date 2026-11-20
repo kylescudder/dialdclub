@@ -14,6 +14,14 @@ final class PushGatewayConfigurationTests: XCTestCase {
         XCTAssertNil(PushGatewayConfiguration.make(rawURL: "https:///missing-host", applicationID: "diald"))
     }
 
+    func testPlaintextURLsDisableGatewayIncludingLocalhost() {
+        for url in ["http://push.example.com", "http://localhost:8080", "http://127.0.0.1"] {
+            let configuration = PushGatewayConfiguration.make(rawURL: url, applicationID: "diald")
+            XCTAssertNil(configuration)
+            XCTAssertEqual(PushRegistrationTransportKind.selected(for: configuration), .legacy)
+        }
+    }
+
     func testMissingOrInvalidApplicationIDDisablesGateway() {
         XCTAssertNil(PushGatewayConfiguration.make(rawURL: "https://push.example.com", applicationID: nil))
         XCTAssertNil(PushGatewayConfiguration.make(rawURL: "https://push.example.com", applicationID: ""))

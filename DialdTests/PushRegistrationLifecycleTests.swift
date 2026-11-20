@@ -249,6 +249,78 @@ final class PushRegistrationLifecycleTests: XCTestCase {
         XCTAssertEqual(registrar.registrationCount, 0)
     }
 
+    func testLogoutWaitsForInflightRegistrationAndDropsQueuedRefresh() async {
+        let identity = FakePushIdentityProvider(identity: accountA)
+        let transport = FakePushRegistrationTransport()
+        let registrar = FakeRemoteNotificationRegistrar()
+        let lifecycle = makeLifecycle(identity: identity, transport: transport, registrar: registrar)
+        await lifecycle.activate()
+        let gate = AsyncGate()
+        transport.registerGate = gate
+        let registration = Task { await lifecycle.receivedDeviceToken(Data([0xaa])) }
+        await gate.waitUntilEntered()
+        let refresh = Task { await lifecycle.refresh() }
+        let logout = Task { await lifecycle.deactivate() }
+        // Yield until deactivation has synchronously invalidated registration.
+        while lifecycle.identity != nil { await Task.yield() }
+        XCTAssertEqual(transport.calls, [.register(accountA, installationID, Data([0xaa]))])
+        gate.release()
+        await registration.value
+        await refresh.value
+        await logout.value
+        // Auth credentials can still exist until the invalidation hook returns.
+        await lifecycle.refresh()
+        XCTAssertEqual(transport.calls, [
+            .register(accountA, installationID, Data([0xaa])),
+            .unregister(accountA, installationID)
+        ])
+        XCTAssertNil(lifecycle.identity)
+        XCTAssertEqual(registrar.registrationCount, 1)
+    }
+
+    func testNewAccountRegistrationWaitsForOldAccountUnregister() async {
+        let identity = FakePushIdentityProvider(identity: accountA)
+        let transport = FakePushRegistrationTransport()
+        let lifecycle = makeLifecycle(identity: identity, transport: transport, registrar: FakeRemoteNotificationRegistrar())
+        await lifecycle.activate()
+        await lifecycle.receivedDeviceToken(Data([0xbb]))
+        let gate = AsyncGate()
+        transport.unregisterGate = gate
+        let logout = Task { await lifecycle.deactivate() }
+        await gate.waitUntilEntered()
+        identity.identity = accountB
+        let activation = Task { await lifecycle.activate() }
+        await Task.yield()
+        XCTAssertEqual(transport.calls.count, 2)
+        gate.release()
+        await logout.value
+        await activation.value
+        XCTAssertEqual(transport.calls, [
+            .register(accountA, installationID, Data([0xbb])),
+            .unregister(accountA, installationID),
+            .register(accountB, installationID, Data([0xbb]))
+        ])
+        XCTAssertEqual(lifecycle.identity, accountB)
+    }
+
+    func testSignOutWhileIdentityLookupIsSuspendedDoesNotRestoreIdentity() async {
+        let identity = FakePushIdentityProvider(identity: accountA)
+        let transport = FakePushRegistrationTransport()
+        let registrar = FakeRemoteNotificationRegistrar()
+        let lifecycle = makeLifecycle(identity: identity, transport: transport, registrar: registrar)
+        await lifecycle.receivedDeviceToken(Data([0xaa]))
+        let gate = AsyncGate()
+        identity.gate = gate
+        let activation = Task { await lifecycle.activate() }
+        await gate.waitUntilEntered()
+        lifecycle.resetForSignedOutState()
+        gate.release()
+        await activation.value
+        XCTAssertNil(lifecycle.identity)
+        XCTAssertTrue(transport.calls.isEmpty)
+        XCTAssertEqual(registrar.registrationCount, 0)
+    }
+
     private func makeLifecycle(
         identity: FakePushIdentityProvider,
         transport: FakePushRegistrationTransport,
@@ -273,12 +345,17 @@ private enum TestError: Error, Equatable {
 @MainActor
 private final class FakePushIdentityProvider: PushIdentityProviding {
     var identity: PushIdentity?
+    var gate: AsyncGate?
 
     init(identity: PushIdentity? = nil) {
         self.identity = identity
     }
 
-    func currentPushIdentity() async -> PushIdentity? { identity }
+    func currentPushIdentity() async -> PushIdentity? {
+        let capturedIdentity = identity
+        await gate?.enter()
+        return capturedIdentity
+    }
 }
 
 private struct FixedInstallationIDProvider: PushInstallationIDProviding {
@@ -313,6 +390,8 @@ private final class FakePushRegistrationTransport: PushRegistrationTransport {
     }
 
     private(set) var calls: [Call] = []
+    var registerGate: AsyncGate?
+    var unregisterGate: AsyncGate?
     var unregisterError: Error?
     var eventHandler: ((String) -> Void)?
 
@@ -324,6 +403,7 @@ private final class FakePushRegistrationTransport: PushRegistrationTransport {
     ) async throws {
         calls.append(.register(identity, installationID, deviceToken))
         eventHandler?("register")
+        await registerGate?.enter()
     }
 
     func unregister(
@@ -332,6 +412,7 @@ private final class FakePushRegistrationTransport: PushRegistrationTransport {
     ) async throws {
         calls.append(.unregister(identity, installationID))
         eventHandler?("unregister")
+        await unregisterGate?.enter()
         if let unregisterError { throw unregisterError }
     }
 }
@@ -363,4 +444,30 @@ private final class FakeInstallationIDStore: PushInstallationIDStoring, @uncheck
 private struct FailingInstallationIDStore: PushInstallationIDStoring {
     func read(account: String) throws -> String? { throw TestError.expected }
     func write(account: String, value: String) throws { throw TestError.expected }
+}
+
+@MainActor
+private final class AsyncGate {
+    private var entered = false
+    private var enteredWaiter: CheckedContinuation<Void, Never>?
+    private var releaseWaiter: CheckedContinuation<Void, Never>?
+
+    func enter() async {
+        await withCheckedContinuation { continuation in
+            releaseWaiter = continuation
+            entered = true
+            enteredWaiter?.resume()
+            enteredWaiter = nil
+        }
+    }
+
+    func waitUntilEntered() async {
+        if entered { return }
+        await withCheckedContinuation { enteredWaiter = $0 }
+    }
+
+    func release() {
+        releaseWaiter?.resume()
+        releaseWaiter = nil
+    }
 }

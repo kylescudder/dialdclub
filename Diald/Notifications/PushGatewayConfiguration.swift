@@ -22,7 +22,7 @@ struct PushGatewayConfiguration: Equatable, Sendable {
             let rawURL = rawURL?.trimmingCharacters(in: .whitespacesAndNewlines),
             !rawURL.isEmpty,
             let baseURL = URL(string: rawURL),
-            ["https", "http"].contains(baseURL.scheme?.lowercased() ?? ""),
+            baseURL.scheme?.lowercased() == "https",
             baseURL.host != nil,
             let applicationID = applicationID?.trimmingCharacters(in: .whitespacesAndNewlines),
             applicationID.range(
