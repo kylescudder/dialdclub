@@ -35,5 +35,8 @@ jobs:
       - run: bun run typecheck
       - run: bun run lint
       - run: bun run format:check
+      # Test files run in any order; migrate first so none depends on another's setup.
+      - name: Migrate disposable test database
+        run: DATABASE_URL="$TEST_DATABASE_URL" bun scripts/migrate.ts
       - run: bun test
       - run: bun run build
