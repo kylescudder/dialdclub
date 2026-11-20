@@ -20,10 +20,7 @@ Supabase deployment commands below against production as part of this port.
   Settings sign-out or reset-password success to perform migration reauth.
 - `APIConnector` is the upload boundary. Restricted runtime transactions enforce
   owner RLS, lifetime quota, durable UUID replay rules and tombstones.
-- The old `diald.sqlite` never connects its checkpoints to the new service. After
-  strict queue replay, `diald-v2.sqlite` stages a fresh sync, carries the pending
-  quota ledger, and switches the composition root. Failed staging preserves the
-  old cache. Explicit sign-out wipes both files before allowing another owner.
+- The app opens `diald-v2.sqlite` directly. Explicit sign-out clears that database.
 - JWT `sub` is the original UUID, issuer is `BETTER_AUTH_URL`, audience is the
   exact public `POWERSYNC_URL`. Sync config is `Backend/deploy/powersync/`.
 - Drizzle migrations are under `Backend/drizzle/`. All authoritative tables have
