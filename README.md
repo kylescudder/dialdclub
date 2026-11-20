@@ -5,10 +5,9 @@ local reminders, on-device analysis and brew statistics, with an Astro marketing
 site. StoreKit provides the Supporter subscription. Free accounts get five
 lifetime extractions, including deleted brews.
 
-This branch prepares the direct replacement of Supabase with a Bun/TypeScript
-API, PostgreSQL/Drizzle, Better Auth/Brevo and self-hosted PowerSync. It has **not
-cut production over**. The old `supabase/` directory remains source-migration and
-rollback evidence; the new app does not import its SDK or call its endpoints.
+The backend is a Bun/TypeScript API with PostgreSQL/Drizzle, Better Auth/Brevo and
+self-hosted PowerSync, running on Herman (`Backend/`). Supabase has been removed;
+its historical schema and functions remain in git history.
 
 ## Development
 
