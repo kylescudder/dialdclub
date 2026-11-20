@@ -4,15 +4,14 @@ This file provides guidance to coding agents when working with code in this repo
 
 ## Project
 
-Diald Club — native iOS 17+ SwiftUI app for recording specialty-coffee beans, recipes, extraction times, tasting notes, reminders, and brew statistics, plus a static Astro marketing and compliance site. The backend is Supabase (Postgres + Auth + Edge Functions), StoreKit provides the Supporter subscription, and the app includes AppIntents and WidgetKit extensions.
+Diald Club — native iOS 17+ SwiftUI app for recording specialty-coffee beans, recipes, extraction times, tasting notes, reminders, and brew statistics, plus a static Astro marketing and compliance site. The backend is the Bun API in `Backend/` with PostgreSQL and self-hosted PowerSync on Herman, StoreKit provides the Supporter subscription, and the app includes AppIntents and WidgetKit extensions.
 
-## Replacement backend on this branch
+## Backend
 
-This branch prepares direct Supabase removal; production has not cut over. The
-new runtime is `Backend/` (Bun 1.4.4, TypeScript, PostgreSQL/Drizzle, Better Auth,
+Production runs on Herman; Supabase has been removed from the repository. The
+runtime is `Backend/` (Bun 1.4.4, TypeScript, PostgreSQL/Drizzle, Better Auth,
 Brevo and self-hosted PowerSync). Read `Backend/deploy/README.md` and
-`Backend/deploy/verification.md` before release work. Do not run the historical
-Supabase deployment commands below against production as part of this port.
+`Backend/deploy/verification.md` before release work.
 
 - Native builds require `API_URL`, `POWERSYNC_URL`, optional `SENTRY_DSN`.
 - `AuthClient` uses `APIClient` and a Keychain session, binds cached data to the
@@ -27,9 +26,9 @@ Supabase deployment commands below against production as part of this port.
   statement and deferred COMMIT recovery guards; the API cannot refresh the lease.
 - Verified IAP endpoints are `/api/iap/transactions` and `/api/iap/notifications`.
   Cryptographic Apple verification is in `Backend/src/apple-verification.ts`.
-- `supabase/` remains the historical source schema/functions and rollback/test
-  evidence for the legacy implementation.
-  References below to its SDK/client wiring describe the legacy implementation.
+- The historical Supabase schema, functions and tests are in git history only.
+  Sections below that mention Supabase, PostgREST or Edge Functions describe that
+  legacy implementation; the equivalents now live in `Backend/`.
 
 Backend checks: `cd Backend && bun install --frozen-lockfile`, `bun run typecheck`,
 `bun run lint`, `bun run format:check`, `TEST_DATABASE_URL=... bun test`,
@@ -54,17 +53,6 @@ xcodebuild test -project Diald.xcodeproj -scheme Diald -destination 'platform=iO
 ./setup.sh                                 # first-run tools, secrets template, optional migrations, xcodegen
 ```
 
-Supabase (CLI must be `supabase login`'d and `supabase link`'d):
-
-```sh
-supabase db push
-supabase test db
-deno test --allow-env --allow-net supabase/functions/_shared/apple_store_verification_test.ts
-supabase functions deploy notify-brew-reminder
-supabase functions deploy iap-sync-transaction
-supabase functions deploy iap-app-store-notifications --no-verify-jwt
-```
-
 Marketing site:
 
 ```sh
@@ -78,10 +66,10 @@ cd Site && bun run format:check            # check Astro/CSS formatting with Pre
 
 ## Secrets and configuration
 
-- iOS build values live in `Config/Secrets.xcconfig` (git-ignored, copied from `Config/Secrets.xcconfig.example`) and flow through generated `Info.plist` properties into `Diald/App/AppSecrets.swift`. **xcconfig escaping gotcha**: write a URL such as `https://…` as `https:/$()/…`, otherwise `//` starts a comment. `SUPABASE_URL` and `SUPABASE_ANON_KEY` are required for auth, `POWERSYNC_URL` is required for data sync, and an empty `SENTRY_DSN` intentionally disables Sentry.
+- iOS build values live in `Config/Secrets.xcconfig` (git-ignored, copied from `Config/Secrets.xcconfig.example`) and flow through generated `Info.plist` properties into `Diald/App/AppSecrets.swift`. **xcconfig escaping gotcha**: write a URL such as `https://…` as `https:/$()/…`, otherwise `//` starts a comment. `API_URL` is required for auth and the API, `POWERSYNC_URL` is required for data sync, and an empty `SENTRY_DSN` intentionally disables Sentry.
 - `AppSecrets` detects empty, unresolved, and placeholder Supabase and PowerSync values. Keep those graceful configuration-error paths intact; simulator and pull-request builds deliberately use the example xcconfig.
 - Brew analysis is fully local and does not use provider API keys or build secrets. Do not add provider credentials to source, xcconfig, logs, Supabase, or the widget app group.
-- Supabase Edge Functions require `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in the Supabase dashboard. The IAP verification functions also require the numeric App Store app ID as `APPLE_APP_ID`. The service-role key must never be shipped in either app target. TestFlight signing and the production xcconfig come from GitHub Actions secrets in `.github/workflows/ios-testflight.yml`.
+- Backend secrets (database URLs, Better Auth, Brevo, Apple sign-in and IAP verification) live in the API's protected `api.env` on Herman; `Backend/deploy/api.env.example` lists them.
 - The committed `Diald/Resources/StoreKit/Diald.storekit` supplies simulator product data. App Store Connect remains authoritative for TestFlight and production product `club.diald.supporter.monthly`.
 
 ## Architecture
@@ -100,8 +88,8 @@ cd Site && bun run format:check            # check Astro/CSS formatting with Pre
 - `BeansRepository`, `BrewsRepository`, `ProfileRepository`, and `StatsRepository` read through `database.watch` and write locally through PowerSync. `SupabaseConnector` is the only generic PostgREST upload path. Quota RPCs, IAP Edge Functions, auth, APNs tokens, and account deletion remain deliberate direct-Supabase boundaries.
 - PowerSync tables are SQLite views, so use plain parameterized inserts/updates rather than Postgres `ON CONFLICT` SQL locally. Brew uploads use plain server inserts: retrying them via upsert would re-run the quota `BEFORE INSERT` trigger. A duplicate retry is accepted only after verifying that the same brew UUID already exists server-side.
 - Known permanent Postgres validation failures are acknowledged and surfaced through `SyncIssueStore`, allowing PowerSync to restore server state instead of blocking the queue forever. Transient/network failures must throw so PowerSync retries them. Do not broaden permanent-error classification without proving the error cannot succeed on retry.
-- Sync rules are Edition 3 (`supabase/powersync/sync_rules.yaml`). They sync profile, bean, and brew tombstones, plus read-only owner-scoped quota and verified-entitlement snapshots. `pending_extractions` is local-only and reserves allowance until the server quota stream confirms an accepted insertion.
-- Postgres schema lives in ordered files under `supabase/migrations/`. `profiles`, `beans`, `brew_sessions`, `brew_steps`, `brew_reminders`, and `device_tokens` are user-owned and protected by RLS. `extraction_creation_quotas` is the protected monotonic counter, while `extraction_creation_events` is the durable per-extraction ledger. Normal PostgREST clients read usage only through a security-definer status RPC; PowerSync exposes only the authenticated user's quota snapshot. `iap_entitlements` is written by service-role Edge Functions through `record_verified_iap_entitlement` and PowerSync exposes only the authenticated user's verified row.
+- Sync rules are Edition 3 (`Backend/deploy/powersync/sync-config.yaml`). They sync profile, bean, and brew tombstones, plus read-only owner-scoped quota and verified-entitlement snapshots. `pending_extractions` is local-only and reserves allowance until the server quota stream confirms an accepted insertion.
+- Postgres schema lives in ordered Drizzle migrations under `Backend/drizzle/`. `profiles`, `beans`, `brew_sessions`, `brew_steps`, `brew_reminders`, and `device_tokens` are user-owned and protected by RLS. `extraction_creation_quotas` is the protected monotonic counter, while `extraction_creation_events` is the durable per-extraction ledger. Normal PostgREST clients read usage only through a security-definer status RPC; PowerSync exposes only the authenticated user's quota snapshot. `iap_entitlements` is written by service-role Edge Functions through `record_verified_iap_entitlement` and PowerSync exposes only the authenticated user's verified row.
 - Beans and brew sessions use soft-delete tombstones (`deleted_at`); repository reads filter them out and delete actions set the timestamp. Keep new user-data deletion paths consistent unless a hard delete is explicitly required.
 - UUID strings sent to PostgREST are lowercased throughout. Preserve that convention. Swift model coding keys, Postgres columns, enum raw values, check constraints, RPC return shapes, and PowerSync rules must be updated together when a persisted field changes.
 - Some backend schema is ahead of the client: `brew_steps` and server-side `brew_reminders` exist, but the current UI and PowerSync streams do not use them. Local reminders are stored on-device. Do not assume a table is wired merely because it appears in a migration or publication.
@@ -160,7 +148,6 @@ cd Site && bun run format:check            # check Astro/CSS formatting with Pre
 
 The dependency lower bounds live in `project.yml`; generated Xcode package state is not committed. Areas most likely to need coordinated changes after an update:
 
-- **`supabase-swift` 2.x** — auth event/session APIs, OAuth URL construction, `signInWithIdToken`, PostgREST filters, RPC parameter encoding, and response decoding converge in `AuthClient` and the repositories.
 - **PowerSync Swift SDK** — local schema/view behavior, typed CRUD payloads, status streams, transaction APIs, and disconnect/clear semantics converge under `Diald/Sync/` and the local repositories. Re-test permanent rejection acknowledgement and quota-trigger retry idempotency after updates.
 - **StoreKit 2** — `Product.purchase`, verification results, entitlement iteration, transaction JWS access, subscription management, and the committed StoreKit configuration must remain aligned with `BillingRepository`.
 - **Swift strict concurrency / iOS SDKs** — `UNUserNotificationCenterDelegate`, `ASWebAuthenticationSession`, AppIntents, WidgetKit timelines, and UIKit callbacks can gain isolation requirements between toolchains.
@@ -170,8 +157,8 @@ When an SDK bump breaks compilation, check the dependency's release notes and up
 
 ## Folder casing
 
-The app folders are `Diald/` and `DialdWidgets/`, the marketing site is `Site/` (capital S), and the backend is `supabase/` (lowercase). Always preserve those spellings in code, scripts, workflow paths, and documentation so the repository works on case-sensitive filesystems.
+The app folders are `Diald/` and `DialdWidgets/`, the marketing site is `Site/` (capital S), and the backend is `Backend/`. Always preserve those spellings in code, scripts, workflow paths, and documentation so the repository works on case-sensitive filesystems.
 
 ## What not to commit
 
-`Config/Secrets.xcconfig`, `.env*`, `Diald.xcodeproj/`, `build/`, `DerivedData/`, `.build/`, `.swiftpm/`, `Package.resolved`, `Site/node_modules/`, `Site/.astro/`, `Site/dist/`, `supabase/.temp/`, `supabase/.branches/`, `.netlify/`, or signing certificates/provisioning profiles. These are already git-ignored where applicable; don't add overrides.
+`Config/Secrets.xcconfig`, `.env*`, `Diald.xcodeproj/`, `build/`, `DerivedData/`, `.build/`, `.swiftpm/`, `Package.resolved`, `Site/node_modules/`, `Site/.astro/`, `Site/dist/`, `.netlify/`, or signing certificates/provisioning profiles. These are already git-ignored where applicable; don't add overrides.
