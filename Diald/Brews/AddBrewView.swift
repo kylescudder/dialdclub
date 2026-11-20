@@ -47,7 +47,16 @@ struct AddBrewView: View {
                     OptionalDoubleField(title: "Yield", suffix: "g", value: $draft.yieldGrams)
                     OptionalDoubleField(title: "Water", suffix: "g", value: $draft.waterGrams)
                     OptionalDoubleField(title: "Temperature", suffix: "C", value: $draft.waterTemperatureC)
-                    TextField("Grind setting", text: $draft.grindSetting)
+                    HStack {
+                        Text("Grind setting")
+                        Spacer()
+                        TextField(
+                            "Grind setting",
+                            text: $draft.grindSetting,
+                            prompt: Text("Optional")
+                        )
+                            .multilineTextAlignment(.trailing)
+                    }
                 }
 
                 Section("Extraction") {
