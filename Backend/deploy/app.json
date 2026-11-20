@@ -1,0 +1,42 @@
+{
+  "project": "diald",
+  "database": "dialdclub",
+  "ownerRole": "dialdclub_owner",
+  "runtimeRole": "dialdclub_runtime",
+  "apiRole": "diald_api",
+  "recoveryRole": "dialdclub_recovery",
+  "syncRole": "dialdclub_sync",
+  "syncStorageRole": "dialdclub_sync_storage",
+  "syncStorageDatabase": "dialdclub_sync",
+  "recoveryTables": [
+    "auth_user",
+    "auth_account",
+    "auth_session",
+    "auth_verification",
+    "auth_rate_limit",
+    "auth_email_limit",
+    "auth_jwks",
+    "profiles",
+    "beans",
+    "brew_sessions",
+    "brew_steps",
+    "brew_reminders",
+    "device_tokens",
+    "extraction_creation_quotas",
+    "extraction_creation_events",
+    "iap_entitlements",
+    "native_codes",
+    "notification_inbox"
+  ],
+  "syncTables": [
+    "profiles",
+    "beans",
+    "brew_sessions",
+    "extraction_creation_quotas",
+    "iap_entitlements"
+  ],
+  "deployURL": "https://deploy-diald-api.kylescudder.co.uk/hooks/diald-api",
+  "signatureHeader": "X-Diald-Signature",
+  "receiverHeader": "x-diald-deploy-hook",
+  "runtimeDefaultRole": "diald_api"
+}
