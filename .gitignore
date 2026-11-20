@@ -37,10 +37,6 @@ Config/Secrets.xcconfig
 .idea/
 *.swp
 
-# supabase CLI scratch state (project ref, version pins, branches)
-supabase/.temp/
-supabase/.branches/
-
 # Local Netlify folder
 .netlify
 
