@@ -1,5 +1,4 @@
 import Foundation
-import Supabase
 
 enum BrewCreationError: Error, Equatable, Identifiable, Sendable {
     case freeLimitReached
@@ -30,7 +29,7 @@ enum BrewCreationError: Error, Equatable, Identifiable, Sendable {
             return creationError
         }
 
-        if let postgrestError = error as? PostgrestError {
+        if let postgrestError = error as? APIError {
             switch postgrestError.code {
             case "DX001":
                 return subscriptionState == .verifying
@@ -40,7 +39,7 @@ enum BrewCreationError: Error, Equatable, Identifiable, Sendable {
                 return .unauthenticated
             case "DX003", "DX004", "DX005", "42501":
                 return .serverValidationFailure
-            case "PGRST000", "PGRST001", "PGRST002", "PGRST003":
+            case "temporarily_unavailable":
                 return .networkFailure
             default:
                 return .serverValidationFailure

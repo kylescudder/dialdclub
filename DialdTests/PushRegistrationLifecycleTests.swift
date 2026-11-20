@@ -202,6 +202,24 @@ final class PushRegistrationLifecycleTests: XCTestCase {
         XCTAssertEqual(events, ["before", "invalidate", "restore"])
     }
 
+    func testAPISignOutRunsInvalidationHooksAndPreservesFailedSession() async {
+        let store = TestSessionStore()
+        let auth = AuthClient(sessionStore: store)
+        var events: [String] = []
+        auth.beforeSessionInvalidation = { events.append("unbind") }
+        auth.afterSessionInvalidationFailure = { events.append("restore") }
+        store.shouldFail = true
+        let failed = await auth.signOut()
+        XCTAssertFalse(failed)
+        XCTAssertEqual(events, ["unbind", "restore"])
+        store.shouldFail = false
+        events = []
+        let succeeded = await auth.signOut()
+        XCTAssertTrue(succeeded)
+        XCTAssertEqual(events, ["unbind"])
+        XCTAssertEqual(auth.state, .signedOut)
+    }
+
     func testInstallationIDIsStableAndCorruptValueIsReplaced() throws {
         let store = FakeInstallationIDStore()
         let provider = KeychainPushInstallationIDProvider(store: store)
@@ -247,6 +265,18 @@ final class PushRegistrationLifecycleTests: XCTestCase {
 
         XCTAssertTrue(transport.calls.isEmpty)
         XCTAssertEqual(registrar.registrationCount, 0)
+    }
+
+    func testRefreshRecoversIdentityAfterOfflineReauthentication() async {
+        let identity = FakePushIdentityProvider()
+        let transport = FakePushRegistrationTransport()
+        let lifecycle = makeLifecycle(identity: identity, transport: transport, registrar: FakeRemoteNotificationRegistrar())
+        await lifecycle.activate()
+        await lifecycle.receivedDeviceToken(Data([0xaa]))
+        XCTAssertTrue(transport.calls.isEmpty)
+        identity.identity = accountA
+        await lifecycle.refresh()
+        XCTAssertEqual(transport.calls, [.register(accountA, installationID, Data([0xaa]))])
     }
 
     func testLogoutWaitsForInflightRegistrationAndDropsQueuedRefresh() async {
@@ -469,5 +499,14 @@ private final class AsyncGate {
     func release() {
         releaseWaiter?.resume()
         releaseWaiter = nil
+    }
+}
+
+@MainActor
+private final class TestSessionStore: SessionStore {
+    var shouldFail = false
+    func read() throws -> Data? { nil }
+    func write(_ data: Data?) throws {
+        if shouldFail { throw TestError.expected }
     }
 }

@@ -19,7 +19,7 @@ struct RootView: View {
                 }
             }
         }
-        .task { await services.auth.bootstrap() }
+        .task { await services.auth.bootstrap(database: services.sync.database) }
         .onOpenURL { url in handle(url: url) }
         .onAppear { QuickActionRouter.activate() }
         .onChange(of: scenePhase) { _, phase in
@@ -28,6 +28,7 @@ struct RootView: View {
                 if case .signedIn = services.auth.state {
                     Task { await services.notifications.refreshRemoteRegistration() }
                 }
+                Task { await services.sync.retryConnection() }
             }
         }
         .sheet(isPresented: Binding(

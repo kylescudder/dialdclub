@@ -23,7 +23,7 @@ enum QuickActionRouter {
     }
 
     static func handle(url: URL, auth: AuthClient) {
-        Log.breadcrumb("incoming url: \(url.absoluteString)", category: "deeplink")
+        Log.breadcrumb("incoming app link", category: "deeplink")
 
         if url.scheme == "diald", url.host == "shortcut",
            let actionName = url.pathComponents.last,

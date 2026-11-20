@@ -18,6 +18,7 @@ final class PushRegistrationLifecycle {
 
     private var pendingOperation: Task<Void, Never>?
     private var generation = UUID()
+    private var isActive = false
 
     private(set) var identity: PushIdentity?
     private(set) var latestDeviceToken: Data?
@@ -39,6 +40,7 @@ final class PushRegistrationLifecycle {
     }
 
     func activate() async {
+        isActive = true
         let generation = generation
         await enqueue {
             guard self.generation == generation else { return }
@@ -53,7 +55,7 @@ final class PushRegistrationLifecycle {
 
     func refresh() async {
         // Foreground refresh must not reactivate credentials during sign-out.
-        guard identity != nil else { return }
+        guard isActive else { return }
         await activate()
     }
 
@@ -85,6 +87,7 @@ final class PushRegistrationLifecycle {
     }
 
     func resetForSignedOutState() {
+        isActive = false
         generation = UUID()
         identity = nil
     }

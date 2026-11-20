@@ -48,3 +48,10 @@ supabase/.branches/
 Site/.astro/
 Site/dist/
 Site/node_modules/
+
+# Self-hosted backend
+Backend/node_modules/
+Backend/dist/
+Backend/.env*
+!Backend/.env.example
+Backend/artifacts/

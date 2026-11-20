@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794432924874,
+      "tag": "0000_aromatic_sprite",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794432947200,
+      "tag": "0001_acoustic_leper_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794433037543,
+      "tag": "0002_lush_magma",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794433071312,
+      "tag": "0003_authorization-and-quotas",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794664052449,
+      "tag": "0004_parched_proemial_gods",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794664776854,
+      "tag": "0005_last_miracleman",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794665017161,
+      "tag": "0006_thankful_rictor",
+      "breakpoints": true
+    }
+  ]
+}

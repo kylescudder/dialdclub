@@ -1,4 +1,3 @@
-import Supabase
 import XCTest
 @testable import Diald
 
@@ -60,7 +59,7 @@ final class BrewCreationErrorTests: XCTestCase {
     }
 
     func testDatabaseLimitMapsToVerificationWhileMirrorIsPending() {
-        let databaseError = PostgrestError(code: "DX001", message: "free extraction limit reached")
+        let databaseError = APIError(code: "DX001", message: "free extraction limit reached")
 
         XCTAssertEqual(
             BrewCreationError.classify(databaseError, subscriptionState: .free),
@@ -75,21 +74,21 @@ final class BrewCreationErrorTests: XCTestCase {
     func testRepositoryErrorClassificationDistinguishesRequiredFailures() {
         XCTAssertEqual(
             BrewCreationError.classify(
-                PostgrestError(code: "DX002", message: "authentication required"),
+                APIError(code: "DX002", message: "authentication required"),
                 subscriptionState: .free
             ),
             .unauthenticated
         )
         XCTAssertEqual(
             BrewCreationError.classify(
-                PostgrestError(code: "PGRST001", message: "database unavailable"),
+                APIError(code: "temporarily_unavailable", message: "database unavailable"),
                 subscriptionState: .free
             ),
             .networkFailure
         )
         XCTAssertEqual(
             BrewCreationError.classify(
-                PostgrestError(code: "42501", message: "row-level security violation"),
+                APIError(code: "42501", message: "row-level security violation"),
                 subscriptionState: .free
             ),
             .serverValidationFailure
@@ -133,22 +132,22 @@ final class BrewCreationErrorTests: XCTestCase {
     }
 
     func testPowerSyncAcknowledgesOnlyKnownPermanentPostgresRejections() {
-        XCTAssertTrue(SupabaseConnector.isPermanentRejection(
-            PostgrestError(code: "DX001", message: "free extraction limit reached")
+        XCTAssertTrue(APIConnector.isPermanentRejection(
+            APIError(code: "DX001", message: "free extraction limit reached")
         ))
-        XCTAssertTrue(SupabaseConnector.isPermanentRejection(
-            PostgrestError(code: "23514", message: "check constraint failed")
+        XCTAssertTrue(APIConnector.isPermanentRejection(
+            APIError(code: "23514", message: "check constraint failed")
         ))
-        XCTAssertFalse(SupabaseConnector.isPermanentRejection(
-            PostgrestError(code: "PGRST001", message: "database unavailable")
+        XCTAssertFalse(APIConnector.isPermanentRejection(
+            APIError(code: "temporarily_unavailable", message: "database unavailable")
         ))
-        XCTAssertFalse(SupabaseConnector.isPermanentRejection(
-            PostgrestError(code: "42501", message: "row-level security violation")
+        XCTAssertFalse(APIConnector.isPermanentRejection(
+            APIError(code: "42501", message: "row-level security violation")
         ))
-        XCTAssertFalse(SupabaseConnector.isPermanentRejection(
-            PostgrestError(code: "DX002", message: "authentication required")
+        XCTAssertFalse(APIConnector.isPermanentRejection(
+            APIError(code: "DX002", message: "authentication required")
         ))
-        XCTAssertFalse(SupabaseConnector.isPermanentRejection(
+        XCTAssertFalse(APIConnector.isPermanentRejection(
             NSError(domain: NSURLErrorDomain, code: NSURLErrorNotConnectedToInternet)
         ))
     }

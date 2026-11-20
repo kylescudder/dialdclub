@@ -52,9 +52,9 @@ final class AppServices: ObservableObject {
         billing.start()
         Task { await sync.startObservingAuth() }
 
-        auth.$state
-            .removeDuplicates()
-            .sink { [weak self] state in
+        auth.$state.combineLatest(auth.$requiresReauthentication)
+            .removeDuplicates { $0.0 == $1.0 && $0.1 == $1.1 }
+            .sink { [weak self] state, _ in
                 guard let self else { return }
                 Task { @MainActor in await self.applyAuth(state: state) }
             }

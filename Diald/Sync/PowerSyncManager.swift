@@ -16,12 +16,11 @@ final class PowerSyncManager: ObservableObject {
 
     @Published private(set) var status: Status = .idle
     @Published private(set) var pendingUploadCount = 0
-
     let database: PowerSyncDatabaseProtocol
 
     private let auth: AuthClient
     private let issues: SyncIssueStore
-    private var connector: SupabaseConnector?
+    private var connector: APIConnector?
     private var authCancellables = Set<AnyCancellable>()
     private var statusTask: Task<Void, Never>?
     private var pendingCountTask: Task<Void, Never>?
@@ -31,7 +30,7 @@ final class PowerSyncManager: ObservableObject {
         self.issues = issues
         self.database = PowerSyncDatabase(
             schema: DatabaseSchema.schema,
-            dbFilename: "diald.sqlite"
+            dbFilename: "diald-v2.sqlite"
         )
     }
 
@@ -41,9 +40,9 @@ final class PowerSyncManager: ObservableObject {
     }
 
     func startObservingAuth() async {
-        auth.$state
-            .removeDuplicates()
-            .sink { [weak self] state in
+        Publishers.CombineLatest(auth.$state, auth.$requiresReauthentication)
+            .removeDuplicates { $0.0 == $1.0 && $0.1 == $1.1 }
+            .sink { [weak self] state, _ in
                 Task { @MainActor [weak self] in
                     await self?.reconcile(state)
                 }
@@ -103,7 +102,11 @@ final class PowerSyncManager: ObservableObject {
     }
 
     private func connectIfNeeded() async {
-        guard connector == nil else { return }
+        guard connector == nil, await auth.currentAccessToken() != nil else { return }
+        guard UserDefaults.standard.string(forKey: AuthClient.ownerKey) == auth.currentUserID?.uuidString.lowercased() else {
+            status = .error("Sign in with the original offline account before syncing.")
+            return
+        }
         if UserDefaults.standard.bool(forKey: Self.requiresWipeKey) {
             do {
                 try await database.disconnectAndClear()
@@ -121,7 +124,7 @@ final class PowerSyncManager: ObservableObject {
         }
 
         status = .connecting
-        let connector = SupabaseConnector(auth: auth, issues: issues)
+        let connector = APIConnector(auth: auth, issues: issues)
         self.connector = connector
         do {
             try await database.connect(connector: connector)
@@ -150,6 +153,7 @@ final class PowerSyncManager: ObservableObject {
         do {
             try await database.disconnectAndClear()
             UserDefaults.standard.removeObject(forKey: Self.requiresWipeKey)
+            UserDefaults.standard.removeObject(forKey: AuthClient.ownerKey)
             connector = nil
             status = .idle
             pendingUploadCount = 0
@@ -158,4 +162,5 @@ final class PowerSyncManager: ObservableObject {
             issues.reportLocalClearFailure()
         }
     }
+    func retryConnection() async { await connectIfNeeded() }
 }

@@ -2,9 +2,9 @@ import AuthenticationServices
 import UIKit
 
 enum GoogleSignIn {
-    /// Presents an ASWebAuthenticationSession that opens the Supabase OAuth URL
+    /// Presents an ASWebAuthenticationSession that opens the Diald OAuth URL
     /// and waits for the diald:// callback. Returns the callback URL so
-    /// supabase-swift can extract the session from it.
+    /// Diald can exchange its proof-bound code.
     @MainActor
     static func start(authURL: URL, callbackScheme: String) async throws -> URL {
         try await withCheckedThrowingContinuation { continuation in

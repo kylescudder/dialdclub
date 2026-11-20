@@ -27,16 +27,12 @@ final class LegacyPushRegistrationTransport: PushRegistrationTransport {
         guard let auth else { return }
         let token = deviceToken.map { String(format: "%02x", $0) }.joined()
         let payload: [String: String] = [
-            "user_id": identity.principalID,
             "apns_token": token,
             "device_name": deviceName,
             "bundle_id": bundleID,
             "environment": environment.rawValue
         ]
-        try await auth.supabase
-            .from("device_tokens")
-            .upsert(payload, onConflict: "user_id,apns_token")
-            .execute()
+        _ = try await auth.api.json("api/devices", values: payload)
         registeredToken = token
         Log.breadcrumb("apns token uploaded", category: "notifications")
     }
@@ -46,12 +42,11 @@ final class LegacyPushRegistrationTransport: PushRegistrationTransport {
         identity: PushIdentity
     ) async throws {
         guard let auth, let registeredToken else { return }
-        try await auth.supabase
-            .from("device_tokens")
-            .delete()
-            .eq("user_id", value: identity.principalID)
-            .eq("apns_token", value: registeredToken)
-            .execute()
+        _ = try await auth.api.json(
+            "api/devices",
+            method: "DELETE",
+            values: ["apns_token": registeredToken]
+        )
         self.registeredToken = nil
     }
 }

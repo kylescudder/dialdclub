@@ -73,8 +73,6 @@ struct ResetPasswordSheet: View {
             localError = "Passwords don't match."
             return
         }
-        if await services.auth.updatePassword(newPassword: password) {
-            await services.sync.wipe()
-        }
+        _ = await services.auth.updatePassword(newPassword: password)
     }
 }

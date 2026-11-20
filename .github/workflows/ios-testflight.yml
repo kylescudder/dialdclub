@@ -23,7 +23,7 @@ concurrency:
 jobs:
   build:
     name: Archive & upload
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 45
     env:
       SCHEME: Diald
@@ -41,16 +41,37 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - run: xcodebuild -version
+      - name: Verify Xcode 27 and iOS 27 SDK
+        run: |
+          xcodebuild -version
+          xcodebuild -version | grep -Eq '^Xcode 27([.]|$)'
+          sdk_version="$(xcrun --sdk iphoneos --show-sdk-version)"
+          echo "iOS SDK: $sdk_version"
+          [[ "$sdk_version" == 27 || "$sdk_version" == 27.* ]]
       - run: sudo xcodebuild -downloadPlatform iOS || true
       - run: brew install xcodegen
       - name: Write Secrets.xcconfig
         env:
           IOS_SECRETS: ${{ secrets.IOS_SECRETS_XCCONFIG }}
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          POWERSYNC_BASE_URL: ${{ vars.POWERSYNC_BASE_URL }}
         run: |
-          test -n "${IOS_SECRETS}" || (echo "::error::IOS_SECRETS_XCCONFIG is empty" && exit 1)
           mkdir -p Config
-          printf '%s\n' "$IOS_SECRETS" > Config/Secrets.xcconfig
+          python3 - <<'PYCONFIG'
+          import os
+          import re
+          from pathlib import Path
+
+          config = os.environ["IOS_SECRETS"]
+          for key, variable in [("API_URL", "API_BASE_URL"), ("POWERSYNC_URL", "POWERSYNC_BASE_URL")]:
+              url = os.environ[variable]
+              if not re.fullmatch(r"https://[a-zA-Z0-9.-]+", url):
+                  raise SystemExit(f"::error::{variable} must be an HTTPS origin")
+              config = re.sub(rf"(?m)^\s*{key}\s*=.*$", "", config)
+              escaped = url.replace("//", "/$()/", 1)
+              config += f"\n{key} = {escaped}\n"
+          Path("Config/Secrets.xcconfig").write_text(config)
+          PYCONFIG
       - name: Validate app service secrets
         run: |
           value_for() {
@@ -62,27 +83,19 @@ jobs:
             }' Config/Secrets.xcconfig
           }
 
-          supabase_url="$(value_for SUPABASE_URL)"
-          supabase_key="$(value_for SUPABASE_ANON_KEY)"
+          api_url="$(value_for API_URL)"
           powersync_url="$(value_for POWERSYNC_URL)"
-          resolved_supabase_url="$(printf '%s' "$supabase_url" | sed 's#/[$]()#/#g')"
+          resolved_api_url="$(printf '%s' "$api_url" | sed 's#/[$]()#/#g')"
           resolved_powersync_url="$(printf '%s' "$powersync_url" | sed 's#/[$]()#/#g')"
 
-          case "$resolved_supabase_url" in
-            ""|*\$"("*|*your-project.supabase.co*|*placeholder.supabase.co*)
-              echo "::error::SUPABASE_URL is missing, unresolved, or still a placeholder"
+          case "$resolved_api_url" in
+            ""|*\$"("*|*your-api.invalid*)
+              echo "::error::API_URL is missing, unresolved, or still a placeholder"
               exit 1
               ;;
           esac
 
-          case "$supabase_key" in
-            ""|*\$"("*|*your-supabase-anon-key*)
-              echo "::error::SUPABASE_ANON_KEY is missing, unresolved, or still a placeholder"
-              exit 1
-              ;;
-          esac
 
-          test "${#supabase_key}" -gt 40 || (echo "::error::SUPABASE_ANON_KEY is unexpectedly short" && exit 1)
 
           case "$resolved_powersync_url" in
             ""|*\$"("*|*your-instance.powersync.journeyapps.com*)
@@ -142,25 +155,17 @@ jobs:
           app_plist="$ARCHIVE_PATH/Products/Applications/Diald.app/Info.plist"
           test -f "$app_plist" || (echo "::error::Archived app Info.plist not found" && exit 1)
 
-          supabase_url="$(plutil -extract SUPABASE_URL raw -o - "$app_plist")"
-          supabase_key="$(plutil -extract SUPABASE_ANON_KEY raw -o - "$app_plist")"
+          api_url="$(plutil -extract API_URL raw -o - "$app_plist")"
           powersync_url="$(plutil -extract POWERSYNC_URL raw -o - "$app_plist")"
 
-          case "$supabase_url" in
-            ""|*\$"("*|*your-project.supabase.co*|*placeholder.supabase.co*)
-              echo "::error::Archived app has missing, unresolved, or placeholder SUPABASE_URL"
+          case "$api_url" in
+            ""|*\$"("*|*your-api.invalid*)
+              echo "::error::Archived app has missing, unresolved, or placeholder API_URL"
               exit 1
               ;;
           esac
 
-          case "$supabase_key" in
-            ""|*\$"("*|*your-supabase-anon-key*)
-              echo "::error::Archived app has missing, unresolved, or placeholder SUPABASE_ANON_KEY"
-              exit 1
-              ;;
-          esac
 
-          test "${#supabase_key}" -gt 40 || (echo "::error::Archived app SUPABASE_ANON_KEY is unexpectedly short" && exit 1)
 
           case "$powersync_url" in
             ""|*\$"("*|*your-instance.powersync.journeyapps.com*)
@@ -176,6 +181,7 @@ jobs:
             -exportOptionsPlist "$EXPORT_OPTIONS"
       - name: Upload to TestFlight
         run: |
-          IPA=$(ls "$EXPORT_PATH"/*.ipa | head -1)
-          test -n "$IPA" || (echo "::error::No .ipa produced" && exit 1)
+          ipas=("$EXPORT_PATH"/*.ipa)
+          IPA="${ipas[0]}"
+          test -f "$IPA" || (echo "::error::No .ipa produced" && exit 1)
           xcrun altool --upload-app --file "$IPA" --type ios --apiKey "$APP_STORE_KEY_ID" --apiIssuer "$APP_STORE_ISSUER_ID"
