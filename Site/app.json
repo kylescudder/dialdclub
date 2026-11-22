@@ -1,0 +1,17 @@
+{
+  "name": "Diald Club",
+  "token": "Diald",
+  "repository": "dialdclub",
+  "origin": "https://diald.club",
+  "themeColor": "#f5eddf",
+  "icon": "/assets/diald-icon.png",
+  "contact": "kyle@kylescudder.co.uk",
+  "support": "/support",
+  "pages": {
+    "/": "Make every cup easier to repeat.",
+    "/privacy": "Privacy Policy",
+    "/terms": "Terms of Use",
+    "/support": "Support"
+  },
+  "routes": {}
+}

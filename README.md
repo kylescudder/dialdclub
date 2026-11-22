@@ -169,6 +169,7 @@ See [Backend/deploy/README.md](Backend/deploy/README.md) and deploy-core's
 
 | Setting | Kind | Purpose |
 |---|---|---|
+| `DEPLOY_HOST` | repository variable | Herman deploy hostname, protected by Cloudflare Access |
 | `SITE_BASE_URL` | repository variable | Public origin checked for the new revision |
 | `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET` | `production` secrets | Access service token for the deploy hostname |
 | `DEPLOY_WEBHOOK_SECRET` | `production` secret | HMAC key for deploy requests |
@@ -192,7 +193,7 @@ wait for Apple's processing of an earlier upload.
 
 ## Shared code
 
-Diald and Deadwax Club keep four sets of files byte-for-byte identical. CI fails
+Diald and Deadwax Club keep five sets of files byte-for-byte identical. CI fails
 if any of them drift:
 
 | Check | Covers |
@@ -201,6 +202,7 @@ if any of them drift:
 | `Scripts/check-shared-auth.sh` | Better Auth backend and native auth ([SHARED_AUTH.md](Scripts/SHARED_AUTH.md)) |
 | `Scripts/check-shared-push-core.sh` | Push registration core ([SHARED_PUSH_CORE.md](Scripts/SHARED_PUSH_CORE.md)) |
 | `Scripts/check-shared-infra.sh` | Backend deployment and provisioning ([SHARED_INFRA.md](Scripts/SHARED_INFRA.md)) |
+| `Scripts/check-shared-site.sh` | Astro site layout, tooling, image and site workflows ([SHARED_SITE.md](Scripts/SHARED_SITE.md)) |
 
 ## Development notes
 

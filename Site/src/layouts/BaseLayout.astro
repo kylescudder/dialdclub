@@ -1,4 +1,6 @@
 ---
+// Shared by every app's site (Scripts/SHARED_SITE.md). The app's own header,
+// footer and styles fill it in.
 import "../styles/global.css";
 import DocumentHead from "../components/DocumentHead.astro";
 import Footer from "../components/Footer.astro";
@@ -9,14 +11,27 @@ interface Props {
   description: string;
   ogTitle?: string;
   bodyClass?: string;
+  /** Set false for a page served at many URLs, such as a share link viewer. */
+  canonical?: boolean;
 }
 
-const { title, description, ogTitle = title, bodyClass = "" } = Astro.props;
+const {
+  title,
+  description,
+  ogTitle = title,
+  bodyClass,
+  canonical = true,
+} = Astro.props;
 ---
 
 <!doctype html>
 <html lang="en">
-  <DocumentHead title={title} description={description} ogTitle={ogTitle} />
+  <DocumentHead
+    title={title}
+    description={description}
+    ogTitle={ogTitle}
+    canonical={canonical}
+  />
   <body class={bodyClass}>
     <Header />
     <slot />
