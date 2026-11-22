@@ -13,7 +13,7 @@ Every iOS app uses the same repository layout, app scaffolding and CI. Read
 configuration keys or workflows. Five checksum manifests keep shared files
 byte-for-byte identical with the other apps, and CI runs all of them:
 
-- `Scripts/check-shared-ios-core.sh` — `AppSecrets`, `AppBootstrap`, `Theme`, `LoadingView`, `LottieAnimationView`, `PrimaryButton`, `Logger`, `AppearanceManager`, `SharedAppSecretsTests`, `setup.sh` and the iOS workflows.
+- `Scripts/check-shared-ios-core.sh` — `AppSecrets`, `AppBootstrap`, `Theme`, `LoadingView`, `LottieAnimationView`, `PrimaryButton`, `Logger`, `AppearanceManager`, the billing core (`BillingRepository`, `SubscriptionAccessState`, `CreationQuotaProviding`, `SubscriptionPaywallView`), the `Shared*Tests`, `setup.sh` and the iOS workflows.
 - `Scripts/check-shared-auth.sh` — Better Auth backend and native auth (`SHARED_AUTH.md`).
 - `Scripts/check-shared-push-core.sh` — push registration core (`SHARED_PUSH_CORE.md`).
 - `Scripts/check-shared-infra.sh` — backend deployment and provisioning (`SHARED_INFRA.md`).
@@ -21,8 +21,9 @@ byte-for-byte identical with the other apps, and CI runs all of them:
 
 Never edit a shared file in one app only. Put app-specific values behind the
 hooks listed in `SHARED_IOS_CORE.md` (`Theme+App.swift`, `AuthAppConfiguration`,
-`project.yml`, `Scripts/setup-extras.sh`), or make the same change in every app
-and refresh the manifest with `sh Scripts/check-shared-ios-core.sh --write`.
+`BillingAppConfiguration`, `project.yml`, `Scripts/setup-extras.sh`), or make
+the same change in every app and refresh the manifest with
+`sh Scripts/check-shared-ios-core.sh --write`.
 
 ## Common commands
 
@@ -125,7 +126,7 @@ identical across all application repositories.
 
 ### Subscriptions
 
-- `BillingRepository` uses StoreKit 2 as the authority for whether Apple considers the local subscription active. It watches `Transaction.updates`, loads `club.diald.supporter.monthly`, and checks `Transaction.currentEntitlements`. Local verification moves server-backed access to `.verifying`; only successful server confirmation moves it to `.active`/`isSubscribed`.
+- `BillingRepository`, `SubscriptionAccessState` and `SubscriptionPaywallView` are the shared billing core (rules in `Scripts/SHARED_IOS_CORE.md`, tests in `SharedBillingTests`). Diald's values (`club.diald.supporter.monthly`, the verification message and paywall copy) live in `Diald/Billing/BillingAppConfiguration.swift`, and the paywall reads the lifetime extraction count through `AppServices.creationQuota` (`BrewsRepository`). StoreKit 2 is the authority for whether Apple considers the local subscription active. Local verification moves server-backed access to `.verifying`; only successful server confirmation moves it to `.active`/`isSubscribed`, and only then is the transaction finished. Revoked or expired `Transaction.updates` are mirrored to `/api/iap/transactions` so the server row stops granting access, finished once stored, and end access in-session.
 - Purchase calls include the signed-in user UUID as `appAccountToken`. Verified transactions are mirrored to `/api/iap/transactions`; App Store Server Notifications V2 update the same `iap_entitlements` row through `/api/iap/notifications`.
 - The entitlement row is authoritative only for server-backed database writes, and only when `verified_at`, the exact bundle/product/environment, current expiration, and non-revoked status were recorded by `record_verified_iap_entitlement`. Both API IAP paths use Apple's official server library and bundled Apple roots to verify the JWS certificate chain and signature before validating `bundleId`, environment, product ID, and mandatory `appAccountToken`. Never restore payload-only decoding or direct client writes. Keep purchase, restore, retry, manage-subscription, transaction finishing, and entitlement refresh paths aligned.
 - The free limit is `AppServices.freeExtractionLimit == 5`. Migration `0006_enforce_free_extraction_limit.sql` locks `brew_sessions` across backfill and trigger installation, then seeds and atomically increments `extraction_creation_quotas` for every genuine insert, so soft or hard deletion never restores allowance. Reusing a historical hard-deleted `brew_session_id` is rejected by the durable event ledger as an explicit idempotency/safety rule. Any change to the limit or what constitutes an extraction must update the database trigger, status RPC, client gate, tests, and user-facing paywall copy together.

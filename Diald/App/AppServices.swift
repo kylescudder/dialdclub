@@ -18,6 +18,9 @@ final class AppServices: ObservableObject {
     let profile: ProfileRepository
     let analysis: AnalysisClient
 
+    /// The creation allowance the shared paywall reports.
+    var creationQuota: any CreationQuotaProviding { brews }
+
     private var cancellables = Set<AnyCancellable>()
 
     init() {

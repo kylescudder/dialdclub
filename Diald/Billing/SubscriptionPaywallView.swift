@@ -1,12 +1,15 @@
 import SwiftUI
 
+/// Shared Supporter paywall. Copy, links and the usage count come from
+/// `BillingAppConfiguration` and `AppServices.creationQuota`.
+
 struct SubscriptionPaywallView: View {
     @EnvironmentObject private var services: AppServices
     @Environment(\.dismiss) private var dismiss
 
     @State private var isPurchasing = false
     @State private var isRestoring = false
-    @State private var extractionCount: Int?
+    @State private var creationCount: Int?
 
     var body: some View {
         NavigationStack {
@@ -22,10 +25,10 @@ struct SubscriptionPaywallView: View {
                             .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md))
 
                         VStack(spacing: Theme.Spacing.sm) {
-                            Text("Keep logging extractions")
+                            Text(BillingAppConfiguration.paywallHeadline)
                                 .font(.title2.weight(.semibold))
                                 .multilineTextAlignment(.center)
-                            Text("Your first \(AppServices.freeExtractionLimit) extractions are free. This is a lifetime allowance, so deleted extractions still count. Subscribe to add unlimited brews, recipes, and tasting notes.")
+                            Text(BillingAppConfiguration.paywallMessage)
                                 .font(.body)
                                 .foregroundStyle(Theme.Colors.textSecondary)
                                 .multilineTextAlignment(.center)
@@ -83,8 +86,8 @@ struct SubscriptionPaywallView: View {
                                 .multilineTextAlignment(.center)
                         }
 
-                        if let extractionCount {
-                            Text("\(extractionCount) \(extractionCount == 1 ? "extraction" : "extractions") logged")
+                        if let creationCount {
+                            Text(BillingAppConfiguration.usageText(count: creationCount))
                                 .font(.footnote)
                                 .foregroundStyle(Theme.Colors.textTertiary)
                         }
@@ -139,16 +142,16 @@ struct SubscriptionPaywallView: View {
                 .multilineTextAlignment(.center)
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: Theme.Spacing.sm) {
-                    Link("Privacy Policy", destination: Self.privacyPolicyURL)
+                    Link("Privacy Policy", destination: BillingAppConfiguration.privacyPolicyURL)
                     Text("•")
                         .foregroundStyle(Theme.Colors.textTertiary)
-                    Link("Terms of Use", destination: Self.termsOfUseURL)
+                    Link("Terms of Use", destination: BillingAppConfiguration.termsOfUseURL)
                 }
                 .fixedSize(horizontal: true, vertical: false)
 
                 VStack(spacing: Theme.Spacing.xs) {
-                    Link("Privacy Policy", destination: Self.privacyPolicyURL)
-                    Link("Terms of Use", destination: Self.termsOfUseURL)
+                    Link("Privacy Policy", destination: BillingAppConfiguration.privacyPolicyURL)
+                    Link("Terms of Use", destination: BillingAppConfiguration.termsOfUseURL)
                 }
             }
             .font(.footnote.weight(.semibold))
@@ -162,9 +165,6 @@ struct SubscriptionPaywallView: View {
         }
         return "Monthly auto-renewable subscription: \(product.displayPrice) per month. Payment is charged to your Apple ID after purchase confirmation."
     }
-
-    private static let privacyPolicyURL = URL(string: "https://diald.club/privacy")!
-    private static let termsOfUseURL = URL(string: "https://diald.club/terms")!
 
     private func subscribe() async {
         isPurchasing = true
@@ -183,6 +183,6 @@ struct SubscriptionPaywallView: View {
     }
 
     private func loadCount() async {
-        extractionCount = try? await services.brews.createdExtractionCount()
+        creationCount = try? await services.creationQuota.lifetimeCreationCount()
     }
 }
