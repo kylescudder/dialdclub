@@ -37,9 +37,6 @@ Config/Secrets.xcconfig
 .idea/
 *.swp
 
-# Local Netlify folder
-.netlify
-
 # Astro marketing site
 Site/.astro/
 Site/dist/
