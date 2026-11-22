@@ -1,12 +1,10 @@
-import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { connectDatabase } from '../src/database'
-
+import { migrateApplication } from '../db/application'
+import { migrateDeployment } from './infra-migrations'
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required')
 const { db, pool } = connectDatabase(process.env.DATABASE_URL)
 try {
-  await migrate(db, {
-    migrationsFolder: new URL('../drizzle', import.meta.url).pathname
-  })
+  await migrateDeployment(db, pool, migrateApplication)
 } finally {
   await pool.end()
 }

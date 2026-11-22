@@ -1,56 +1,18 @@
-# Image-only host candidate. Install only through a reviewed deploy-core release.
+# One project per app on Herman's existing PostgreSQL network. Service names are
+# app-prefixed because Compose publishes each service name as a DNS alias on
+# every network, including the shared platform-db and ingress networks.
+name: ${BACKEND_PROJECT:?app project name required}
 services:
   diald-api:
-    image: ${DIALD_API_IMAGE:?immutable attested image required}
-    restart: unless-stopped
-    user: '1000:1000'
-    read_only: true
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
-    mem_limit: 256m
-    cpus: 0.5
-    pids_limit: 100
-    env_file: ./secrets/api.env
-    tmpfs: [/tmp:rw, noexec, nosuid, size=16m]
-    volumes:
-      - ./state/notifications:/var/lib/diald/notifications
-    networks: [platform-db, diald-sync, ingress]
-    # Inherit the health check shipped with the application image.
+    extends: { file: compose.shared.yaml, service: api }
   diald-sync:
-    image: ${DIALD_SYNC_IMAGE:?verified PowerSync arm64 digest required}
-    command: [start, -r, unified]
-    restart: unless-stopped
-    user: '1000:1000'
-    read_only: true
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
-    mem_limit: 512m
-    cpus: 1
-    pids_limit: 100
-    env_file: ./secrets/powersync.env
-    environment:
-      POWERSYNC_CONFIG_PATH: /config/service.yaml
-      NODE_OPTIONS: --max-old-space-size=384
-    volumes:
-      - ./powersync:/config:ro
-    tmpfs: [/tmp:rw, noexec, nosuid, size=16m]
-    networks: [platform-db, diald-sync, ingress]
-    healthcheck:
-      test:
-        [
-          CMD,
-          node,
-          -e,
-          "fetch('http://127.0.0.1:8080/probes/liveness').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-        ]
-      interval: 15s
-      timeout: 5s
-      retries: 3
+    extends: { file: compose.shared.yaml, service: sync }
 networks:
   platform-db:
     external: true
-  diald-sync:
-    external: true
+    name: platform-db
+  app-sync:
+    internal: true
   ingress:
     external: true
-    name: ${DIALD_INGRESS_NETWORK:?reviewed tunnel network required}
+    name: ${BACKEND_INGRESS_NETWORK:?reviewed tunnel network required}
