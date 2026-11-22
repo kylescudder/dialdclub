@@ -1,5 +1,5 @@
--- Ported transactional quota/verified-entitlement behavior. No Supabase schemas
--- or roles are required. Only the request transaction sets diald.user_id.
+-- Transactional quota and verified-entitlement behaviour. Only the request
+-- transaction sets diald.user_id.
 do $$ begin
   if not exists (select 1 from pg_roles where rolname = 'diald_api') then
     create role diald_api nologin;
