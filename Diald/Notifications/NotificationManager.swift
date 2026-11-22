@@ -77,7 +77,6 @@ final class NotificationManager: NSObject, ObservableObject {
     @Published private(set) var authorizationStatus: UNAuthorizationStatus = .notDetermined
     @Published private(set) var localReminders: [BrewReminderSchedule] = []
 
-    private static let legacyLocalReminderIdentifier = "daily-brew-reminder"
     private static let localReminderIdentifierPrefix = "brew-reminder"
     private static let reminderStorageKey = "notifications.brewReminders"
     private let notificationCenter: UNUserNotificationCenter
@@ -159,19 +158,7 @@ final class NotificationManager: NSObject, ObservableObject {
     }
 
     func refreshLocalReminderState() async {
-        let stored = Self.storedLocalReminders()
-        if !stored.isEmpty {
-            localReminders = stored
-            return
-        }
-
-        let requests = await notificationCenter.pendingNotificationRequests()
-        guard let legacy = Self.migratedLegacyReminder(from: requests) else {
-            localReminders = []
-            return
-        }
-
-        await replaceLocalReminders([legacy])
+        localReminders = Self.storedLocalReminders()
     }
 
     @discardableResult
@@ -269,10 +256,7 @@ final class NotificationManager: NSObject, ObservableObject {
         let requests = await notificationCenter.pendingNotificationRequests()
         let identifiers = requests
             .map(\.identifier)
-            .filter {
-                $0 == Self.legacyLocalReminderIdentifier
-                    || $0.hasPrefix("\(Self.localReminderIdentifierPrefix)-")
-            }
+            .filter { $0.hasPrefix("\(Self.localReminderIdentifierPrefix)-") }
         notificationCenter.removePendingNotificationRequests(withIdentifiers: identifiers)
     }
 
@@ -291,18 +275,6 @@ final class NotificationManager: NSObject, ObservableObject {
     private static func storeLocalReminders(_ reminders: [BrewReminderSchedule]) {
         guard let data = try? JSONEncoder().encode(reminders) else { return }
         UserDefaults.standard.set(data, forKey: reminderStorageKey)
-    }
-
-    private static func migratedLegacyReminder(from requests: [UNNotificationRequest]) -> BrewReminderSchedule? {
-        guard let request = requests.first(where: { $0.identifier == legacyLocalReminderIdentifier }),
-              let trigger = request.trigger as? UNCalendarNotificationTrigger else {
-            return nil
-        }
-        return BrewReminderSchedule(
-            weekdays: BrewReminderSchedule.defaultWeekdays,
-            hour: trigger.dateComponents.hour ?? 8,
-            minute: trigger.dateComponents.minute ?? 30
-        )
     }
 
     private static var apnsEnvironment: APNSEnvironment {
