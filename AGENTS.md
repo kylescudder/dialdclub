@@ -76,7 +76,8 @@ and PowerSync config together through deploy-core.
 
 Backend checks: `cd Backend && bun install --frozen-lockfile`, `bun run typecheck`,
 `bun run lint`, `bun run format:check`, `TEST_DATABASE_URL=... bun test`,
-`bun run build`. Tests require a disposable PostgreSQL database and create/drop
+`bun run build`. The pre-commit hook checks staged `Backend/` and `Site/` files
+with Prettier. Tests require a disposable PostgreSQL database and create/drop
 additional fixture databases. Never point them at production. Native runtime and
 screenshots require a functioning simulator; build-only checks are not flow proof.
 
