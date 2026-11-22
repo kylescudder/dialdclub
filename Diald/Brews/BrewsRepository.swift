@@ -351,7 +351,7 @@ private struct OfflineEntitlementSnapshot: Sendable {
     let verificationSource: String?
 
     var isCurrentlyVerified: Bool {
-        productID == BillingRepository.supporterMonthlyProductID
+        productID == BillingRepository.productID
             && bundleID == "club.diald"
             && status == "active"
             && revokedAt == nil
@@ -378,5 +378,11 @@ private struct OfflineEntitlementSnapshot: Sendable {
         } catch {
             return nil
         }
+    }
+}
+
+extension BrewsRepository: CreationQuotaProviding {
+    func lifetimeCreationCount() async throws -> Int {
+        try await createdExtractionCount()
     }
 }
