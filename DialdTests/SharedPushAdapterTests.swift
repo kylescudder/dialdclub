@@ -1,9 +1,18 @@
 import Foundation
+import Security
 import XCTest
+#if canImport(Diald)
 @testable import Diald
+#else
+@testable import DeadWaxClub
+#endif
+
+/// The shared push adapters around `PushRegistrationLifecycle`: lifecycle
+/// ordering, session invalidation hooks, the installation ID, transport
+/// selection and the app API transport.
 
 @MainActor
-final class PushRegistrationLifecycleTests: XCTestCase {
+final class SharedPushAdapterTests: XCTestCase {
     private let installationID = UUID(uuidString: "550d5a6b-7248-49da-a4dc-92db45608c07")!
     private let accountA = PushIdentity(principalID: "account-a", accessToken: "token-a")
     private let accountB = PushIdentity(principalID: "account-b", accessToken: "token-b")
@@ -111,7 +120,7 @@ final class PushRegistrationLifecycleTests: XCTestCase {
 
         let auth = AuthClient()
         auth.beforeSessionInvalidation = { await lifecycle.deactivate() }
-        _ = try await auth.performSessionInvalidatingOperation {
+        _ = await auth.performSessionInvalidation {
             events.append("invalidate")
             return true
         }
@@ -183,7 +192,7 @@ final class PushRegistrationLifecycleTests: XCTestCase {
         auth.beforeSessionInvalidation = { events.append("before") }
         auth.afterSessionInvalidationFailure = { events.append("restore") }
 
-        _ = try await auth.performSessionInvalidatingOperation {
+        _ = await auth.performSessionInvalidation {
             events.append("invalidate")
             return true
         }
@@ -191,7 +200,7 @@ final class PushRegistrationLifecycleTests: XCTestCase {
 
         events = []
         do {
-            let _: Void = try await auth.performSessionInvalidatingOperation {
+            let _: Void = try await auth.performSessionInvalidation {
                 events.append("invalidate")
                 throw TestError.expected
             }
@@ -243,28 +252,6 @@ final class PushRegistrationLifecycleTests: XCTestCase {
         XCTAssertThrowsError(try provider.installationID()) { error in
             XCTAssertEqual(error as? TestError, .expected)
         }
-    }
-
-    func testReplacingLocalRemindersDoesNotCallRemoteRegistration() async {
-        let storageKey = "notifications.brewReminders"
-        let previous = UserDefaults.standard.data(forKey: storageKey)
-        defer {
-            if let previous {
-                UserDefaults.standard.set(previous, forKey: storageKey)
-            } else {
-                UserDefaults.standard.removeObject(forKey: storageKey)
-            }
-        }
-        let identity = FakePushIdentityProvider(identity: accountA)
-        let transport = FakePushRegistrationTransport()
-        let registrar = FakeRemoteNotificationRegistrar()
-        let lifecycle = makeLifecycle(identity: identity, transport: transport, registrar: registrar)
-        let manager = NotificationManager(registrationLifecycle: lifecycle)
-
-        await manager.replaceLocalReminders([])
-
-        XCTAssertTrue(transport.calls.isEmpty)
-        XCTAssertEqual(registrar.registrationCount, 0)
     }
 
     func testRefreshRecoversIdentityAfterOfflineReauthentication() async {
@@ -349,6 +336,134 @@ final class PushRegistrationLifecycleTests: XCTestCase {
         XCTAssertNil(lifecycle.identity)
         XCTAssertTrue(transport.calls.isEmpty)
         XCTAssertEqual(registrar.registrationCount, 0)
+    }
+
+    func testFailedAuthInvalidationCanReactivateTheSameAccount() async {
+        let identity = FakePushIdentityProvider(identity: accountA)
+        let transport = FakePushRegistrationTransport()
+        let lifecycle = makeLifecycle(identity: identity, transport: transport, registrar: FakeRemoteNotificationRegistrar())
+        await lifecycle.receivedDeviceToken(Data([0x01]))
+        await lifecycle.activate(isAuthorized: false)
+
+        // AppServices installs these calls as the before-invalidation and
+        // invalidation-failure hooks respectively.
+        await lifecycle.deactivate()
+        await lifecycle.activate(isAuthorized: false)
+
+        XCTAssertEqual(transport.calls, [
+            .register(accountA, installationID, Data([0x01])),
+            .unregister(accountA, installationID),
+            .register(accountA, installationID, Data([0x01])),
+        ])
+    }
+
+    func testObservedSessionEndClearsCachedIdentity() async {
+        let identity = FakePushIdentityProvider(identity: accountA)
+        let transport = FakePushRegistrationTransport()
+        let lifecycle = makeLifecycle(identity: identity, transport: transport, registrar: FakeRemoteNotificationRegistrar())
+        await lifecycle.activate(isAuthorized: false)
+
+        lifecycle.sessionEnded()
+        await lifecycle.receivedDeviceToken(Data([0x01]))
+
+        XCTAssertTrue(transport.calls.isEmpty)
+        XCTAssertNil(lifecycle.identity)
+    }
+
+    func testInstallationIDWriteFailureSurfacesWithoutUnstableFallback() {
+        let store = FakeInstallationIDStore()
+        store.writeError = TestError.expected
+        let provider = KeychainPushInstallationIDProvider(store: store)
+
+        XCTAssertThrowsError(try provider.installationID()) { error in
+            XCTAssertEqual(error as? TestError, .expected)
+        }
+        XCTAssertNil(store.values[KeychainPushInstallationIDProvider.account])
+    }
+
+    func testInstallationIDKeychainItemComesFromTheAppHook() {
+        XCTAssertEqual(KeychainPushInstallationIDProvider.account, "push-gateway.installation-id")
+        let accessibility = PushAppConfiguration.installationIDKeychainAccessibility
+        XCTAssertTrue(
+            [kSecAttrAccessibleAfterFirstUnlock as String, kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly as String]
+                .contains(accessibility)
+        )
+    }
+
+    func testAPITransportRegistersAndUnregistersTheLatestTokenWithTheIdentitysBearer() async throws {
+        let requests = PushAPIRequestLog()
+        let auth = try await makeSignedInAuth(token: "token-a", requests: requests)
+        let transport = APIPushRegistrationTransport(auth: auth)
+        let currentIdentity = await auth.currentPushIdentity()
+        let identity = try XCTUnwrap(currentIdentity)
+
+        try await transport.unregister(installationID: installationID, identity: identity)
+        XCTAssertTrue(requests.values.isEmpty, "Nothing to unregister before a registration")
+
+        try await transport.register(
+            installationID: installationID,
+            deviceToken: Data([0x00, 0x0a, 0xff]),
+            environment: .sandbox,
+            identity: identity
+        )
+        try await transport.unregister(installationID: installationID, identity: identity)
+
+        let sent = requests.values
+        XCTAssertEqual(sent.map(\.method), ["POST", "DELETE"])
+        XCTAssertEqual(sent.map(\.path), ["/api/devices", "/api/devices"])
+        XCTAssertEqual(sent.map(\.authorization), ["Bearer token-a", "Bearer token-a"])
+        XCTAssertEqual(sent[0].body["apns_token"] as? String, "000aff")
+        XCTAssertEqual(sent[0].body["environment"] as? String, "sandbox")
+        XCTAssertNotNil(sent[0].body["bundle_id"] as? String)
+        XCTAssertNotNil(sent[0].body["device_name"] as? String)
+        XCTAssertEqual(sent[1].body as? [String: String], ["apns_token": "000aff"])
+    }
+
+    func testAPITransportRefusesAStaleIdentityBearer() async throws {
+        let requests = PushAPIRequestLog()
+        let auth = try await makeSignedInAuth(token: "current-token", requests: requests)
+        let transport = APIPushRegistrationTransport(auth: auth)
+        let stale = PushIdentity(principalID: "account-a", accessToken: "old-token")
+
+        do {
+            try await transport.register(installationID: installationID, deviceToken: Data([0x01]), environment: .sandbox, identity: stale)
+            XCTFail("A rotated bearer must not be used")
+        } catch {
+            XCTAssertEqual((error as? APIError)?.code, "sign_in_required")
+        }
+        XCTAssertTrue(requests.values.isEmpty)
+    }
+
+    func testPushIdentityIsTheSignedInAccountWithItsToken() async throws {
+        let auth = try await makeSignedInAuth(token: "token-a", requests: PushAPIRequestLog())
+        let identity = await auth.currentPushIdentity()
+        XCTAssertEqual(identity?.principalID, auth.currentUserID?.uuidString.lowercased())
+        XCTAssertEqual(identity?.accessToken, "token-a")
+
+        let signedOut = AuthClient(sessionStore: TestSessionStore(), defaults: try XCTUnwrap(UserDefaults(suiteName: UUID().uuidString)))
+        let missing = await signedOut.currentPushIdentity()
+        XCTAssertNil(missing)
+    }
+
+    private func makeSignedInAuth(token: String, requests: PushAPIRequestLog) async throws -> AuthClient {
+        let owner = UUID()
+        PushAPIStubProtocol.log = requests
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [PushAPIStubProtocol.self]
+        let api = APIClient(
+            session: URLSession(configuration: configuration),
+            baseURL: URL(string: "https://push-api.example.test")!,
+            configurationError: nil
+        )
+        let store = TestSessionStore()
+        store.data = try JSONSerialization.data(withJSONObject: [
+            "token": token,
+            "user": ["id": owner.uuidString, "email": "push@example.test"],
+        ])
+        let auth = AuthClient(sessionStore: store, defaults: try XCTUnwrap(UserDefaults(suiteName: UUID().uuidString)), api: api)
+        await auth.bootstrap(offlineAccount: { ([owner], false) })
+        XCTAssertEqual(auth.currentUserID, owner)
+        return auth
     }
 
     private func makeLifecycle(
@@ -460,7 +575,14 @@ private final class FakeInstallationIDStore: PushInstallationIDStoring, @uncheck
         withLock { storedValues[account] }
     }
 
+    var writeError: Error? {
+        get { withLock { storedWriteError } }
+        set { withLock { storedWriteError = newValue } }
+    }
+    private var storedWriteError: Error?
+
     func write(account: String, value: String) throws {
+        if let writeError { throw writeError }
         withLock { storedValues[account] = value }
     }
 
@@ -505,8 +627,77 @@ private final class AsyncGate {
 @MainActor
 private final class TestSessionStore: SessionStore {
     var shouldFail = false
-    func read() throws -> Data? { nil }
+    var data: Data?
+    func read() throws -> Data? { data }
     func write(_ data: Data?) throws {
         if shouldFail { throw TestError.expected }
+        self.data = data
+    }
+}
+
+private struct PushAPIRequest: Sendable {
+    let method: String
+    let path: String
+    let authorization: String?
+    let bodyData: Data
+
+    var body: [String: Any] {
+        (try? JSONSerialization.jsonObject(with: bodyData)) as? [String: Any] ?? [:]
+    }
+}
+
+private final class PushAPIRequestLog: @unchecked Sendable {
+    // Guarded by `lock`; URLProtocol callbacks arrive off the main actor.
+    private let lock = NSLock()
+    private var stored: [PushAPIRequest] = []
+
+    var values: [PushAPIRequest] {
+        lock.lock(); defer { lock.unlock() }
+        return stored
+    }
+
+    func append(_ request: PushAPIRequest) {
+        lock.lock(); defer { lock.unlock() }
+        stored.append(request)
+    }
+}
+
+private final class PushAPIStubProtocol: URLProtocol, @unchecked Sendable {
+    // Guarded by `lock`; URLProtocol callbacks arrive off the main actor.
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var storedLog: PushAPIRequestLog?
+    static var log: PushAPIRequestLog? {
+        get { lock.lock(); defer { lock.unlock() }; return storedLog }
+        set { lock.lock(); defer { lock.unlock() }; storedLog = newValue }
+    }
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func stopLoading() {}
+
+    override func startLoading() {
+        Self.log?.append(PushAPIRequest(
+            method: request.httpMethod ?? "GET",
+            path: request.url?.path ?? "",
+            authorization: request.value(forHTTPHeaderField: "Authorization"),
+            bodyData: request.httpBody ?? request.httpBodyStream.map(Self.read) ?? Data()
+        ))
+        let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data(#"{"accepted":true}"#.utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    private static func read(_ stream: InputStream) -> Data {
+        stream.open()
+        defer { stream.close() }
+        var data = Data()
+        var buffer = [UInt8](repeating: 0, count: 4096)
+        while stream.hasBytesAvailable {
+            let count = stream.read(&buffer, maxLength: buffer.count)
+            guard count > 0 else { break }
+            data.append(buffer, count: count)
+        }
+        return data
     }
 }

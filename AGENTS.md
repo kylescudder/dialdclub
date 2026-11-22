@@ -13,17 +13,18 @@ Every iOS app uses the same repository layout, app scaffolding and CI. Read
 configuration keys or workflows. Five checksum manifests keep shared files
 byte-for-byte identical with the other apps, and CI runs all of them:
 
-- `Scripts/check-shared-ios-core.sh` — `AppSecrets`, `AppBootstrap`, `Theme`, `LoadingView`, `LottieAnimationView`, `PrimaryButton`, `Logger`, `AppearanceManager`, the billing core (`BillingRepository`, `SubscriptionAccessState`, `CreationQuotaProviding`, `SubscriptionPaywallView`), the `Shared*Tests`, `setup.sh` and the iOS workflows.
+- `Scripts/check-shared-ios-core.sh` — `AppSecrets`, `AppBootstrap`, `Theme`, `LoadingView`, `LottieAnimationView`, `PrimaryButton`, `Logger`, `AppearanceManager`, `Card`, `EmptyState`, `PushAuthorizationRow`, `AppDelegate`, `QuickActionRouter`, `AppGroupStore`, the shared sign-in views (`SignInView`, `ForgotPasswordSheet`, `ResetPasswordSheet`, `AppleSignInButton`), the billing core (`BillingRepository`, `SubscriptionAccessState`, `CreationQuotaProviding`, `SubscriptionPaywallView`), the sync core (`PowerSyncManager`, `APIConnector`, `SyncIssueStore`), the `Shared*Tests`, `setup.sh` and the iOS workflows.
 - `Scripts/check-shared-auth.sh` — Better Auth backend and native auth (`SHARED_AUTH.md`).
-- `Scripts/check-shared-push-core.sh` — push registration core (`SHARED_PUSH_CORE.md`).
+- `Scripts/check-shared-push-core.sh` — push registration core and its adapters (`PushManager`, `PushRegistration`, `AuthClient+PushIdentity`; `SHARED_PUSH_CORE.md`).
 - `Scripts/check-shared-infra.sh` — backend deployment and provisioning (`SHARED_INFRA.md`).
 - `Scripts/check-shared-site.sh` — the `Site/` layout, tooling, image and site workflows (`SHARED_SITE.md`).
 
 Never edit a shared file in one app only. Put app-specific values behind the
 hooks listed in `SHARED_IOS_CORE.md` (`Theme+App.swift`, `AuthAppConfiguration`,
-`BillingAppConfiguration`, `project.yml`, `Scripts/setup-extras.sh`), or make
-the same change in every app and refresh the manifest with
-`sh Scripts/check-shared-ios-core.sh --write`.
+`BillingAppConfiguration`, `SyncAppConfiguration`, `PushAppConfiguration`,
+`AppQuickAction`, `WidgetSnapshotStore`, `project.yml`,
+`Scripts/setup-extras.sh`), or make the same change in every app and refresh
+the manifest with `sh Scripts/check-shared-ios-core.sh --write`.
 
 ## Common commands
 
@@ -101,14 +102,14 @@ identical across all application repositories.
 ### iOS app composition
 
 - `DialdApp` creates one `@StateObject AppServices`, injects it with `environmentObject`, installs `AppDelegate` for APNs registration callbacks, applies the saved appearance, and configures Sentry through `AppBootstrap`.
-- `AppServices` (`Diald/App/AppServices.swift`) is the composition root. It owns `AuthClient`, `PowerSyncManager`, `SyncIssueStore`, `BillingRepository`, `BeansRepository`, `BrewsRepository`, `StatsRepository`, `NotificationManager`, `ProfileRepository`, and `AnalysisClient`. It re-broadcasts each child's `objectWillChange`, so views can observe the single environment object.
+- `AppServices` (`Diald/App/AppServices.swift`) is the composition root. It owns `AuthClient`, `PowerSyncManager`, `SyncIssueStore`, `BillingRepository`, `BeansRepository`, `BrewsRepository`, `StatsRepository`, `PushManager`, `BrewReminderManager`, `ProfileRepository`, and `AnalysisClient`. It re-broadcasts each child's `objectWillChange`, so views can observe the single environment object.
 - `RootView` switches on auth state (`.unknown` / `.signedOut` / `.signedIn`) and handles password-recovery presentation and incoming URLs. The signed-in `MainTabView` is Today / Beans / Stats / Analyse / Settings.
 - On sign-in, `AppServices.applyAuth` starts local database watches, synchronizes StoreKit entitlements, refreshes local snapshots, registers APNs, and refreshes reminders. Subscription state is `.active` only after both local StoreKit verification and server confirmation succeed; mirror delays remain `.verifying`. On sign-out it stops watches and resets in-memory subscription state.
 - New brew creation must continue through `AppServices.canCreateNewExtraction()`: non-subscribers may create five lifetime extractions, including deleted records, while edits remain allowed. It prefers the API's `/api/extractions/status` (backed by `get_extraction_creation_status`) and falls back offline to synced quota/entitlement rows plus the device-only pending ledger. The insert trigger remains the transactional authority.
 
 ### Data access and PowerSync
 
-- Local SQLite schema is declared in `Diald/Sync/DatabaseSchema.swift`. `PowerSyncManager` connects with a short-lived JWT from the API's `/api/auth/token`, disconnects without clearing on transient signed-out auth state, and wipes local user data plus pending uploads only after explicit sign-out, password-reset sign-out, or account deletion.
+- `PowerSyncManager`, `APIConnector` and `SyncIssueStore` are the shared sync core (rules in `Scripts/SHARED_IOS_CORE.md`, tests in `SharedSyncTests`). Diald's schema is `Diald/Sync/DatabaseSchema.swift`; its filename, offline-owner query, writable tables, `DX` codes and `pending_extractions` replay rules are in `Diald/Sync/SyncAppConfiguration.swift`, and its issue copy in `SyncIssueStore+App.swift`. `PowerSyncManager` connects with a short-lived JWT from the API's `/api/auth/token`, disconnects without clearing on transient signed-out or reauthentication-required auth state, and wipes local user data plus pending uploads only after explicit sign-out, password-reset sign-out, or account deletion.
 - `BeansRepository`, `BrewsRepository`, `ProfileRepository`, and `StatsRepository` read through `database.watch` and write locally through PowerSync. `APIConnector` is the only generic upload path (`/api/sync/upload`). Quota status, IAP mirroring, auth, APNs device registration, and account deletion are deliberate direct API calls (`/api/extractions/status`, `/api/iap/transactions`, `/api/auth/*`, `/api/devices`, `/api/account`).
 - PowerSync tables are SQLite views, so use plain parameterized inserts/updates rather than Postgres `ON CONFLICT` SQL locally. Brew uploads use plain server inserts: retrying them via upsert would re-run the quota `BEFORE INSERT` trigger. A duplicate retry is accepted only after verifying that the same brew UUID already exists server-side.
 - Known permanent Postgres validation failures are acknowledged and surfaced through `SyncIssueStore`, allowing PowerSync to restore server state instead of blocking the queue forever. Transient/network failures must throw so PowerSync retries them. Do not broaden permanent-error classification without proving the error cannot succeed on retry.
@@ -121,7 +122,8 @@ identical across all application repositories.
 ### Authentication and profiles
 
 - `AuthClient` owns the single `APIClient` session and exposes the app's auth state. It supports email/password, native Sign in with Apple, Google through `ASWebAuthenticationSession`, email confirmation, password recovery, and account deletion (`DELETE /api/account`).
-- All auth callbacks use the `diald://auth-callback` custom scheme and enter through `QuickActionRouter.handle(url:auth:)`. Recovery state has a one-hour `UserDefaults` fallback and callback handling suppresses duplicates within five seconds; preserve both when changing deep-link routing.
+- `SignInView`, `ForgotPasswordSheet`, `ResetPasswordSheet` and `AppleSignInButton` are shared; Diald's logo, title, tagline and recovery exit (sign out and clear local data) are in `AuthAppConfiguration.swift`. `SignUpView` (with its required username) stays Diald-only.
+- All auth callbacks use the `diald://auth-callback` custom scheme and enter through `QuickActionRouter.handle(url:auth:)` (in `App/AppQuickAction.swift`). Recovery state has a one-hour `UserDefaults` fallback and callback handling suppresses duplicates within five seconds; preserve both when changing deep-link routing.
 - The `handle_new_user` trigger creates a profile. Apple names are special: Apple normally provides a name only on the first authorization, so `fill_profile_display_name` fills an empty profile without overwriting a user-edited value.
 
 ### Subscriptions
@@ -139,15 +141,16 @@ identical across all application repositories.
 
 ### Reminders and notifications
 
-- `NotificationManager` is a `@MainActor` singleton. It owns authorization status, registers APNs tokens (with the API's `/api/devices`, or the shared push gateway when `PUSH_GATEWAY_URL` is set; see `docs/push-gateway.md`), and schedules recurring local notifications through `UNUserNotificationCenter`.
+- `PushManager` is the shared `@MainActor` push singleton (`Scripts/SHARED_PUSH_CORE.md`). It owns authorization status, is the `UNUserNotificationCenter` delegate, and registers APNs tokens (with the API's `/api/devices`, or the shared push gateway when `PUSH_GATEWAY_URL` is set; see `docs/push-gateway.md`). Diald's values are in `Diald/Notifications/PushAppConfiguration.swift`; a tapped notification has no route, so it just opens the app.
+- `BrewReminderManager` is Diald-only and schedules recurring local notifications through `UNUserNotificationCenter`. It never touches push registration.
 - The reminders shown in Settings are persisted as encoded `BrewReminderSchedule` values in `UserDefaults`, then expanded into one calendar trigger per weekday.
-- `AppDelegate` only forwards APNs registration success/failure to `NotificationManager`. Keep UIKit delegate work at this boundary.
+- `AppDelegate` (shared) only forwards APNs registration success/failure to `PushManager`. Keep UIKit delegate work at this boundary.
 - Diald has no server-originated push producer yet. Brew reminders are local calendar notifications.
 
 ### Widgets, shortcuts, and deep links
 
-- `DialdWidgets` contains a quick-action widget and a dashboard widget. The dashboard extension never calls the backend; `AppServices.publishWidgetSnapshot()` writes a Codable snapshot to app-group `UserDefaults` (`group.club.diald`) and reloads the `DialdDashboardWidget` timeline.
-- Widget links use `diald://shortcut/logBrew` and `diald://shortcut/startTimer`. `QuickActionRouter` translates them into `NotificationCenter` events that `MainTabView` uses to present `AddBrewView`, optionally with the extraction timer already running.
+- `DialdWidgets` contains a quick-action widget and a dashboard widget. The dashboard extension never calls the backend; `AppServices.publishWidgetSnapshot()` writes a Codable snapshot to app-group `UserDefaults` (`group.club.diald`) through the shared `AppGroupStore` and reloads the `DialdDashboardWidget` timeline.
+- Widget links use `diald://shortcut/logBrew` and `diald://shortcut/startTimer`. The shared `QuickActionRouter` replays an action that arrived before launch finished, and `AppQuickAction.route()` translates it into `NotificationCenter` events that `MainTabView` uses to present `AddBrewView`, optionally with the extraction timer already running.
 - AppIntents route through the same `QuickActionRouter` and set `openAppWhenRun = true`. Keep widgets, AppIntents, URL path names, `AppQuickAction` raw values, and notification names synchronized.
 
 ### Marketing site
@@ -159,7 +162,7 @@ identical across all application repositories.
 ### Other notable wiring
 
 - `Log` (`Diald/Logging/Logger.swift`) is the OSLog/Sentry wrapper. Sentry setup is a no-op when `SENTRY_DSN` is empty; keep repository and service errors going through `Log` rather than ad hoc prints.
-- `Theme`, `Card`, `PrimaryButton`, and `LoadingView` under `Diald/Components/` are the UI primitives. Reuse them before introducing one-off colors, spacing, or loading treatments. Diald's brand colors (`amber`, `blue`) and loading animation live in `Theme+App.swift`; otherwise use the shared semantic colors (`textPrimary`, `textSecondary`, `accent`, `separator`).
+- `Theme`, `Card`, `PrimaryButton`, `EmptyState` and `LoadingView` under `Diald/Components/` are the shared UI primitives. Reuse them before introducing one-off colors, spacing, or loading treatments. Diald's brand colors (`amber`, `blue`), loading animation and `Theme.CardStyle` (compact, bordered `Card`) live in `Theme+App.swift`; otherwise use the shared semantic colors (`textPrimary`, `textSecondary`, `accent`, `separator`).
 - The app and widget must retain the same `group.club.diald` app-group entitlement. The main app additionally has Sign in with Apple and APNs entitlements.
 - The app is iOS/iPadOS 17+, portrait-only on iPhone, and supports all standard orientations on iPad. `Info.plist` is committed (XcodeGen rewrites it with sorted keys); `project.yml` layers generated properties, secrets, URL schemes, and background modes onto it.
 - GitHub Actions regenerates the Xcode project. Pull requests get an unsigned simulator build; pushes to `main` that touch iOS paths archive and upload to TestFlight using manual signing.

@@ -1,9 +1,16 @@
 import Foundation
 import XCTest
+#if canImport(Diald)
 @testable import Diald
+#else
+@testable import DeadWaxClub
+#endif
+
+/// The shared push gateway configuration and transport
+/// (`docs/push-gateway.md`).
 
 @MainActor
-final class GatewayPushRegistrationTransportTests: XCTestCase {
+final class SharedPushGatewayTests: XCTestCase {
     private let installationID = UUID(uuidString: "550d5a6b-7248-49da-a4dc-92db45608c07")!
     private let identity = PushIdentity(
         principalID: "principal-must-not-be-sent",
@@ -35,7 +42,7 @@ final class GatewayPushRegistrationTransportTests: XCTestCase {
         let request = try XCTUnwrap(captured.get())
         XCTAssertEqual(
             request.url?.absoluteString,
-            "https://push.example.com/v1/apps/diald/installations/550d5a6b-7248-49da-a4dc-92db45608c07"
+            "https://push.example.com/v1/apps/exampleapp/installations/550d5a6b-7248-49da-a4dc-92db45608c07"
         )
         XCTAssertEqual(request.httpMethod, "PUT")
         XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer test-access-token")
@@ -76,7 +83,7 @@ final class GatewayPushRegistrationTransportTests: XCTestCase {
         let request = try XCTUnwrap(captured.get())
         XCTAssertEqual(
             request.url?.absoluteString,
-            "https://push.example.com/v1/apps/diald/installations/550d5a6b-7248-49da-a4dc-92db45608c07/account-link"
+            "https://push.example.com/v1/apps/exampleapp/installations/550d5a6b-7248-49da-a4dc-92db45608c07/account-link"
         )
         XCTAssertEqual(request.httpMethod, "DELETE")
         XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer test-access-token")
@@ -154,6 +161,65 @@ final class GatewayPushRegistrationTransportTests: XCTestCase {
         }
     }
 
+    func testEmptyOrMissingURLDisablesGateway() {
+        XCTAssertNil(PushGatewayConfiguration.make(rawURL: nil, applicationID: "exampleapp"))
+        XCTAssertNil(PushGatewayConfiguration.make(rawURL: "", applicationID: "exampleapp"))
+        XCTAssertNil(PushGatewayConfiguration.make(rawURL: "   ", applicationID: "exampleapp"))
+    }
+
+    func testMalformedURLDisablesGateway() {
+        XCTAssertNil(PushGatewayConfiguration.make(rawURL: "not a url", applicationID: "exampleapp"))
+        XCTAssertNil(PushGatewayConfiguration.make(rawURL: "ftp://push.example.com", applicationID: "exampleapp"))
+        XCTAssertNil(PushGatewayConfiguration.make(rawURL: "https:///missing-host", applicationID: "exampleapp"))
+    }
+
+    func testPlaintextURLsDisableGatewayIncludingLocalhost() {
+        for url in ["http://push.example.com", "http://localhost:8080", "http://127.0.0.1"] {
+            let configuration = PushGatewayConfiguration.make(rawURL: url, applicationID: "exampleapp")
+            XCTAssertNil(configuration)
+            XCTAssertEqual(PushRegistrationTransportKind.selected(for: configuration), .api)
+        }
+    }
+
+    func testMissingOrInvalidApplicationIDDisablesGateway() {
+        XCTAssertNil(PushGatewayConfiguration.make(rawURL: "https://push.example.com", applicationID: nil))
+        XCTAssertNil(PushGatewayConfiguration.make(rawURL: "https://push.example.com", applicationID: ""))
+        XCTAssertNil(PushGatewayConfiguration.make(rawURL: "https://push.example.com", applicationID: "Example App"))
+        XCTAssertNil(PushGatewayConfiguration.make(rawURL: "https://push.example.com", applicationID: "d"))
+    }
+
+    func testValidConfigurationIsParsedExactly() throws {
+        let configuration = try XCTUnwrap(PushGatewayConfiguration.make(
+            rawURL: "https://push.example.com/base/",
+            applicationID: "exampleapp"
+        ))
+
+        XCTAssertEqual(configuration.baseURL.absoluteString, "https://push.example.com/base/")
+        XCTAssertEqual(configuration.applicationID, "exampleapp")
+    }
+
+    func testTransportSelectionUsesExactlyOneConfiguredPath() {
+        XCTAssertEqual(PushRegistrationTransportKind.selected(for: nil), .api)
+        let configuration = PushGatewayConfiguration(
+            baseURL: URL(string: "https://push.example.com")!,
+            applicationID: "exampleapp"
+        )
+        XCTAssertEqual(PushRegistrationTransportKind.selected(for: configuration), .gateway)
+    }
+
+    func testInfoDictionaryKeysConfigureTheGateway() {
+        XCTAssertNil(PushGatewayConfiguration.from(infoDictionary: ["PUSH_GATEWAY_APPLICATION_ID": "exampleapp"]))
+        XCTAssertNil(PushGatewayConfiguration.from(infoDictionary: ["PUSH_GATEWAY_URL": "", "PUSH_GATEWAY_APPLICATION_ID": "exampleapp"]))
+        XCTAssertNil(PushGatewayConfiguration.from(infoDictionary: ["PUSH_GATEWAY_URL": "https://push.example.com"]))
+        XCTAssertNil(PushGatewayConfiguration.from(infoDictionary: ["PUSH_GATEWAY_URL": "push.example.com", "PUSH_GATEWAY_APPLICATION_ID": "exampleapp"]))
+        let configuration = PushGatewayConfiguration.from(infoDictionary: [
+            "PUSH_GATEWAY_URL": "https://push.example.com/base/",
+            "PUSH_GATEWAY_APPLICATION_ID": "exampleapp",
+        ])
+        XCTAssertEqual(configuration?.baseURL.absoluteString, "https://push.example.com/base/")
+        XCTAssertEqual(configuration?.applicationID, "exampleapp")
+    }
+
     private func makeTransport(
         baseURL: String = "https://push.example.com"
     ) -> GatewayPushRegistrationTransport {
@@ -162,7 +228,7 @@ final class GatewayPushRegistrationTransportTests: XCTestCase {
         return GatewayPushRegistrationTransport(
             configuration: PushGatewayConfiguration(
                 baseURL: URL(string: baseURL)!,
-                applicationID: "diald"
+                applicationID: "exampleapp"
             ),
             session: URLSession(configuration: configuration)
         )

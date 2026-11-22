@@ -19,14 +19,14 @@ struct RootView: View {
                 }
             }
         }
-        .task { await services.auth.bootstrap(database: services.sync.database) }
+        .task { await services.auth.bootstrap(offlineAccount: services.sync.offlineAccount) }
         .onOpenURL { url in handle(url: url) }
         .onAppear { QuickActionRouter.activate() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 QuickActionRouter.activate()
                 if case .signedIn = services.auth.state {
-                    Task { await services.notifications.refreshRemoteRegistration() }
+                    Task { await services.push.refreshRegistration() }
                 }
                 Task { await services.sync.retryConnection() }
             }

@@ -39,11 +39,11 @@ struct SettingsView: View {
             }
 
             Section {
-                if services.notifications.localReminders.isEmpty {
+                if services.reminders.localReminders.isEmpty {
                     Text("No brew reminders")
                         .foregroundStyle(Theme.Colors.textSecondary)
                 } else {
-                    ForEach(services.notifications.localReminders) { reminder in
+                    ForEach(services.reminders.localReminders) { reminder in
                         NavigationLink {
                             ReminderEditorView(reminder: reminder)
                         } label: {
@@ -58,9 +58,9 @@ struct SettingsView: View {
                     }
                     .onDelete { offsets in
                         Task {
-                            let reminders = services.notifications.localReminders
+                            let reminders = services.reminders.localReminders
                             for index in offsets {
-                                await services.notifications.deleteLocalReminder(reminders[index])
+                                await services.reminders.deleteLocalReminder(reminders[index])
                             }
                         }
                     }
@@ -70,7 +70,7 @@ struct SettingsView: View {
                 } label: {
                     Label("Add reminder", systemImage: "plus.circle")
                 }
-                NotificationSettingsRow()
+                PushAuthorizationRow()
             } header: {
                 Text("Notifications")
             } footer: {
@@ -144,7 +144,7 @@ struct SettingsView: View {
             if !required { showReauthentication = false }
         }
         .task {
-            await services.notifications.refreshLocalReminderState()
+            await services.reminders.refreshLocalReminderState()
         }
         .alert("Sign out of Diald?", isPresented: $showSignOutConfirm) {
             Button("Sign out", role: .destructive) {
@@ -228,35 +228,6 @@ struct SettingsView: View {
 
 }
 
-private struct NotificationSettingsRow: View {
-    @ObservedObject private var notifications = NotificationManager.shared
-    @Environment(\.openURL) private var openURL
-
-    var body: some View {
-        switch notifications.authorizationStatus {
-        case .authorized, .ephemeral, .provisional:
-            Label("Push notifications allowed", systemImage: "checkmark.seal.fill")
-                .foregroundStyle(.green)
-        case .denied:
-            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                Label("Push notifications disabled in iOS Settings", systemImage: "xmark.seal")
-                    .foregroundStyle(.red)
-                Button("Open Settings") {
-                    if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
-                        openURL(url)
-                    }
-                }
-            }
-        case .notDetermined:
-            Button("Turn on push notifications") {
-                Task { await notifications.requestAuthorization() }
-            }
-        @unknown default:
-            Text("Push notification status unknown")
-        }
-    }
-}
-
 private struct ReminderEditorView: View {
     @EnvironmentObject private var services: AppServices
     @Environment(\.dismiss) private var dismiss
@@ -303,7 +274,7 @@ private struct ReminderEditorView: View {
                         let components = Calendar.current.dateComponents([.hour, .minute], from: time)
                         reminder.hour = components.hour ?? reminder.hour
                         reminder.minute = components.minute ?? reminder.minute
-                        await services.notifications.upsertLocalReminder(reminder.normalized)
+                        await services.reminders.upsertLocalReminder(reminder.normalized)
                         saveCount += 1
                         dismiss()
                     }

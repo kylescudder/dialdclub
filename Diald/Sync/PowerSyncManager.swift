@@ -2,6 +2,14 @@ import Combine
 import Foundation
 import PowerSync
 
+/// Shared PowerSync connection lifecycle. This file is identical in every app;
+/// the database filename and offline-owner query live in
+/// `SyncAppConfiguration.swift` and the schema in `DatabaseSchema.swift`.
+///
+/// Transient auth changes (a signed-out refresh, or a session that needs
+/// reauthentication) only disconnect, keeping local data and the upload
+/// queue. `wipe()` is the only path that clears them, and it is reserved for
+/// explicit sign-out, password-reset sign-out and account deletion.
 @MainActor
 final class PowerSyncManager: ObservableObject {
     private static let requiresWipeKey = "sync.requiresWipeBeforeConnect"
@@ -12,6 +20,20 @@ final class PowerSyncManager: ObservableObject {
         case connected
         case offline
         case error(String)
+    }
+
+    enum AuthAction: Equatable { case none, connect, disconnect }
+
+    /// `.unknown` during bootstrap leaves PowerSync alone. A session that needs
+    /// reauthentication cannot authorize uploads, so it disconnects without
+    /// clearing until the original account signs in again.
+    static func action(for state: AuthClient.State, requiresReauthentication: Bool = false) -> AuthAction {
+        if requiresReauthentication { return .disconnect }
+        switch state {
+        case .unknown: return .none
+        case .signedIn: return .connect
+        case .signedOut: return .disconnect
+        }
     }
 
     @Published private(set) var status: Status = .idle
@@ -25,12 +47,12 @@ final class PowerSyncManager: ObservableObject {
     private var statusTask: Task<Void, Never>?
     private var pendingCountTask: Task<Void, Never>?
 
-    init(auth: AuthClient, issues: SyncIssueStore) {
+    init(auth: AuthClient, issues: SyncIssueStore, database: (any PowerSyncDatabaseProtocol)? = nil) {
         self.auth = auth
         self.issues = issues
-        self.database = PowerSyncDatabase(
+        self.database = database ?? PowerSyncDatabase(
             schema: DatabaseSchema.schema,
-            dbFilename: "diald-v2.sqlite"
+            dbFilename: SyncAppConfiguration.databaseFilename
         )
     }
 
@@ -39,12 +61,30 @@ final class PowerSyncManager: ObservableObject {
         pendingCountTask?.cancel()
     }
 
+    /// The account(s) that own local data, and whether uploads are queued.
+    /// `AuthClient.bootstrap(offlineAccount:)` uses this to bind cached data
+    /// to its original owner before any session is adopted.
+    func offlineAccount() async throws -> (owners: Set<UUID>, hasPendingWrites: Bool) {
+        let rawOwners = try await database.getAll(
+            sql: SyncAppConfiguration.offlineOwnerQuery,
+            parameters: [],
+            mapper: { try $0.getString(name: "id") }
+        )
+        let owners = try Set(rawOwners.map { raw -> UUID in
+            guard let id = UUID(uuidString: raw) else {
+                throw APIError(code: "owner_mismatch", message: "Offline account data needs recovery.")
+            }
+            return id
+        })
+        return (owners, try await database.getCrudBatch() != nil)
+    }
+
     func startObservingAuth() async {
         Publishers.CombineLatest(auth.$state, auth.$requiresReauthentication)
             .removeDuplicates { $0.0 == $1.0 && $0.1 == $1.1 }
-            .sink { [weak self] state, _ in
+            .sink { [weak self] state, requiresReauthentication in
                 Task { @MainActor [weak self] in
-                    await self?.reconcile(state)
+                    await self?.reconcile(state, requiresReauthentication: requiresReauthentication)
                 }
             }
             .store(in: &authCancellables)
@@ -87,26 +127,21 @@ final class PowerSyncManager: ObservableObject {
             }
         }
 
-        await reconcile(auth.state)
+        await reconcile(auth.state, requiresReauthentication: auth.requiresReauthentication)
     }
 
-    private func reconcile(_ state: AuthClient.State) async {
-        switch state {
-        case .signedIn:
-            await connectIfNeeded()
-        case .signedOut:
-            await disconnect()
-        case .unknown:
-            break
+    private func reconcile(_ state: AuthClient.State, requiresReauthentication: Bool) async {
+        switch Self.action(for: state, requiresReauthentication: requiresReauthentication) {
+        case .connect: await connectIfNeeded()
+        case .disconnect: await disconnect()
+        case .none: break
         }
     }
 
     private func connectIfNeeded() async {
-        guard connector == nil, await auth.currentAccessToken() != nil else { return }
-        guard UserDefaults.standard.string(forKey: AuthClient.ownerKey) == auth.currentUserID?.uuidString.lowercased() else {
-            status = .error("Sign in with the original offline account before syncing.")
-            return
-        }
+        guard connector == nil, let owner = auth.currentUserID,
+              await auth.currentAccessToken(for: owner) != nil else { return }
+        guard connector == nil, auth.currentUserID == owner else { return }
         if UserDefaults.standard.bool(forKey: Self.requiresWipeKey) {
             do {
                 try await database.disconnectAndClear()
@@ -118,13 +153,13 @@ final class PowerSyncManager: ObservableObject {
                 return
             }
         }
-        guard AppSecrets.powerSyncConfigurationError == nil else {
-            status = .error(AppSecrets.powerSyncConfigurationError ?? "PowerSync is not configured.")
+        if let configurationError = AppSecrets.powerSyncConfigurationError {
+            status = .error(configurationError)
             return
         }
 
         status = .connecting
-        let connector = APIConnector(auth: auth, issues: issues)
+        let connector = APIConnector(auth: auth, issues: issues, owner: owner)
         self.connector = connector
         do {
             try await database.connect(connector: connector)
@@ -133,6 +168,10 @@ final class PowerSyncManager: ObservableObject {
             status = .error(error.localizedDescription)
             Log.error(error, category: "sync.connect")
         }
+    }
+
+    func retryConnection() async {
+        await connectIfNeeded()
     }
 
     private func disconnect() async {
@@ -146,14 +185,14 @@ final class PowerSyncManager: ObservableObject {
         }
     }
 
-    /// Explicit sign-out/account deletion is the only time local user data and
-    /// pending uploads are destroyed. Transient auth changes merely disconnect.
+    /// Persist the guard before clearing. A failed clear blocks any later
+    /// account from connecting until the wipe succeeds.
     func wipe() async {
         UserDefaults.standard.set(true, forKey: Self.requiresWipeKey)
         do {
             try await database.disconnectAndClear()
+            auth.clearOfflineOwner()
             UserDefaults.standard.removeObject(forKey: Self.requiresWipeKey)
-            UserDefaults.standard.removeObject(forKey: AuthClient.ownerKey)
             connector = nil
             status = .idle
             pendingUploadCount = 0
@@ -162,5 +201,4 @@ final class PowerSyncManager: ObservableObject {
             issues.reportLocalClearFailure()
         }
     }
-    func retryConnection() async { await connectIfNeeded() }
 }
