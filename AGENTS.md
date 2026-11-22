@@ -13,7 +13,7 @@ Every iOS app uses the same repository layout, app scaffolding and CI. Read
 configuration keys or workflows. Five checksum manifests keep shared files
 byte-for-byte identical with the other apps, and CI runs all of them:
 
-- `Scripts/check-shared-ios-core.sh` — `AppSecrets`, `AppBootstrap`, `Theme`, `LoadingView`, `LottieAnimationView`, `PrimaryButton`, `Logger`, `AppearanceManager`, the billing core (`BillingRepository`, `SubscriptionAccessState`, `CreationQuotaProviding`, `SubscriptionPaywallView`), the `Shared*Tests`, `setup.sh` and the iOS workflows.
+- `Scripts/check-shared-ios-core.sh` — `AppSecrets`, `AppBootstrap`, `Theme`, `LoadingView`, `LottieAnimationView`, `PrimaryButton`, `Logger`, `AppearanceManager`, the billing core (`BillingRepository`, `SubscriptionAccessState`, `CreationQuotaProviding`, `SubscriptionPaywallView`), the sync core (`PowerSyncManager`, `APIConnector`, `SyncIssueStore`), the `Shared*Tests`, `setup.sh` and the iOS workflows.
 - `Scripts/check-shared-auth.sh` — Better Auth backend and native auth (`SHARED_AUTH.md`).
 - `Scripts/check-shared-push-core.sh` — push registration core (`SHARED_PUSH_CORE.md`).
 - `Scripts/check-shared-infra.sh` — backend deployment and provisioning (`SHARED_INFRA.md`).
@@ -21,8 +21,8 @@ byte-for-byte identical with the other apps, and CI runs all of them:
 
 Never edit a shared file in one app only. Put app-specific values behind the
 hooks listed in `SHARED_IOS_CORE.md` (`Theme+App.swift`, `AuthAppConfiguration`,
-`BillingAppConfiguration`, `project.yml`, `Scripts/setup-extras.sh`), or make
-the same change in every app and refresh the manifest with
+`BillingAppConfiguration`, `SyncAppConfiguration`, `project.yml`,
+`Scripts/setup-extras.sh`), or make the same change in every app and refresh the manifest with
 `sh Scripts/check-shared-ios-core.sh --write`.
 
 ## Common commands
@@ -108,7 +108,7 @@ identical across all application repositories.
 
 ### Data access and PowerSync
 
-- Local SQLite schema is declared in `Diald/Sync/DatabaseSchema.swift`. `PowerSyncManager` connects with a short-lived JWT from the API's `/api/auth/token`, disconnects without clearing on transient signed-out auth state, and wipes local user data plus pending uploads only after explicit sign-out, password-reset sign-out, or account deletion.
+- `PowerSyncManager`, `APIConnector` and `SyncIssueStore` are the shared sync core (rules in `Scripts/SHARED_IOS_CORE.md`, tests in `SharedSyncTests`). Diald's schema is `Diald/Sync/DatabaseSchema.swift`; its filename, offline-owner query, writable tables, `DX` codes and `pending_extractions` replay rules are in `Diald/Sync/SyncAppConfiguration.swift`, and its issue copy in `SyncIssueStore+App.swift`. `PowerSyncManager` connects with a short-lived JWT from the API's `/api/auth/token`, disconnects without clearing on transient signed-out or reauthentication-required auth state, and wipes local user data plus pending uploads only after explicit sign-out, password-reset sign-out, or account deletion.
 - `BeansRepository`, `BrewsRepository`, `ProfileRepository`, and `StatsRepository` read through `database.watch` and write locally through PowerSync. `APIConnector` is the only generic upload path (`/api/sync/upload`). Quota status, IAP mirroring, auth, APNs device registration, and account deletion are deliberate direct API calls (`/api/extractions/status`, `/api/iap/transactions`, `/api/auth/*`, `/api/devices`, `/api/account`).
 - PowerSync tables are SQLite views, so use plain parameterized inserts/updates rather than Postgres `ON CONFLICT` SQL locally. Brew uploads use plain server inserts: retrying them via upsert would re-run the quota `BEFORE INSERT` trigger. A duplicate retry is accepted only after verifying that the same brew UUID already exists server-side.
 - Known permanent Postgres validation failures are acknowledged and surfaced through `SyncIssueStore`, allowing PowerSync to restore server state instead of blocking the queue forever. Transient/network failures must throw so PowerSync retries them. Do not broaden permanent-error classification without proving the error cannot succeed on retry.
