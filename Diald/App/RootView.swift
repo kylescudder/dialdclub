@@ -12,7 +12,7 @@ struct RootView: View {
             case .signedOut:
                 NavigationStack { SignInView() }
             case .signedIn:
-                if services.auth.isPasswordRecovery {
+                if !services.auth.canAccessMainApp {
                     NavigationStack { SignInView() }
                 } else {
                     MainTabView()
