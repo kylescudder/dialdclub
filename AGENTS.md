@@ -15,13 +15,13 @@ byte-for-byte identical with the other apps, and CI runs all of them:
 
 - `Scripts/check-shared-ios-core.sh` — `AppSecrets`, `AppBootstrap`, `Theme`, `LoadingView`, `LottieAnimationView`, `PrimaryButton`, `Logger`, `AppearanceManager`, the billing core (`BillingRepository`, `SubscriptionAccessState`, `CreationQuotaProviding`, `SubscriptionPaywallView`), the sync core (`PowerSyncManager`, `APIConnector`, `SyncIssueStore`), the `Shared*Tests`, `setup.sh` and the iOS workflows.
 - `Scripts/check-shared-auth.sh` — Better Auth backend and native auth (`SHARED_AUTH.md`).
-- `Scripts/check-shared-push-core.sh` — push registration core (`SHARED_PUSH_CORE.md`).
+- `Scripts/check-shared-push-core.sh` — push registration core and its adapters (`PushManager`, `PushRegistration`, `AuthClient+PushIdentity`; `SHARED_PUSH_CORE.md`).
 - `Scripts/check-shared-infra.sh` — backend deployment and provisioning (`SHARED_INFRA.md`).
 - `Scripts/check-shared-site.sh` — the `Site/` layout, tooling, image and site workflows (`SHARED_SITE.md`).
 
 Never edit a shared file in one app only. Put app-specific values behind the
 hooks listed in `SHARED_IOS_CORE.md` (`Theme+App.swift`, `AuthAppConfiguration`,
-`BillingAppConfiguration`, `SyncAppConfiguration`, `project.yml`,
+`BillingAppConfiguration`, `SyncAppConfiguration`, `PushAppConfiguration`, `project.yml`,
 `Scripts/setup-extras.sh`), or make the same change in every app and refresh the manifest with
 `sh Scripts/check-shared-ios-core.sh --write`.
 
@@ -101,7 +101,7 @@ identical across all application repositories.
 ### iOS app composition
 
 - `DialdApp` creates one `@StateObject AppServices`, injects it with `environmentObject`, installs `AppDelegate` for APNs registration callbacks, applies the saved appearance, and configures Sentry through `AppBootstrap`.
-- `AppServices` (`Diald/App/AppServices.swift`) is the composition root. It owns `AuthClient`, `PowerSyncManager`, `SyncIssueStore`, `BillingRepository`, `BeansRepository`, `BrewsRepository`, `StatsRepository`, `NotificationManager`, `ProfileRepository`, and `AnalysisClient`. It re-broadcasts each child's `objectWillChange`, so views can observe the single environment object.
+- `AppServices` (`Diald/App/AppServices.swift`) is the composition root. It owns `AuthClient`, `PowerSyncManager`, `SyncIssueStore`, `BillingRepository`, `BeansRepository`, `BrewsRepository`, `StatsRepository`, `PushManager`, `BrewReminderManager`, `ProfileRepository`, and `AnalysisClient`. It re-broadcasts each child's `objectWillChange`, so views can observe the single environment object.
 - `RootView` switches on auth state (`.unknown` / `.signedOut` / `.signedIn`) and handles password-recovery presentation and incoming URLs. The signed-in `MainTabView` is Today / Beans / Stats / Analyse / Settings.
 - On sign-in, `AppServices.applyAuth` starts local database watches, synchronizes StoreKit entitlements, refreshes local snapshots, registers APNs, and refreshes reminders. Subscription state is `.active` only after both local StoreKit verification and server confirmation succeed; mirror delays remain `.verifying`. On sign-out it stops watches and resets in-memory subscription state.
 - New brew creation must continue through `AppServices.canCreateNewExtraction()`: non-subscribers may create five lifetime extractions, including deleted records, while edits remain allowed. It prefers the API's `/api/extractions/status` (backed by `get_extraction_creation_status`) and falls back offline to synced quota/entitlement rows plus the device-only pending ledger. The insert trigger remains the transactional authority.
@@ -139,9 +139,10 @@ identical across all application repositories.
 
 ### Reminders and notifications
 
-- `NotificationManager` is a `@MainActor` singleton. It owns authorization status, registers APNs tokens (with the API's `/api/devices`, or the shared push gateway when `PUSH_GATEWAY_URL` is set; see `docs/push-gateway.md`), and schedules recurring local notifications through `UNUserNotificationCenter`.
+- `PushManager` is the shared `@MainActor` push singleton (`Scripts/SHARED_PUSH_CORE.md`). It owns authorization status, is the `UNUserNotificationCenter` delegate, and registers APNs tokens (with the API's `/api/devices`, or the shared push gateway when `PUSH_GATEWAY_URL` is set; see `docs/push-gateway.md`). Diald's values are in `Diald/Notifications/PushAppConfiguration.swift`; a tapped notification has no route, so it just opens the app.
+- `BrewReminderManager` is Diald-only and schedules recurring local notifications through `UNUserNotificationCenter`. It never touches push registration.
 - The reminders shown in Settings are persisted as encoded `BrewReminderSchedule` values in `UserDefaults`, then expanded into one calendar trigger per weekday.
-- `AppDelegate` only forwards APNs registration success/failure to `NotificationManager`. Keep UIKit delegate work at this boundary.
+- `AppDelegate` (shared) only forwards APNs registration success/failure to `PushManager`. Keep UIKit delegate work at this boundary.
 - Diald has no server-originated push producer yet. Brew reminders are local calendar notifications.
 
 ### Widgets, shortcuts, and deep links

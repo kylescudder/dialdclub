@@ -26,7 +26,7 @@ struct RootView: View {
             if phase == .active {
                 QuickActionRouter.activate()
                 if case .signedIn = services.auth.state {
-                    Task { await services.notifications.refreshRemoteRegistration() }
+                    Task { await services.push.refreshRegistration() }
                 }
                 Task { await services.sync.retryConnection() }
             }

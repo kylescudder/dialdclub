@@ -1,5 +1,4 @@
 import Foundation
-import UIKit
 import UserNotifications
 
 struct BrewReminderSchedule: Codable, Equatable, Identifiable {
@@ -70,133 +69,25 @@ struct BrewReminderSchedule: Codable, Equatable, Identifiable {
     }()
 }
 
+/// Diald's local brew reminders: recurring calendar notifications stored on
+/// the device. Push registration is the shared `PushManager`.
 @MainActor
-final class NotificationManager: NSObject, ObservableObject {
-    static let shared = NotificationManager()
+final class BrewReminderManager: ObservableObject {
+    static let shared = BrewReminderManager()
 
-    @Published private(set) var authorizationStatus: UNAuthorizationStatus = .notDetermined
     @Published private(set) var localReminders: [BrewReminderSchedule] = []
 
     private static let localReminderIdentifierPrefix = "brew-reminder"
     private static let reminderStorageKey = "notifications.brewReminders"
     private let notificationCenter: UNUserNotificationCenter
-    private var registrationLifecycle: PushRegistrationLifecycle?
-    private var sessionGeneration = UUID()
 
-    private override init() {
-        notificationCenter = .current()
-        super.init()
-        notificationCenter.delegate = self
-        Task {
-            await refreshAuthorizationStatus()
-            await refreshLocalReminderState()
-        }
-    }
-
-    init(
-        registrationLifecycle: PushRegistrationLifecycle,
-        notificationCenter: UNUserNotificationCenter = .current()
-    ) {
-        self.registrationLifecycle = registrationLifecycle
+    init(notificationCenter: UNUserNotificationCenter = .current()) {
         self.notificationCenter = notificationCenter
-        super.init()
-    }
-
-    func bind(auth: AuthClient) {
-        guard registrationLifecycle == nil else { return }
-
-        let configuration = PushGatewayConfiguration.fromBundle
-        let transport: any PushRegistrationTransport
-        switch PushRegistrationTransportKind.selected(for: configuration) {
-        case .gateway:
-            guard let configuration else { return }
-            transport = GatewayPushRegistrationTransport(
-                configuration: configuration,
-                session: URLSession(configuration: .ephemeral)
-            )
-        case .api:
-            transport = APIPushRegistrationTransport(auth: auth)
-        }
-
-        registrationLifecycle = PushRegistrationLifecycle(
-            identityProvider: auth,
-            installationIDProvider: KeychainPushInstallationIDProvider(),
-            transport: transport,
-            remoteNotificationRegistrar: SystemRemoteNotificationRegistrar(),
-            environment: Self.apnsEnvironment,
-            reportError: { error, category in
-                Log.error(error, category: category)
-            }
-        )
-    }
-
-    func activate() async {
-        let generation = sessionGeneration
-        await refreshAuthorizationStatus()
-        guard generation == sessionGeneration else { return }
-        await registrationLifecycle?.activate(isAuthorized: isAuthorized)
-    }
-
-    func refreshRemoteRegistration() async {
-        await refreshAuthorizationStatus()
-        await registrationLifecycle?.refreshRegistration(isAuthorized: isAuthorized)
-    }
-
-    func deactivate() async {
-        sessionGeneration = UUID()
-        await registrationLifecycle?.deactivate()
-    }
-
-    func resetForSignedOutState() {
-        sessionGeneration = UUID()
-        registrationLifecycle?.sessionEnded()
-    }
-
-    func refreshAuthorizationStatus() async {
-        let settings = await notificationCenter.notificationSettings()
-        authorizationStatus = settings.authorizationStatus
+        localReminders = Self.storedLocalReminders()
     }
 
     func refreshLocalReminderState() async {
         localReminders = Self.storedLocalReminders()
-    }
-
-    @discardableResult
-    func requestAuthorization() async -> Bool {
-        do {
-            let granted = try await notificationCenter
-                .requestAuthorization(options: [.alert, .sound, .badge])
-            await refreshAuthorizationStatus()
-            if granted {
-                UIApplication.shared.registerForRemoteNotifications()
-            }
-            return granted
-        } catch {
-            Log.error(error, category: "notifications.authorization")
-            return false
-        }
-    }
-
-    private var isAuthorized: Bool {
-        authorizationStatus == .authorized
-            || authorizationStatus == .provisional
-            || authorizationStatus == .ephemeral
-    }
-
-    func registerIfAuthorized() async {
-        await refreshAuthorizationStatus()
-        guard authorizationStatus == .authorized
-            || authorizationStatus == .provisional
-            || authorizationStatus == .ephemeral else { return }
-        UIApplication.shared.registerForRemoteNotifications()
-    }
-
-    func didRegister(deviceToken data: Data) async {
-        await registrationLifecycle?.receivedDeviceToken(data)
-    }
-
-    func didFailToRegister(error: Error) {
-        Log.error(error, category: "notifications.register")
     }
 
     func replaceLocalReminders(_ reminders: [BrewReminderSchedule]) async {
@@ -275,29 +166,5 @@ final class NotificationManager: NSObject, ObservableObject {
     private static func storeLocalReminders(_ reminders: [BrewReminderSchedule]) {
         guard let data = try? JSONEncoder().encode(reminders) else { return }
         UserDefaults.standard.set(data, forKey: reminderStorageKey)
-    }
-
-    private static var apnsEnvironment: APNSEnvironment {
-        #if DEBUG
-        .sandbox
-        #else
-        .production
-        #endif
-    }
-}
-
-@MainActor
-final class SystemRemoteNotificationRegistrar: RemoteNotificationRegistering {
-    func registerForRemoteNotifications() {
-        UIApplication.shared.registerForRemoteNotifications()
-    }
-}
-
-extension NotificationManager: UNUserNotificationCenterDelegate {
-    nonisolated func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification
-    ) async -> UNNotificationPresentationOptions {
-        [.banner, .sound, .badge]
     }
 }
