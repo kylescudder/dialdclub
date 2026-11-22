@@ -395,7 +395,7 @@ private struct OptionalDoubleField: View {
                     value = Double(newValue)
                 }
             Text(suffix)
-                .foregroundStyle(Theme.Colors.muted)
+                .foregroundStyle(Theme.Colors.textSecondary)
         }
     }
 }

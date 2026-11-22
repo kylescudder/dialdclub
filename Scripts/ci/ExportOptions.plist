@@ -2,10 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>destination</key>
+	<string>export</string>
+	<key>manageAppVersionAndBuildNumber</key>
+	<false/>
 	<key>method</key>
 	<string>app-store-connect</string>
-	<key>signingStyle</key>
-	<string>manual</string>
 	<key>provisioningProfiles</key>
 	<dict>
 		<key>club.diald</key>
@@ -13,15 +15,11 @@
 		<key>club.diald.widgets</key>
 		<string>Diald Widgets App Store</string>
 	</dict>
-	<key>uploadSymbols</key>
-	<true/>
+	<key>signingStyle</key>
+	<string>manual</string>
 	<key>stripSwiftSymbols</key>
 	<true/>
-	<key>destination</key>
-	<string>export</string>
-	<key>manageAppVersionAndBuildNumber</key>
-	<false/>
-	<key>compileBitcode</key>
-	<false/>
+	<key>uploadSymbols</key>
+	<true/>
 </dict>
 </plist>

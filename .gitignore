@@ -26,7 +26,6 @@ fastlane/test_output
 # Secrets / local config
 .env
 .env.local
-BrewLab/Generated/Secrets.swift
 Config/Secrets.xcconfig
 
 # macOS
@@ -37,12 +36,12 @@ Config/Secrets.xcconfig
 .idea/
 *.swp
 
-# Astro marketing site
+# Astro site
 Site/.astro/
 Site/dist/
 Site/node_modules/
 
-# Self-hosted backend
+# Backend
 Backend/node_modules/
 Backend/dist/
 Backend/.env*

@@ -28,7 +28,7 @@ struct StatsView: View {
                                 x: .value("Brew", brew.brewedAt),
                                 y: .value("Seconds", brew.extractionSeconds)
                             )
-                            .foregroundStyle(Theme.Colors.green)
+                            .foregroundStyle(Theme.Colors.accent)
                             PointMark(
                                 x: .value("Brew", brew.brewedAt),
                                 y: .value("Seconds", brew.extractionSeconds)
@@ -57,7 +57,7 @@ private struct MetricBlock: View {
                 .font(.title2.bold())
             Text(title)
                 .font(.caption)
-                .foregroundStyle(Theme.Colors.muted)
+                .foregroundStyle(Theme.Colors.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

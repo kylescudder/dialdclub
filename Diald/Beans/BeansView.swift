@@ -12,11 +12,11 @@ struct BeansView: View {
                         .font(.headline)
                     Text([bean.origin, bean.process, bean.roastLevel?.label].compactMap { $0 }.joined(separator: " • "))
                         .font(.subheadline)
-                        .foregroundStyle(Theme.Colors.muted)
+                        .foregroundStyle(Theme.Colors.textSecondary)
                     if let notes = bean.tastingNotes, !notes.isEmpty {
                         Text(notes)
                             .font(.footnote)
-                            .foregroundStyle(Theme.Colors.muted)
+                            .foregroundStyle(Theme.Colors.textSecondary)
                     }
                 }
                 .padding(.vertical, 4)
