@@ -16,5 +16,3 @@ drizzle/meta
 src/vendor
 test-results
 playwright-report
-
-artifacts
