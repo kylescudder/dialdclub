@@ -39,11 +39,11 @@ struct SettingsView: View {
             }
 
             Section {
-                if services.notifications.localReminders.isEmpty {
+                if services.reminders.localReminders.isEmpty {
                     Text("No brew reminders")
                         .foregroundStyle(Theme.Colors.textSecondary)
                 } else {
-                    ForEach(services.notifications.localReminders) { reminder in
+                    ForEach(services.reminders.localReminders) { reminder in
                         NavigationLink {
                             ReminderEditorView(reminder: reminder)
                         } label: {
@@ -58,9 +58,9 @@ struct SettingsView: View {
                     }
                     .onDelete { offsets in
                         Task {
-                            let reminders = services.notifications.localReminders
+                            let reminders = services.reminders.localReminders
                             for index in offsets {
-                                await services.notifications.deleteLocalReminder(reminders[index])
+                                await services.reminders.deleteLocalReminder(reminders[index])
                             }
                         }
                     }
@@ -144,7 +144,7 @@ struct SettingsView: View {
             if !required { showReauthentication = false }
         }
         .task {
-            await services.notifications.refreshLocalReminderState()
+            await services.reminders.refreshLocalReminderState()
         }
         .alert("Sign out of Diald?", isPresented: $showSignOutConfirm) {
             Button("Sign out", role: .destructive) {
@@ -229,7 +229,7 @@ struct SettingsView: View {
 }
 
 private struct NotificationSettingsRow: View {
-    @ObservedObject private var notifications = NotificationManager.shared
+    @ObservedObject private var notifications = PushManager.shared
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -303,7 +303,7 @@ private struct ReminderEditorView: View {
                         let components = Calendar.current.dateComponents([.hour, .minute], from: time)
                         reminder.hour = components.hour ?? reminder.hour
                         reminder.minute = components.minute ?? reminder.minute
-                        await services.notifications.upsertLocalReminder(reminder.normalized)
+                        await services.reminders.upsertLocalReminder(reminder.normalized)
                         saveCount += 1
                         dismiss()
                     }

@@ -14,7 +14,8 @@ final class AppServices: ObservableObject {
     let beans: BeansRepository
     let brews: BrewsRepository
     let stats: StatsRepository
-    let notifications: NotificationManager
+    let push: PushManager
+    let reminders: BrewReminderManager
     let profile: ProfileRepository
     let analysis: AnalysisClient
 
@@ -35,22 +36,23 @@ final class AppServices: ObservableObject {
         self.beans = BeansRepository(database: sync.database)
         self.brews = BrewsRepository(auth: auth, billing: billing, database: sync.database)
         self.stats = StatsRepository(database: sync.database)
-        self.notifications = NotificationManager.shared
+        self.push = PushManager.shared
+        self.reminders = BrewReminderManager.shared
         self.profile = ProfileRepository(database: sync.database)
         self.analysis = AnalysisClient()
 
-        for child: any ObservableObject in [auth, sync, syncIssues, billing, beans, brews, stats, notifications, profile, analysis] {
+        for child: any ObservableObject in [auth, sync, syncIssues, billing, beans, brews, stats, push, reminders, profile, analysis] {
             (child.objectWillChange as? ObservableObjectPublisher)?
                 .sink { [weak self] in self?.objectWillChange.send() }
                 .store(in: &cancellables)
         }
 
-        NotificationManager.shared.bind(auth: auth)
-        auth.beforeSessionInvalidation = { [weak notifications] in
-            await notifications?.deactivate()
+        push.bind(auth: auth)
+        auth.beforeSessionInvalidation = { [weak push] in
+            await push?.deactivate()
         }
-        auth.afterSessionInvalidationFailure = { [weak notifications] in
-            await notifications?.activate()
+        auth.afterSessionInvalidationFailure = { [weak push] in
+            await push?.activate()
         }
         billing.start()
         Task { await sync.startObservingAuth() }
@@ -72,7 +74,7 @@ final class AppServices: ObservableObject {
     private func applyAuth(state: AuthClient.State) async {
         guard auth.state == state else { return }
         guard case let .signedIn(userID, _) = state else {
-            notifications.resetForSignedOutState()
+            push.sessionEnded()
             billing.resetForSignOut()
             profile.stopWatching()
             beans.stopWatching()
@@ -86,7 +88,7 @@ final class AppServices: ObservableObject {
         brews.startWatching(userID: id)
         stats.startWatching(userID: id)
         // Install watches before suspension so a later sign-out can stop them.
-        await notifications.activate()
+        await push.activate()
         guard auth.state == state else { return }
         await billing.syncEntitlements()
         await refreshAll(refreshRemoteRegistration: false)
@@ -97,9 +99,9 @@ final class AppServices: ObservableObject {
         await beans.refresh()
         await refreshBrewData()
         if refreshRemoteRegistration {
-            await notifications.refreshRemoteRegistration()
+            await push.refreshRegistration()
         }
-        await notifications.refreshLocalReminderState()
+        await reminders.refreshLocalReminderState()
     }
 
     func refreshBrewData() async {
