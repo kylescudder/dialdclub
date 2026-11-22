@@ -47,6 +47,10 @@
 	<string>$(PUSH_GATEWAY_URL)</string>
 	<key>SENTRY_DSN</key>
 	<string>$(SENTRY_DSN)</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Roboto-Medium.ttf</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -67,6 +67,8 @@ targets:
               - diald
             CFBundleURLName: club.diald.auth
         ITSAppUsesNonExemptEncryption: false
+        UIAppFonts:
+          - Roboto-Medium.ttf
         UIBackgroundModes:
           - remote-notification
         UISupportedInterfaceOrientations:
