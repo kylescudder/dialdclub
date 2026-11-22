@@ -1,4 +1,4 @@
-# Diald Club website
+# Diald Club site
 
 The static Astro home, privacy, terms and support pages for the Diald Club iOS
 app. Public hostname: **diald.club**.
@@ -17,31 +17,44 @@ backend.
 
 ## Checks
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). In short:
+See [CONTRIBUTING.md](CONTRIBUTING.md). Before opening a pull request, run:
 
 ```sh
-bun run format:check
-bun run lint
 bun run typecheck
+bun run lint
+bun run format:check
 bun run build
-bun run check:site   # pages, contact links and built assets
+bun run check:site   # pages, og:url, contact links and built assets
+bun run test:e2e
 ```
 
-The app links to `/privacy` and `/terms`; keep those paths working.
+The app links to `/privacy`, `/terms` and `/support`; keep those paths working.
+
+## Structure
+
+Diald and Deadwax Club share this site's layout, tooling, image and workflows;
+[Scripts/SHARED_SITE.md](../Scripts/SHARED_SITE.md) lists the shared files and
+the app hooks. Diald's own files are `app.json`, `app.caddy`, the header,
+footer and `Home*` components, the pages, `src/styles/global.css` and
+`public/assets/`.
 
 ## Deployment
 
 Merging a change under `Site/` to `main` runs `release-site.yml`: it repeats the
 checks, builds an attested AMD64/ARM64 image
 (`ghcr.io/kylescudder/dialdclub-site`) and asks Herman's deploy-core service to
-deploy that digest through `https://deploy-dialdclub.kylescudder.co.uk/hooks/dialdclub`.
-The image serves `dist/` from an unprivileged, read-only Caddy container on
-port 8080 and reports the deployed commit in `X-Diald-Revision`. Herman checks
-the attestation and the pages before switching, keeps the previous image for
+deploy that digest through `https://$DEPLOY_HOST/hooks/dialdclub`. The image
+serves `dist/` from an unprivileged, read-only Caddy container on port 8080 and
+reports the deployed commit in `X-Diald-Revision`. Herman checks the
+attestation and the pages before switching, keeps the previous image for
 rollback, and the workflow waits until the public site reports the new commit.
 Run the workflow manually to redeploy.
 
-The main-only `production` environment holds `CF_ACCESS_CLIENT_ID`,
-`CF_ACCESS_CLIENT_SECRET` and `DEPLOY_WEBHOOK_SECRET`. The repository variable
-`SITE_BASE_URL` names the public origin the deploy job checks. Host setup and
-recovery are in Herman's platform runbook.
+| Setting                                          | Kind                 | Purpose                                                |
+| ------------------------------------------------ | -------------------- | ------------------------------------------------------ |
+| `DEPLOY_HOST`                                    | repository variable  | Herman deploy hostname, protected by Cloudflare Access |
+| `SITE_BASE_URL`                                  | repository variable  | Public origin checked for the new revision             |
+| `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET` | `production` secrets | Access service token for the deploy hostname           |
+| `DEPLOY_WEBHOOK_SECRET`                          | `production` secret  | HMAC key for deploy requests                           |
+
+Host setup and recovery are in Herman's platform runbook.

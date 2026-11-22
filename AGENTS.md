@@ -10,13 +10,14 @@ Diald Club — native iOS 17+ SwiftUI app for recording specialty-coffee beans, 
 
 Every iOS app uses the same repository layout, app scaffolding and CI. Read
 `Scripts/SHARED_IOS_CORE.md` before adding folders, shared UI primitives,
-configuration keys or workflows. Four checksum manifests keep shared files
+configuration keys or workflows. Five checksum manifests keep shared files
 byte-for-byte identical with the other apps, and CI runs all of them:
 
 - `Scripts/check-shared-ios-core.sh` — `AppSecrets`, `AppBootstrap`, `Theme`, `LoadingView`, `LottieAnimationView`, `PrimaryButton`, `Logger`, `AppearanceManager`, `SharedAppSecretsTests`, `setup.sh` and the iOS workflows.
 - `Scripts/check-shared-auth.sh` — Better Auth backend and native auth (`SHARED_AUTH.md`).
 - `Scripts/check-shared-push-core.sh` — push registration core (`SHARED_PUSH_CORE.md`).
 - `Scripts/check-shared-infra.sh` — backend deployment and provisioning (`SHARED_INFRA.md`).
+- `Scripts/check-shared-site.sh` — the `Site/` layout, tooling, image and site workflows (`SHARED_SITE.md`).
 
 Never edit a shared file in one app only. Put app-specific values behind the
 hooks listed in `SHARED_IOS_CORE.md` (`Theme+App.swift`, `AuthAppConfiguration`,
@@ -150,8 +151,8 @@ identical across all application repositories.
 
 ### Marketing site
 
-- `Site/` is a static Astro 7 site. `BaseLayout` owns global CSS, document metadata, header, and footer; the home page composes focused section components, while privacy, terms, and support use the shared legal layout/components.
-- The site has no runtime configuration or backend. Merging a `Site/` change to `main` builds an attested image and deploys it to Herman through deploy-core (`release-site.yml`).
+- `Site/` is a static Astro 7 site in the shared site layout (`Scripts/SHARED_SITE.md`). The shared `BaseLayout` owns global CSS, document metadata, header, and footer; the home page composes focused `Home*` section components, while privacy, terms, and support wrap their copy in the shared `LegalArticle`. Diald's values (name, origin, pages, contact) live in `Site/app.json`.
+- The site has no runtime configuration or backend. Merging a `Site/` change to `main` builds an attested image and deploys it to Herman through deploy-core at the `DEPLOY_HOST` repository variable (`release-site.yml`).
 - Legal and support copy is part of the product behavior contract. Update it whenever authentication providers, analytics/error reporting, subscriptions, AI data sharing, retention, or support contact behavior changes.
 
 ### Other notable wiring
