@@ -2,7 +2,7 @@ import Foundation
 import UIKit
 
 @MainActor
-final class LegacyPushRegistrationTransport: PushRegistrationTransport {
+final class APIPushRegistrationTransport: PushRegistrationTransport {
     private weak var auth: AuthClient?
     private let deviceName: String
     private let bundleID: String
@@ -53,9 +53,9 @@ final class LegacyPushRegistrationTransport: PushRegistrationTransport {
 
 enum PushRegistrationTransportKind: Equatable {
     case gateway
-    case legacy
+    case api
 
     static func selected(for configuration: PushGatewayConfiguration?) -> Self {
-        configuration == nil ? .legacy : .gateway
+        configuration == nil ? .api : .gateway
     }
 }

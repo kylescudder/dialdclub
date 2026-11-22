@@ -29,8 +29,8 @@ enum BrewCreationError: Error, Equatable, Identifiable, Sendable {
             return creationError
         }
 
-        if let postgrestError = error as? APIError {
-            switch postgrestError.code {
+        if let apiError = error as? APIError {
+            switch apiError.code {
             case "DX001":
                 return subscriptionState == .verifying
                     ? .subscriptionVerificationPending

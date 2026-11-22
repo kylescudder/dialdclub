@@ -18,7 +18,7 @@ final class PushGatewayConfigurationTests: XCTestCase {
         for url in ["http://push.example.com", "http://localhost:8080", "http://127.0.0.1"] {
             let configuration = PushGatewayConfiguration.make(rawURL: url, applicationID: "diald")
             XCTAssertNil(configuration)
-            XCTAssertEqual(PushRegistrationTransportKind.selected(for: configuration), .legacy)
+            XCTAssertEqual(PushRegistrationTransportKind.selected(for: configuration), .api)
         }
     }
 
@@ -40,7 +40,7 @@ final class PushGatewayConfigurationTests: XCTestCase {
     }
 
     func testTransportSelectionUsesExactlyOneConfiguredPath() {
-        XCTAssertEqual(PushRegistrationTransportKind.selected(for: nil), .legacy)
+        XCTAssertEqual(PushRegistrationTransportKind.selected(for: nil), .api)
         let configuration = PushGatewayConfiguration(
             baseURL: URL(string: "https://push.example.com")!,
             applicationID: "diald"
