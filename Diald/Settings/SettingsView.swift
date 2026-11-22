@@ -70,7 +70,7 @@ struct SettingsView: View {
                 } label: {
                     Label("Add reminder", systemImage: "plus.circle")
                 }
-                NotificationSettingsRow()
+                PushAuthorizationRow()
             } header: {
                 Text("Notifications")
             } footer: {
@@ -226,35 +226,6 @@ struct SettingsView: View {
         }
     }
 
-}
-
-private struct NotificationSettingsRow: View {
-    @ObservedObject private var notifications = PushManager.shared
-    @Environment(\.openURL) private var openURL
-
-    var body: some View {
-        switch notifications.authorizationStatus {
-        case .authorized, .ephemeral, .provisional:
-            Label("Push notifications allowed", systemImage: "checkmark.seal.fill")
-                .foregroundStyle(.green)
-        case .denied:
-            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                Label("Push notifications disabled in iOS Settings", systemImage: "xmark.seal")
-                    .foregroundStyle(.red)
-                Button("Open Settings") {
-                    if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
-                        openURL(url)
-                    }
-                }
-            }
-        case .notDetermined:
-            Button("Turn on push notifications") {
-                Task { await notifications.requestAuthorization() }
-            }
-        @unknown default:
-            Text("Push notification status unknown")
-        }
-    }
 }
 
 private struct ReminderEditorView: View {

@@ -1,66 +1,37 @@
 import Foundation
 
-enum AppQuickAction: String {
-    case logBrew
-    case startTimer
-}
-
+/// Routes widget, App Intent and Home Screen quick actions into the app.
+/// An action that arrives before the UI is ready (for example on a cold
+/// launch) is persisted and replayed once `activate()` runs. This file is
+/// identical in every app; the actions and where they go live in
+/// `AppQuickAction.swift`.
 @MainActor
 enum QuickActionRouter {
-    private static let pendingActionKey = "diald.pendingQuickAction"
-
     private static var isReady = false
     private static var pendingAction: AppQuickAction?
 
     static func activate() {
         isReady = true
-        if let stored = UserDefaults.standard.string(forKey: pendingActionKey),
+        if let stored = UserDefaults.standard.string(forKey: AppQuickAction.pendingStorageKey),
            let action = AppQuickAction(rawValue: stored) {
             pendingAction = action
-            UserDefaults.standard.removeObject(forKey: pendingActionKey)
+            UserDefaults.standard.removeObject(forKey: AppQuickAction.pendingStorageKey)
         }
         flushPendingAction()
-    }
-
-    static func handle(url: URL, auth: AuthClient) {
-        Log.breadcrumb("incoming app link", category: "deeplink")
-
-        if url.scheme == "diald", url.host == "shortcut",
-           let actionName = url.pathComponents.last,
-           let action = AppQuickAction(rawValue: actionName) {
-            handle(action)
-            return
-        }
-
-        Task { await auth.handle(callbackURL: url) }
     }
 
     static func handle(_ action: AppQuickAction) {
         guard isReady else {
             pendingAction = action
-            UserDefaults.standard.set(action.rawValue, forKey: pendingActionKey)
+            UserDefaults.standard.set(action.rawValue, forKey: AppQuickAction.pendingStorageKey)
             return
         }
-        route(action)
+        action.route()
     }
 
     private static func flushPendingAction() {
         guard let action = pendingAction else { return }
         pendingAction = nil
-        route(action)
+        action.route()
     }
-
-    private static func route(_ action: AppQuickAction) {
-        switch action {
-        case .logBrew:
-            NotificationCenter.default.post(name: .openLogBrew, object: nil)
-        case .startTimer:
-            NotificationCenter.default.post(name: .openStartTimer, object: nil)
-        }
-    }
-}
-
-extension Notification.Name {
-    static let openLogBrew = Notification.Name("diald.openLogBrew")
-    static let openStartTimer = Notification.Name("diald.openStartTimer")
 }

@@ -1,11 +1,13 @@
-import AuthenticationServices
 import SwiftUI
 
+/// The shared sign-in screen: email and password, Apple, Google, password
+/// reset, and the offline-account recovery choice. This file is identical in
+/// every app; branding comes from `AuthAppConfiguration`.
 struct SignInView: View {
     @EnvironmentObject private var services: AppServices
     @State private var email = ""
     @State private var password = ""
-    @State private var isBusy = false
+    @State private var isWorking = false
     @State private var showSignUp = false
     @State private var showForgotPassword = false
     @State private var showDiscardConfirmation = false
@@ -14,15 +16,15 @@ struct SignInView: View {
         ScrollView {
             VStack(spacing: Theme.Spacing.xl) {
                 VStack(spacing: Theme.Spacing.sm) {
-                    Image("AppLogoIcon")
+                    Image(AuthAppConfiguration.signInLogo.imageName)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 78, height: 78)
-                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md))
-                    Text("Diald")
+                        .frame(width: AuthAppConfiguration.signInLogo.size, height: AuthAppConfiguration.signInLogo.size)
+                        .clipShape(RoundedRectangle(cornerRadius: AuthAppConfiguration.signInLogo.cornerRadius))
+                    Text(AuthAppConfiguration.signInTitle)
                         .font(.largeTitle.weight(.bold))
                         .foregroundStyle(Theme.Colors.textPrimary)
-                    Text("Track extractions, beans, recipes, and the tiny changes that actually matter.")
+                    Text(AuthAppConfiguration.signInTagline)
                         .font(.callout)
                         .foregroundStyle(Theme.Colors.textSecondary)
                         .multilineTextAlignment(.center)
@@ -61,10 +63,10 @@ struct SignInView: View {
                 }
 
                 VStack(spacing: Theme.Spacing.md) {
-                    PrimaryButton(title: "Sign in", isLoading: isBusy) {
+                    PrimaryButton(title: "Sign in", isLoading: isWorking) {
                         Task { await signIn() }
                     }
-                    .disabled(!isFormValid)
+                    .disabled(!isFormValid || isWorking)
 
                     HStack {
                         Rectangle().fill(Theme.Colors.separator).frame(height: 1)
@@ -74,6 +76,7 @@ struct SignInView: View {
 
                     AppleSignInButton()
                         .frame(height: 50)
+                        .disabled(isWorking)
 
                     SecondaryButton(
                         title: "Continue with Google",
@@ -81,12 +84,9 @@ struct SignInView: View {
                         iconTextSpacing: 12,
                         titleFont: .custom("Roboto-Medium", size: 17, relativeTo: .body)
                     ) {
-                        Task {
-                            isBusy = true
-                            await services.auth.signInWithGoogle()
-                            isBusy = false
-                        }
+                        Task { await googleSignIn() }
                     }
+                    .disabled(isWorking)
                 }
 
                 if services.auth.requiresReauthentication {
@@ -105,7 +105,7 @@ struct SignInView: View {
                     .font(.callout)
                     .padding(.top, Theme.Spacing.sm)
             }
-            .disabled(isBusy)
+            .disabled(isWorking)
             .padding(.horizontal, Theme.Spacing.lg)
             .padding(.bottom, Theme.Spacing.xxl)
         }
@@ -127,14 +127,16 @@ struct SignInView: View {
     }
 
     private var isFormValid: Bool {
-        !email.isEmpty && password.count >= 6
+        !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && password.count >= 6
     }
 
     private func discardLocalAccount() async {
-        isBusy = true
-        defer { isBusy = false }
+        guard !isWorking else { return }
+        isWorking = true
+        defer { isWorking = false }
         if await services.auth.signOut() {
             await services.sync.wipe()
+            AuthAppConfiguration.didDiscardLocalAccount(services)
             services.auth.lastError = nil
             email = ""
             password = ""
@@ -142,8 +144,27 @@ struct SignInView: View {
     }
 
     private func signIn() async {
-        isBusy = true
-        defer { isBusy = false }
-        await services.auth.signIn(email: email, password: password)
+        guard !isWorking else { return }
+        isWorking = true
+        defer { isWorking = false }
+        await services.auth.signIn(
+            email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+            password: password
+        )
     }
+
+    private func googleSignIn() async {
+        guard !isWorking else { return }
+        isWorking = true
+        defer { isWorking = false }
+        await services.auth.signInWithGoogle()
+    }
+}
+
+/// The logo at the top of the sign-in screen. A zero corner radius leaves
+/// the image unclipped.
+struct SignInLogo: Sendable {
+    let imageName: String
+    let size: CGFloat
+    let cornerRadius: CGFloat
 }

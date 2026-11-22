@@ -13,7 +13,7 @@ Every iOS app uses the same repository layout, app scaffolding and CI. Read
 configuration keys or workflows. Five checksum manifests keep shared files
 byte-for-byte identical with the other apps, and CI runs all of them:
 
-- `Scripts/check-shared-ios-core.sh` — `AppSecrets`, `AppBootstrap`, `Theme`, `LoadingView`, `LottieAnimationView`, `PrimaryButton`, `Logger`, `AppearanceManager`, `Card`, `EmptyState`, the billing core (`BillingRepository`, `SubscriptionAccessState`, `CreationQuotaProviding`, `SubscriptionPaywallView`), the sync core (`PowerSyncManager`, `APIConnector`, `SyncIssueStore`), the `Shared*Tests`, `setup.sh` and the iOS workflows.
+- `Scripts/check-shared-ios-core.sh` — `AppSecrets`, `AppBootstrap`, `Theme`, `LoadingView`, `LottieAnimationView`, `PrimaryButton`, `Logger`, `AppearanceManager`, `Card`, `EmptyState`, `PushAuthorizationRow`, `AppDelegate`, `QuickActionRouter`, `AppGroupStore`, the shared sign-in views (`SignInView`, `ForgotPasswordSheet`, `ResetPasswordSheet`, `AppleSignInButton`), the billing core (`BillingRepository`, `SubscriptionAccessState`, `CreationQuotaProviding`, `SubscriptionPaywallView`), the sync core (`PowerSyncManager`, `APIConnector`, `SyncIssueStore`), the `Shared*Tests`, `setup.sh` and the iOS workflows.
 - `Scripts/check-shared-auth.sh` — Better Auth backend and native auth (`SHARED_AUTH.md`).
 - `Scripts/check-shared-push-core.sh` — push registration core and its adapters (`PushManager`, `PushRegistration`, `AuthClient+PushIdentity`; `SHARED_PUSH_CORE.md`).
 - `Scripts/check-shared-infra.sh` — backend deployment and provisioning (`SHARED_INFRA.md`).
@@ -21,9 +21,10 @@ byte-for-byte identical with the other apps, and CI runs all of them:
 
 Never edit a shared file in one app only. Put app-specific values behind the
 hooks listed in `SHARED_IOS_CORE.md` (`Theme+App.swift`, `AuthAppConfiguration`,
-`BillingAppConfiguration`, `SyncAppConfiguration`, `PushAppConfiguration`, `project.yml`,
-`Scripts/setup-extras.sh`), or make the same change in every app and refresh the manifest with
-`sh Scripts/check-shared-ios-core.sh --write`.
+`BillingAppConfiguration`, `SyncAppConfiguration`, `PushAppConfiguration`,
+`AppQuickAction`, `WidgetSnapshotStore`, `project.yml`,
+`Scripts/setup-extras.sh`), or make the same change in every app and refresh
+the manifest with `sh Scripts/check-shared-ios-core.sh --write`.
 
 ## Common commands
 
@@ -121,7 +122,8 @@ identical across all application repositories.
 ### Authentication and profiles
 
 - `AuthClient` owns the single `APIClient` session and exposes the app's auth state. It supports email/password, native Sign in with Apple, Google through `ASWebAuthenticationSession`, email confirmation, password recovery, and account deletion (`DELETE /api/account`).
-- All auth callbacks use the `diald://auth-callback` custom scheme and enter through `QuickActionRouter.handle(url:auth:)`. Recovery state has a one-hour `UserDefaults` fallback and callback handling suppresses duplicates within five seconds; preserve both when changing deep-link routing.
+- `SignInView`, `ForgotPasswordSheet`, `ResetPasswordSheet` and `AppleSignInButton` are shared; Diald's logo, title, tagline and recovery exit (sign out and clear local data) are in `AuthAppConfiguration.swift`. `SignUpView` (with its required username) stays Diald-only.
+- All auth callbacks use the `diald://auth-callback` custom scheme and enter through `QuickActionRouter.handle(url:auth:)` (in `App/AppQuickAction.swift`). Recovery state has a one-hour `UserDefaults` fallback and callback handling suppresses duplicates within five seconds; preserve both when changing deep-link routing.
 - The `handle_new_user` trigger creates a profile. Apple names are special: Apple normally provides a name only on the first authorization, so `fill_profile_display_name` fills an empty profile without overwriting a user-edited value.
 
 ### Subscriptions
@@ -147,8 +149,8 @@ identical across all application repositories.
 
 ### Widgets, shortcuts, and deep links
 
-- `DialdWidgets` contains a quick-action widget and a dashboard widget. The dashboard extension never calls the backend; `AppServices.publishWidgetSnapshot()` writes a Codable snapshot to app-group `UserDefaults` (`group.club.diald`) and reloads the `DialdDashboardWidget` timeline.
-- Widget links use `diald://shortcut/logBrew` and `diald://shortcut/startTimer`. `QuickActionRouter` translates them into `NotificationCenter` events that `MainTabView` uses to present `AddBrewView`, optionally with the extraction timer already running.
+- `DialdWidgets` contains a quick-action widget and a dashboard widget. The dashboard extension never calls the backend; `AppServices.publishWidgetSnapshot()` writes a Codable snapshot to app-group `UserDefaults` (`group.club.diald`) through the shared `AppGroupStore` and reloads the `DialdDashboardWidget` timeline.
+- Widget links use `diald://shortcut/logBrew` and `diald://shortcut/startTimer`. The shared `QuickActionRouter` replays an action that arrived before launch finished, and `AppQuickAction.route()` translates it into `NotificationCenter` events that `MainTabView` uses to present `AddBrewView`, optionally with the extraction timer already running.
 - AppIntents route through the same `QuickActionRouter` and set `openAppWhenRun = true`. Keep widgets, AppIntents, URL path names, `AppQuickAction` raw values, and notification names synchronized.
 
 ### Marketing site
