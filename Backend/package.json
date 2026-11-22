@@ -14,7 +14,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
-    "prepare": "husky"
+    "prepare": "cd .. && husky Backend/.husky"
   },
   "dependencies": {
     "better-auth": "^1.7.21",
