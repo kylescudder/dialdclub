@@ -20,8 +20,7 @@ enum WidgetSnapshotStore {
     private static let dashboardKey = "diald.widget.dashboard"
 
     static func dashboard() -> BrewDashboardSnapshot? {
-        guard let data = defaults.data(forKey: dashboardKey) else { return nil }
-        return try? JSONDecoder().decode(BrewDashboardSnapshot.self, from: data)
+        AppGroupStore.load(BrewDashboardSnapshot.self, forKey: dashboardKey)
     }
 
     static func saveDashboard(
@@ -47,12 +46,6 @@ enum WidgetSnapshotStore {
             latestBrewedAt: latestBrewedAt,
             updatedAt: Date()
         )
-
-        guard let data = try? JSONEncoder().encode(snapshot) else { return }
-        defaults.set(data, forKey: dashboardKey)
-    }
-
-    private static var defaults: UserDefaults {
-        UserDefaults(suiteName: appGroupID) ?? .standard
+        AppGroupStore.save(snapshot, forKey: dashboardKey)
     }
 }

@@ -1,11 +1,18 @@
 import SwiftUI
 
+/// Presented by RootView whenever AuthClient.isPasswordRecovery flips true —
+/// i.e. the user just opened a password-reset link and the API has handed us a
+/// recovery session. The sheet is interactive-dismiss-disabled so the user
+/// either sets a new password or leaves recovery explicitly; we don't want to
+/// leave them stranded in the app on a recovery session they can't escape.
+/// This file is identical in every app; how the user leaves is
+/// `AuthAppConfiguration.passwordRecoveryExit`.
 struct ResetPasswordSheet: View {
     @EnvironmentObject private var services: AppServices
 
     @State private var password = ""
     @State private var confirm = ""
-    @State private var isBusy = false
+    @State private var isWorking = false
     @State private var localError: String?
 
     var body: some View {
@@ -34,10 +41,10 @@ struct ResetPasswordSheet: View {
                             .foregroundStyle(.red)
                     }
 
-                    PrimaryButton(title: "Save new password", isLoading: isBusy) {
+                    PrimaryButton(title: "Save new password", isLoading: isWorking) {
                         Task { await save() }
                     }
-                    .disabled(!isFormValid || isBusy)
+                    .disabled(!isFormValid || isWorking)
                 }
                 .padding(Theme.Spacing.lg)
             }
@@ -46,11 +53,18 @@ struct ResetPasswordSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Sign out") {
-                        Task {
-                            if await services.auth.signOut() {
-                                await services.sync.wipe()
-                                services.auth.isPasswordRecovery = false
+                    switch AuthAppConfiguration.passwordRecoveryExit {
+                    case .cancelRecovery:
+                        Button("Cancel") {
+                            services.auth.cancelPasswordRecovery()
+                        }
+                    case .signOutAndClearLocalData:
+                        Button("Sign out") {
+                            Task {
+                                if await services.auth.signOut() {
+                                    await services.sync.wipe()
+                                    services.auth.isPasswordRecovery = false
+                                }
                             }
                         }
                     }
@@ -66,8 +80,8 @@ struct ResetPasswordSheet: View {
     }
 
     private func save() async {
-        isBusy = true
-        defer { isBusy = false }
+        isWorking = true
+        defer { isWorking = false }
         localError = nil
         guard password == confirm else {
             localError = "Passwords don't match."
@@ -75,4 +89,12 @@ struct ResetPasswordSheet: View {
         }
         _ = await services.auth.updatePassword(newPassword: password)
     }
+}
+
+/// How the user leaves the reset-password sheet without setting a password.
+enum PasswordRecoveryExit: Sendable {
+    /// Forget the reset link and return to the app.
+    case cancelRecovery
+    /// Sign out and clear this device's data.
+    case signOutAndClearLocalData
 }

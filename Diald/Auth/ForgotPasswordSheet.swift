@@ -1,5 +1,11 @@
 import SwiftUI
 
+/// Sheet presented from SignInView when the user taps "Forgot password?".
+/// Collects their email and asks the app API to send a reset link via Brevo.
+/// On success we show a confirmation and let the user dismiss; the actual
+/// reset happens after they click the link, which deep-links back into the
+/// app and trips AuthClient.isPasswordRecovery. This file is identical in
+/// every app.
 struct ForgotPasswordSheet: View {
     @EnvironmentObject private var services: AppServices
     @Environment(\.dismiss) private var dismiss
@@ -7,7 +13,7 @@ struct ForgotPasswordSheet: View {
     let initialEmail: String
 
     @State private var email: String
-    @State private var isBusy = false
+    @State private var isWorking = false
     @State private var didSend = false
     @State private var localError: String?
 
@@ -42,10 +48,10 @@ struct ForgotPasswordSheet: View {
                                 .foregroundStyle(.red)
                         }
 
-                        PrimaryButton(title: "Send reset link", isLoading: isBusy) {
+                        PrimaryButton(title: "Send reset link", isLoading: isWorking) {
                             Task { await send() }
                         }
-                        .disabled(!isFormValid || isBusy)
+                        .disabled(!isFormValid || isWorking)
                     } else {
                         PrimaryButton(title: "Done") { dismiss() }
                     }
@@ -71,8 +77,8 @@ struct ForgotPasswordSheet: View {
     }
 
     private func send() async {
-        isBusy = true
-        defer { isBusy = false }
+        isWorking = true
+        defer { isWorking = false }
         localError = nil
         let ok = await services.auth.sendPasswordReset(email: email)
         if ok { didSend = true }

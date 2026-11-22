@@ -116,6 +116,7 @@ targets:
     sources:
       - path: DialdWidgets
       - path: Diald/Widgets/WidgetSnapshotStore.swift
+      - path: Diald/Widgets/AppGroupStore.swift
     info:
       path: DialdWidgets/Info.plist
       properties:
