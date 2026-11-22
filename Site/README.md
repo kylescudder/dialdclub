@@ -42,8 +42,6 @@ rollback, and the workflow waits until the public site reports the new commit.
 Run the workflow manually to redeploy.
 
 The main-only `production` environment holds `CF_ACCESS_CLIENT_ID`,
-`CF_ACCESS_CLIENT_SECRET` and `DEPLOY_WEBHOOK_SECRET`. The repository variables
-`DEPLOY_ENABLED=true` and `SITE_BASE_URL` turn on the deploy job and name the
-public origin it checks; they are repository-level because the job condition is
-evaluated before the environment's variables are available. Host setup and
+`CF_ACCESS_CLIENT_SECRET` and `DEPLOY_WEBHOOK_SECRET`. The repository variable
+`SITE_BASE_URL` names the public origin the deploy job checks. Host setup and
 recovery are in Herman's platform runbook.
