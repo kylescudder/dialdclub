@@ -1,5 +1,5 @@
-# The site deploys to Herman from .github/workflows/release-site.yml. Netlify
-# builds are disabled; this file goes once the Netlify project is deleted.
+# Netlify builds are disabled. Releases are built by GitHub Actions and deployed
+# to Herman; see the README.
 [build]
   base = "Site"
   command = "bun run build"

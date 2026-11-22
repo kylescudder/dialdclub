@@ -1,64 +1,52 @@
 # Shared push gateway
 
-Diald's user-facing remote notification registration is prepared for the
-shared APNs gateway. The application identifier is `diald`; its APNs topic and
-bundle identifier are `club.diald`.
+Diald registers for remote notifications with the shared APNs gateway that the
+other iOS apps also use. The gateway contract (installation registration,
+account unbinding and `PushEvent v1`) is the same in every app; Deadwax Club's
+`docs/push-gateway.md` is the reference. Diald's application identifier is
+`diald`, and its APNs topic and bundle identifier are `club.diald`.
 
-## Current state
+## Registration
 
-`PUSH_GATEWAY_URL` is deliberately empty in the checked-in example
-configuration. An empty or malformed URL selects the existing Herman API
-`/api/devices` registration path, so merging this change does not move
-production traffic. When a valid URL is supplied, Diald selects the gateway
-transport exclusively; it never dual-writes.
+The transport is selected from `Config/Secrets.xcconfig`:
 
-The app sends the gateway a stable Keychain-backed installation ID, the raw
-APNs token encoded as lowercase hexadecimal, the APNs environment, and the
-current Better Auth bearer token. The gateway derives the principal from the verified
-token. The shared notification code contains no Supabase identity or table
-types; `AuthClient` supplies the API session identity and the legacy transport
-is the API registration rollback adapter.
+- `PUSH_GATEWAY_URL` empty: register the device with the Diald API
+  (`POST /api/devices`, unbind with `DELETE /api/devices`).
+- `PUSH_GATEWAY_URL` set: register the installation with the gateway.
 
-Diald's recurring brew reminders remain local calendar notifications. Their
-schedule model, `UserDefaults` persistence, legacy reminder migration,
-notification content, cancellation, and scheduling do not use the gateway.
-The existing `notify-brew-reminder` Edge Function is still a non-delivering
-placeholder and is not changed or presented as a producer by this migration.
+Exactly one transport is active, and the app never writes to both. Inject the
+gateway URL through the private `Config/Secrets.xcconfig`/CI configuration like
+the other app values. Never commit credentials. `PUSH_GATEWAY_APPLICATION_ID`
+stays `diald` in every environment.
 
-## Activation gates
+The app sends the gateway:
 
-Do not populate `PUSH_GATEWAY_URL` until the shared gateway staging stack and
-its `diald` application configuration exist. Follow the canonical gateway
-testing and rollout plan before activation, including:
+- a stable Keychain-backed installation ID;
+- the raw APNs token as lowercase hexadecimal;
+- the APNs environment;
+- the current Better Auth bearer token.
 
-- validation of current Better Auth bearer sessions against the trusted Diald API
-  (these are opaque session tokens, not the former Supabase JWTs), plus the
-  `club.diald` topic configuration;
-- sandbox physical-device registration and delivery without relying on an
-  iCloud account;
-- logout, failed logout, account switch, token refresh, two-device, denied
-  permission, background, terminated-app, and TestFlight production-APNs
-  checks;
-- confirmation that one installation has one current principal and only one
-  registration transport is active;
-- monitoring, alarms, DLQ ownership, and a tested infrastructure rollback.
+The gateway validates that session against the Diald API and derives the
+principal from it; one installation has exactly one current principal. Sign-out
+and account deletion unbind the installation before the session is invalidated;
+a failed unbind does not block sign-out, and the next registration rebinds.
 
-No server-originated Diald event exists yet. A future product feature must
-define its consent, schedule, routing, and canonical `PushEvent v1` source; it
-must not repurpose the local brew-reminder scheduler implicitly.
+## Notifications
 
-## Deployment and rollback
+Diald's recurring brew reminders are local calendar notifications. Their
+schedule, `UserDefaults` persistence, content and scheduling do not use the
+gateway. Diald has no server-originated push event yet. A future feature must
+define its consent, schedule, routing and `PushEvent v1` source rather than
+reusing the local reminder scheduler.
 
-Inject a stage-appropriate HTTPS gateway URL through the same private
-`Config/Secrets.xcconfig`/CI configuration mechanism as the other app values.
-Do not commit credentials or a production hostname. The application ID remains
-`diald` in every environment.
+## Checks
 
-Deploy the API update providing owner-scoped `DELETE /api/devices` before
-releasing this client, so the fallback transport can unbind before sign-out.
-
-For this Phase 1 change, rollback is configuration-only: clear
-`PUSH_GATEWAY_URL` and rebuild to select the existing API device-token
-upsert. Keep that adapter and `device_tokens` available for at least one
-release after gateway activation. Do not remove the placeholder Edge Function
-or any Supabase notification storage as part of this client PR.
+- **Unit tests** cover:
+  - configuration parsing;
+  - the register and unregister request shapes;
+  - installation-ID persistence;
+  - lifecycle ordering;
+  - transport selection.
+- **Physical-device checks:** sandbox and TestFlight (production APNs)
+  registration and delivery; logout; failed logout; account switch; token
+  refresh; two devices; denied permission; background and terminated delivery.

@@ -44,8 +44,8 @@ const database = (name: string) =>
         new Worker(new URL('./powersync-worker.ts', import.meta.url), options)
     }
   })
-const old = database('legacy.sqlite'),
-  fresh = database('target.sqlite'),
+const offline = database('offline.sqlite'),
+  fresh = database('fresh.sqlite'),
   other = database('other.sqlite')
 try {
   const fixture = async (email: string) =>
@@ -92,14 +92,14 @@ try {
     }
   })
   const id = crypto.randomUUID()
-  // Upgrade starts offline with a queued write in the old database.
-  await old.execute(
+  // Start offline with a queued write.
+  await offline.execute(
     'insert into beans(id,owner_id,name,roaster) values(?,?,?,?)',
-    [id, owner.id, 'Offline upgrade fixture', 'Test']
+    [id, owner.id, 'Offline queue fixture', 'Test']
   )
-  await old.close()
+  await offline.close()
   // A second process-like open retains the actual SQLite queue.
-  const reopened = database('legacy.sqlite')
+  const reopened = database('offline.sqlite')
   try {
     if (!(await reopened.getCrudBatch())?.crud.length)
       throw new Error('Offline queue was lost')
@@ -119,7 +119,7 @@ try {
       throw new Error('Cross-account sync exposure')
     console.log(
       JSON.stringify({
-        offlineUpgradeQueue: true,
+        offlineQueue: true,
         freshCheckpoint: true,
         ownerIsolation: true
       })
@@ -128,7 +128,7 @@ try {
     await reopened.close()
   }
 } finally {
-  await old.close()
+  await offline.close()
   await fresh.close()
   await other.close()
   await pool.end()
