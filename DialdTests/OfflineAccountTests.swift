@@ -3,11 +3,11 @@ import PowerSync
 @testable import Diald
 
 @MainActor
-final class OfflineUpgradeTests: XCTestCase {
-    func testOfflineUpgradeKeepsOriginalOwnerAndPendingWrites() async throws {
-        let database = PowerSyncDatabase(schema: DatabaseSchema.schema, dbFilename: "upgrade-test-\(UUID().uuidString).sqlite")
+final class OfflineAccountTests: XCTestCase {
+    func testSignedOutOfflineAccountKeepsOwnerAndPendingWrites() async throws {
+        let database = PowerSyncDatabase(schema: DatabaseSchema.schema, dbFilename: "offline-account-\(UUID().uuidString).sqlite")
         let owner = "11111111-1111-4111-8111-111111111111"
-        let suite = "offline-upgrade-tests.\(UUID().uuidString)"
+        let suite = "offline-account-tests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         try await database.execute(sql: "insert into profiles(id,display_name) values (?,?)", parameters: [owner,"Offline account"])
@@ -25,9 +25,9 @@ final class OfflineUpgradeTests: XCTestCase {
         try await database.close(deleteDatabase: true)
     }
 
-    func testAmbiguousLegacyOwnersCannotExposeCachedDataOrUpload() async throws {
-        let database = PowerSyncDatabase(schema: DatabaseSchema.schema, dbFilename: "ambiguous-upgrade-\(UUID().uuidString).sqlite")
-        let suite = "offline-upgrade-tests.\(UUID().uuidString)"
+    func testAmbiguousOfflineOwnersCannotExposeCachedDataOrUpload() async throws {
+        let database = PowerSyncDatabase(schema: DatabaseSchema.schema, dbFilename: "ambiguous-owners-\(UUID().uuidString).sqlite")
+        let suite = "offline-account-tests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         for _ in 0..<2 {

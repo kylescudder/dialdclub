@@ -50,7 +50,7 @@ final class GatewayPushRegistrationTransportTests: XCTestCase {
         XCTAssertNil(json["principal_id"])
         XCTAssertNil(json["bundle_id"])
         XCTAssertNil(json["team_id"])
-        XCTAssertNil(String(data: body, encoding: .utf8)?.range(of: "supabase", options: .caseInsensitive))
+        XCTAssertEqual(Set(json.keys), ["version", "platform", "apns_token", "apns_environment"])
     }
 
     func testUnregisterSendsCanonicalBodylessRequest() async throws {

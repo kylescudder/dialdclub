@@ -115,8 +115,8 @@ final class NotificationManager: NSObject, ObservableObject {
                 configuration: configuration,
                 session: URLSession(configuration: .ephemeral)
             )
-        case .legacy:
-            transport = LegacyPushRegistrationTransport(auth: auth)
+        case .api:
+            transport = APIPushRegistrationTransport(auth: auth)
         }
 
         registrationLifecycle = PushRegistrationLifecycle(
