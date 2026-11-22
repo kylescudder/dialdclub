@@ -6,8 +6,8 @@ site. StoreKit provides the Supporter subscription. Free accounts get five
 lifetime extractions, including deleted brews.
 
 The backend is a Bun/TypeScript API with PostgreSQL/Drizzle, Better Auth/Brevo and
-self-hosted PowerSync, running on Herman (`Backend/`). Supabase has been removed;
-its historical schema and functions remain in git history.
+self-hosted PowerSync, running on Herman's shared PostgreSQL server (`Backend/`).
+The API is served at `auth.diald.club` and PowerSync at `sync.diald.club`.
 
 ## Development
 
@@ -40,8 +40,8 @@ from the repository root, or its own scripts under `Site/`.
 
 Public signup supports verified email/password, native Sign in with Apple and
 Google through `ASWebAuthenticationSession`. Native sessions are stored in the
-Keychain. The API issues short-lived JWTs for PowerSync; user UUIDs remain the
-original IDs used by StoreKit `appAccountToken` and all owner data.
+Keychain. The API issues short-lived JWTs for PowerSync; the user UUID is the
+JWT subject, the StoreKit `appAccountToken` and the owner of all user data.
 
 The app opens `diald-v2.sqlite` directly for offline reads, writes and sync.
 Reauthentication preserves its queue and requires the same account. Explicit
@@ -50,16 +50,29 @@ sign-out and account deletion clear the active database and its pending writes.
 Apple JWS verification retains the official server library and bundled Apple
 roots, exact product/bundle/environment/account binding, expiry, revocation and
 signed-event ordering. Server-backed access stays verifying until confirmation.
-Notifications are retained in a private durable spool; fenced delivery returns
-503 so Apple also continues retrying. The background worker reconciles retained
-signed payloads after recovery proof and imported accounts are available.
+App Store Server Notifications are retained in a private durable spool; fenced
+delivery returns 503 so Apple also continues retrying. A background worker
+replays retained signed payloads once writes are allowed again.
 
-## Deployment and migration
+## Deployment
 
-See [Backend/deploy/README.md](Backend/deploy/README.md) for the deployment
-candidate, recovery lease contract, export/import/reconciliation, JWT contract,
-resource limits, and recovery checks. See
-[Backend/deploy/verification.md](Backend/deploy/verification.md) for evidence and
-remaining access/device gaps. Main CI publishes an attested image; this branch
-has no automatic production deployment. Never route old binaries to an unfinished
-API or use Settings sign-out to reauthenticate during migration.
+Merging to `main` releases each changed area:
+
+- **Backend** (`Backend/`): `release-backend.yml` builds and attests the API
+  image and sends a signed request through Cloudflare Access to the receiver in
+  `Backend/deploy/app.json` (`deployURL`). On Herman, deploy-core:
+  1. verifies provenance and backs up the database;
+  2. requires a fresh off-host recovery proof;
+  3. runs migrations;
+  4. installs the image's Compose files, PowerSync configuration and inventory;
+  5. starts the API and PowerSync, rolling back on failure.
+
+  See [Backend/deploy/README.md](Backend/deploy/README.md) and deploy-core's
+  `docs/shared-backends.md`.
+- **Site** (`Site/`): `release-site.yml`; see [Site/README.md](Site/README.md).
+- **iOS app**: `ios-testflight.yml` archives and uploads to TestFlight.
+
+The `production` environment holds `API_CF_ACCESS_CLIENT_ID`,
+`API_CF_ACCESS_CLIENT_SECRET` and `API_DEPLOY_WEBHOOK_SECRET` for the API, and
+`CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET` and `DEPLOY_WEBHOOK_SECRET` for
+the site. `API_BASE_URL` is checked after each API deploy.

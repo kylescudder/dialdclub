@@ -12,8 +12,8 @@ Use Bun 1.4.4. From `Site/`, install the committed dependencies with
 bun run dev
 ```
 
-Open **http://localhost:4321**. The site has no runtime configuration, backend
-or client-side Supabase settings.
+Open **http://localhost:4321**. The site has no runtime configuration or
+backend.
 
 ## Checks
 
