@@ -9,5 +9,5 @@
     "esModuleInterop": true,
     "types": ["bun"]
   },
-  "include": ["src", "scripts", "test", "drizzle.config.ts"]
+  "include": ["src", "db", "scripts", "test", "drizzle.config.ts"]
 }
