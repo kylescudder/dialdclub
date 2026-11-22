@@ -8,7 +8,7 @@ struct RootView: View {
         Group {
             switch services.auth.state {
             case .unknown:
-                LoadingView()
+                LoadingView(message: "Dialling in...")
             case .signedOut:
                 NavigationStack { SignInView() }
             case .signedIn:
@@ -78,7 +78,7 @@ struct MainTabView: View {
                 .tabItem { Label("Settings", systemImage: "gearshape") }
                 .tag(MainTab.settings)
         }
-        .tint(Theme.Colors.green)
+        .tint(Theme.Colors.accent)
         .sheet(isPresented: $showingAddBrew) {
             AddBrewView(startTimerOnAppear: startTimerOnOpen)
         }

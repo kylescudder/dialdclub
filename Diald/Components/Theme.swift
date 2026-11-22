@@ -1,5 +1,9 @@
 import SwiftUI
 
+/// Small native iOS design system. Uses system semantic colors so dark mode
+/// works automatically. Spacing and radius scales kept simple to mirror what
+/// SwiftUI defaults expect. This file is shared by every app; put brand
+/// colours and other app-only tokens in `Theme+App.swift`.
 enum Theme {
     enum Colors {
         static let accent = Color.accentColor
@@ -10,13 +14,6 @@ enum Theme {
         static let textPrimary = Color(.label)
         static let textSecondary = Color(.secondaryLabel)
         static let textTertiary = Color(.tertiaryLabel)
-
-        static let ink = textPrimary
-        static let muted = textSecondary
-        static let green = accent
-        static let amber = Color(red: 0.76, green: 0.44, blue: 0.18)
-        static let blue = Color(red: 0.10, green: 0.32, blue: 0.50)
-        static let line = separator
     }
 
     enum Spacing {
@@ -26,6 +23,9 @@ enum Theme {
         static let lg: CGFloat = 16
         static let xl: CGFloat = 24
         static let xxl: CGFloat = 32
+
+        /// Width of the leading-icon column in form rows. Keeps every
+        /// row's text baseline aligned regardless of which SF Symbol it uses.
         static let iconRow: CGFloat = 24
     }
 
@@ -37,10 +37,14 @@ enum Theme {
 }
 
 extension View {
+    /// `.font(.caption)` + `Theme.Colors.textSecondary`. Use everywhere a small
+    /// dimmed annotation appears so the pairing stays consistent across screens.
     func captionSecondary() -> some View {
         font(.caption).foregroundStyle(Theme.Colors.textSecondary)
     }
 
+    /// `.font(.footnote)` + `Theme.Colors.textSecondary`. Same deal as
+    /// `captionSecondary` but one font step larger.
     func footnoteSecondary() -> some View {
         font(.footnote).foregroundStyle(Theme.Colors.textSecondary)
     }

@@ -6,6 +6,51 @@ This file provides guidance to coding agents when working with code in this repo
 
 Diald Club — native iOS 17+ SwiftUI app for recording specialty-coffee beans, recipes, extraction times, tasting notes, reminders, and brew statistics, plus a static Astro marketing and compliance site. The backend is the Bun API in `Backend/` with PostgreSQL and self-hosted PowerSync on Herman, StoreKit provides the Supporter subscription, and the app includes AppIntents and WidgetKit extensions.
 
+## Shared conventions
+
+Every iOS app uses the same repository layout, app scaffolding and CI. Read
+`Scripts/SHARED_IOS_CORE.md` before adding folders, shared UI primitives,
+configuration keys or workflows. Four checksum manifests keep shared files
+byte-for-byte identical with the other apps, and CI runs all of them:
+
+- `Scripts/check-shared-ios-core.sh` — `AppSecrets`, `AppBootstrap`, `Theme`, `LoadingView`, `LottieAnimationView`, `PrimaryButton`, `Logger`, `AppearanceManager`, `SharedAppSecretsTests`, `setup.sh` and the iOS workflows.
+- `Scripts/check-shared-auth.sh` — Better Auth backend and native auth (`SHARED_AUTH.md`).
+- `Scripts/check-shared-push-core.sh` — push registration core (`SHARED_PUSH_CORE.md`).
+- `Scripts/check-shared-infra.sh` — backend deployment and provisioning (`SHARED_INFRA.md`).
+
+Never edit a shared file in one app only. Put app-specific values behind the
+hooks listed in `SHARED_IOS_CORE.md` (`Theme+App.swift`, `AuthAppConfiguration`,
+`project.yml`, `Scripts/setup-extras.sh`), or make the same change in every app
+and refresh the manifest with `sh Scripts/check-shared-ios-core.sh --write`.
+
+## Common commands
+
+The Xcode project is generated from `project.yml` and is git-ignored — regenerate after any source, target, signing, or dependency change.
+
+```sh
+xcodegen generate                          # rebuild Diald.xcodeproj from project.yml
+open Diald.xcodeproj                       # open in Xcode (⌘R to run, ⌘B to build)
+xcodebuild build \                         # CLI sanity build (no signing required)
+  -project Diald.xcodeproj \
+  -scheme Diald \
+  -configuration Debug \
+  -destination 'generic/platform=iOS Simulator' \
+  CODE_SIGNING_ALLOWED=NO
+xcodebuild test -project Diald.xcodeproj -scheme Diald -destination 'platform=iOS Simulator,name=iPhone 16'
+./setup.sh                                 # first-run tools, secrets template, backend deps, xcodegen
+```
+
+Marketing site:
+
+```sh
+bun run dev                                # installs Site dependencies and starts Astro
+bun run build                              # builds the static site to Site/dist
+bun run preview                            # previews the production build
+cd Site && bun run format:check            # check Astro/CSS formatting with Prettier
+```
+
+`DialdTests` contains focused subscription/quota behavior tests; `Shared*Tests.swift` are identical in every app. There is no iOS linter or formatter configured. The Astro site has `format` and `format:check` scripts under `Site/package.json`; don't invent additional validation commands.
+
 ## Backend
 
 Production runs on Herman. The runtime is `Backend/` (Bun 1.4.4, TypeScript,
@@ -35,33 +80,11 @@ Backend checks: `cd Backend && bun install --frozen-lockfile`, `bun run typechec
 additional fixture databases. Never point them at production. Native runtime and
 screenshots require a functioning simulator; build-only checks are not flow proof.
 
-## Common commands
+## Push notifications
 
-The Xcode project is generated from `project.yml` and is git-ignored — regenerate after any source, target, signing, or dependency change.
-
-```sh
-xcodegen generate                          # rebuild Diald.xcodeproj from project.yml
-open Diald.xcodeproj                       # open in Xcode (⌘R to run, ⌘B to build)
-xcodebuild build \                         # CLI sanity build (no signing required)
-  -project Diald.xcodeproj \
-  -scheme Diald \
-  -configuration Debug \
-  -destination 'generic/platform=iOS Simulator' \
-  CODE_SIGNING_ALLOWED=NO
-xcodebuild test -project Diald.xcodeproj -scheme Diald -destination 'platform=iOS Simulator,name=iPhone 16'
-./setup.sh                                 # first-run tools, secrets template, backend deps, xcodegen
-```
-
-Marketing site:
-
-```sh
-bun run dev                                # installs Site dependencies and starts Astro
-bun run build                              # builds the static site to Site/dist
-bun run preview                            # previews the production build
-cd Site && bun run format:check            # check Astro/CSS formatting with Prettier
-```
-
-`DialdTests` contains focused subscription/quota behavior tests. There is no iOS linter or formatter configured. The Astro site has `format` and `format:check` scripts under `Site/package.json`; don't invent additional validation commands.
+Before changing push registration, APNs delivery, `device_tokens` or notification
+producers, read `docs/push-gateway.md` and keep its provider-neutral HTTP contract
+identical across all application repositories.
 
 ## Secrets and configuration
 
@@ -114,7 +137,7 @@ cd Site && bun run format:check            # check Astro/CSS formatting with Pre
 
 ### Reminders and notifications
 
-- `NotificationManager` is a `@MainActor` singleton. It owns authorization status, registers APNs tokens (with the API's `/api/devices`, or the shared push gateway when `PUSH_GATEWAY_URL` is set; see `Docs/SharedPushGateway.md`), and schedules recurring local notifications through `UNUserNotificationCenter`.
+- `NotificationManager` is a `@MainActor` singleton. It owns authorization status, registers APNs tokens (with the API's `/api/devices`, or the shared push gateway when `PUSH_GATEWAY_URL` is set; see `docs/push-gateway.md`), and schedules recurring local notifications through `UNUserNotificationCenter`.
 - The reminders shown in Settings are persisted as encoded `BrewReminderSchedule` values in `UserDefaults`, then expanded into one calendar trigger per weekday.
 - `AppDelegate` only forwards APNs registration success/failure to `NotificationManager`. Keep UIKit delegate work at this boundary.
 - Diald has no server-originated push producer yet. Brew reminders are local calendar notifications.
@@ -134,9 +157,9 @@ cd Site && bun run format:check            # check Astro/CSS formatting with Pre
 ### Other notable wiring
 
 - `Log` (`Diald/Logging/Logger.swift`) is the OSLog/Sentry wrapper. Sentry setup is a no-op when `SENTRY_DSN` is empty; keep repository and service errors going through `Log` rather than ad hoc prints.
-- `Theme`, `Card`, `PrimaryButton`, and `LoadingView` under `Diald/Components/` are shared UI primitives. Reuse them before introducing one-off colors, spacing, or loading treatments.
+- `Theme`, `Card`, `PrimaryButton`, and `LoadingView` under `Diald/Components/` are the UI primitives. Reuse them before introducing one-off colors, spacing, or loading treatments. Diald's brand colors (`amber`, `blue`) and loading animation live in `Theme+App.swift`; otherwise use the shared semantic colors (`textPrimary`, `textSecondary`, `accent`, `separator`).
 - The app and widget must retain the same `group.club.diald` app-group entitlement. The main app additionally has Sign in with Apple and APNs entitlements.
-- The app is iOS/iPadOS 17+, portrait-only on iPhone, and supports all standard orientations on iPad. `Info.plist` is committed; `project.yml` layers generated properties, secrets, URL schemes, and background modes onto it.
+- The app is iOS/iPadOS 17+, portrait-only on iPhone, and supports all standard orientations on iPad. `Info.plist` is committed (XcodeGen rewrites it with sorted keys); `project.yml` layers generated properties, secrets, URL schemes, and background modes onto it.
 - GitHub Actions regenerates the Xcode project. Pull requests get an unsigned simulator build; pushes to `main` that touch iOS paths archive and upload to TestFlight using manual signing.
 
 ## Strict concurrency
@@ -156,7 +179,7 @@ When an SDK bump breaks compilation, check the dependency's release notes and up
 
 ## Folder casing
 
-The app folders are `Diald/` and `DialdWidgets/`, the marketing site is `Site/` (capital S), and the backend is `Backend/`. Always preserve those spellings in code, scripts, workflow paths, and documentation so the repository works on case-sensitive filesystems.
+The app folders are `Diald/`, `DialdTests/` and `DialdWidgets/`, the marketing site is `Site/` (capital S), the backend is `Backend/`, and the only lowercase top-level folders are `docs/` and `deploy/`. Always preserve those spellings in code, scripts, workflow paths, and documentation so the repository works on case-sensitive filesystems.
 
 ## What not to commit
 

@@ -10,7 +10,7 @@ struct Card<Content: View>: View {
             .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
-                    .stroke(Theme.Colors.line)
+                    .stroke(Theme.Colors.separator)
             }
     }
 }
