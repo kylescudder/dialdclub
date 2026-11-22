@@ -311,9 +311,9 @@ test('a write whose proof expires before COMMIT is rolled back', async () => {
   ).toBe(0)
 })
 
-test('password reset links are single-use and the imported bcrypt password remains supported', async () => {
+test('password reset links are single-use and bcrypt password hashes remain supported', async () => {
   const account = await nativeAccount('reset@example.test')
-  const hash = await Bun.password.hash('imported-password-123', {
+  const hash = await Bun.password.hash('bcrypt-password-123', {
     algorithm: 'bcrypt',
     cost: 4
   })
@@ -324,7 +324,7 @@ test('password reset links are single-use and the imported bcrypt password remai
   const signin = await auth.handler(
     request('sign-in/email', {
       email: 'reset@example.test',
-      password: 'imported-password-123'
+      password: 'bcrypt-password-123'
     })
   )
   expect(signin.status).toBe(200)
