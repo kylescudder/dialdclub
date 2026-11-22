@@ -4,6 +4,14 @@ import SwiftUI
 extension Theme {
     /// Lottie animation shown by `LoadingView`.
     static let loadingAnimation = "brew_spinner.lottie"
+
+    /// `Card`: compact, sized to its content, with a separator border.
+    enum CardStyle {
+        static let padding = Theme.Spacing.md
+        static let cornerRadius = Theme.Radius.md
+        static let fillsWidth = false
+        static let showsBorder = true
+    }
 }
 
 extension Theme.Colors {
