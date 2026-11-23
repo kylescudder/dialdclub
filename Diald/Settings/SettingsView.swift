@@ -147,14 +147,15 @@ struct SettingsView: View {
             await services.reminders.refreshLocalReminderState()
         }
         .alert("Sign out of Diald?", isPresented: $showSignOutConfirm) {
-            Button("Sign out", role: .destructive) {
-                Task {
-                    if await services.auth.signOut() {
-                        await services.sync.wipe()
-                    }
-                }
+            Button("Sign out") {
+                Task { await services.auth.signOut() }
+            }
+            Button("Sign out and remove local data", role: .destructive) {
+                Task { await services.auth.signOut(removeLocalData: true) }
             }
             Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Signing out keeps your offline changes on this device. Removing local data also deletes changes that have not synced. Data already saved to your account is kept.")
         }
         .alert("Delete your Diald account?", isPresented: $showDeleteConfirm) {
             Button("Continue", role: .destructive) {
@@ -218,7 +219,6 @@ struct SettingsView: View {
         defer { isDeleting = false }
         do {
             try await services.auth.deleteAccount()
-            await services.sync.wipe()
             successCount += 1
         } catch {
             deleteError = error.localizedDescription

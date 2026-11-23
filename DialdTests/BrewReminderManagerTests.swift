@@ -6,7 +6,7 @@ import XCTest
 /// registration (`PushManager` owns that).
 @MainActor
 final class BrewReminderManagerTests: XCTestCase {
-    private let storageKey = "notifications.brewReminders"
+    private let storageKey = "notifications.brewReminders.signed-out"
     private var previous: Data?
 
     override func setUp() async throws {
@@ -35,6 +35,20 @@ final class BrewReminderManagerTests: XCTestCase {
         await manager.replaceLocalReminders([])
         XCTAssertTrue(manager.localReminders.isEmpty)
         XCTAssertTrue(BrewReminderManager().localReminders.isEmpty)
+    }
+
+    func testAccountSchedulesAreRetainedWithoutBeingShared() async throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: UUID().uuidString))
+        let first = UUID(), second = UUID()
+        let schedule = BrewReminderSchedule(weekdays: [2], hour: 9, minute: 15)
+        let original = BrewReminderManager(owner: first, defaults: defaults)
+        await original.replaceLocalReminders([schedule])
+        await original.suspend()
+        let other = BrewReminderManager(owner: second, defaults: defaults)
+        XCTAssertTrue(other.localReminders.isEmpty)
+        let returning = BrewReminderManager(owner: first, defaults: defaults)
+        XCTAssertEqual(returning.localReminders, [schedule])
+        await returning.replaceLocalReminders([])
     }
 
     func testScheduleDescribesCommonWeekdaySets() {

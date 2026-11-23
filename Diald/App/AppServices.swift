@@ -11,23 +11,23 @@ final class AppServices: ObservableObject {
     let sync: PowerSyncManager
     let syncIssues: SyncIssueStore
     let billing: BillingRepository
-    let beans: BeansRepository
-    let brews: BrewsRepository
-    let stats: StatsRepository
+    private(set) var beans: BeansRepository
+    private(set) var brews: BrewsRepository
+    private(set) var stats: StatsRepository
     let push: PushManager
-    let reminders: BrewReminderManager
-    let profile: ProfileRepository
+    private(set) var reminders: BrewReminderManager
+    private(set) var profile: ProfileRepository
     let analysis: AnalysisClient
 
     /// The creation allowance the shared paywall reports.
     var creationQuota: any CreationQuotaProviding { brews }
 
     private var cancellables = Set<AnyCancellable>()
+    private var accountCancellables = Set<AnyCancellable>()
 
-    init() {
-        let auth = AuthClient()
+    init(auth: AuthClient = AuthClient(), databaseFilename: String = SyncAppConfiguration.databaseFilename) {
         let syncIssues = SyncIssueStore()
-        let sync = PowerSyncManager(auth: auth, issues: syncIssues)
+        let sync = PowerSyncManager(auth: auth, issues: syncIssues, databaseFilename: databaseFilename)
         let billing = BillingRepository(auth: auth)
         self.auth = auth
         self.sync = sync
@@ -37,11 +37,11 @@ final class AppServices: ObservableObject {
         self.brews = BrewsRepository(auth: auth, billing: billing, database: sync.database)
         self.stats = StatsRepository(database: sync.database)
         self.push = PushManager.shared
-        self.reminders = BrewReminderManager.shared
+        self.reminders = BrewReminderManager()
         self.profile = ProfileRepository(database: sync.database)
         self.analysis = AnalysisClient()
 
-        for child: any ObservableObject in [auth, sync, syncIssues, billing, beans, brews, stats, push, reminders, profile, analysis] {
+        for child: any ObservableObject in [auth, sync, syncIssues, billing, push, analysis] {
             (child.objectWillChange as? ObservableObjectPublisher)?
                 .sink { [weak self] in self?.objectWillChange.send() }
                 .store(in: &cancellables)
@@ -54,6 +54,12 @@ final class AppServices: ObservableObject {
         auth.afterSessionInvalidationFailure = { [weak push] in
             await push?.activate()
         }
+        auth.deleteLocalAccount = { [weak self, weak sync] in
+            try await sync?.deleteAccountData()
+            await self?.reminders.replaceLocalReminders([])
+        }
+        sync.accountDatabaseDidChange = { [weak self] in await self?.replaceAccountRepositories() }
+        bindAccountPublishers()
         billing.start()
         Task { await sync.startObservingAuth() }
 
@@ -65,21 +71,49 @@ final class AppServices: ObservableObject {
             }
             .store(in: &cancellables)
 
+    }
+
+    private func replaceAccountRepositories() async {
+        await reminders.suspend()
+        profile.stopWatching()
+        beans.stopWatching()
+        brews.stopWatching()
+        stats.stopWatching()
+        billing.resetForSignOut()
+        reminders = BrewReminderManager(owner: sync.accountID, legacyOwner: auth.legacyOwnerID)
+        profile = ProfileRepository(database: sync.database)
+        beans = BeansRepository(database: sync.database)
+        brews = BrewsRepository(auth: auth, billing: billing, database: sync.database)
+        stats = StatsRepository(database: sync.database)
+        bindAccountPublishers()
+        publishWidgetSnapshot()
+        objectWillChange.send()
+    }
+
+    private func bindAccountPublishers() {
+        accountCancellables.removeAll()
+        for child: any ObservableObject in [beans, brews, stats, profile, reminders] {
+            (child.objectWillChange as? ObservableObjectPublisher)?
+                .sink { [weak self] in self?.objectWillChange.send() }
+                .store(in: &accountCancellables)
+        }
         Publishers.CombineLatest(brews.$brews, stats.$stats)
             .debounce(for: .milliseconds(100), scheduler: RunLoop.main)
             .sink { [weak self] _, _ in self?.publishWidgetSnapshot() }
-            .store(in: &cancellables)
+            .store(in: &accountCancellables)
     }
 
     private func applyAuth(state: AuthClient.State) async {
         guard auth.state == state else { return }
-        guard case let .signedIn(userID, _) = state else {
+        guard auth.canAccessMainApp, case let .signedIn(userID, _) = state else {
             push.sessionEnded()
             billing.resetForSignOut()
             profile.stopWatching()
             beans.stopWatching()
             brews.stopWatching()
             stats.stopWatching()
+            await reminders.suspend()
+            publishWidgetSnapshot()
             return
         }
         let id = userID.uuidString.lowercased()
@@ -87,6 +121,8 @@ final class AppServices: ObservableObject {
         beans.startWatching(userID: id)
         brews.startWatching(userID: id)
         stats.startWatching(userID: id)
+        await reminders.resume()
+        guard auth.state == state else { return }
         // Install watches before suspension so a later sign-out can stop them.
         await push.activate()
         guard auth.state == state else { return }
