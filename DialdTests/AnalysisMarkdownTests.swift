@@ -1,5 +1,5 @@
 import XCTest
-@testable import Diald
+@testable import AppUnderTest
 
 final class AnalysisMarkdownTests: XCTestCase {
     func testKeepsSectionsAndNumberedStepsSeparate() {

@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import Diald
+@testable import AppUnderTest
 
 /// Diald's local brew reminders are stored on-device and never touch push
 /// registration (`PushManager` owns that).
