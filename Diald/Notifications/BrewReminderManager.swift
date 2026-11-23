@@ -78,29 +78,51 @@ final class BrewReminderManager: ObservableObject {
     @Published private(set) var localReminders: [BrewReminderSchedule] = []
 
     private static let localReminderIdentifierPrefix = "brew-reminder"
-    private static let reminderStorageKey = "notifications.brewReminders"
+    private let reminderStorageKey: String
+    private let defaults: UserDefaults
+    private var generation = 0
     private let notificationCenter: UNUserNotificationCenter
 
-    init(notificationCenter: UNUserNotificationCenter = .current()) {
+    init(owner: UUID? = nil, legacyOwner: UUID? = nil, defaults: UserDefaults = .standard, notificationCenter: UNUserNotificationCenter = .current()) {
         self.notificationCenter = notificationCenter
-        localReminders = Self.storedLocalReminders()
+        self.defaults = defaults
+        reminderStorageKey = "notifications.brewReminders.\(owner?.uuidString.lowercased() ?? "signed-out")"
+        if let owner, owner == legacyOwner, defaults.data(forKey: reminderStorageKey) == nil,
+           let legacy = defaults.data(forKey: "notifications.brewReminders") {
+            defaults.set(legacy, forKey: reminderStorageKey)
+            defaults.removeObject(forKey: "notifications.brewReminders")
+        }
+        localReminders = storedLocalReminders()
+    }
+
+    /// Stop notifications on sign-out without deleting saved schedules.
+    func suspend() async {
+        generation += 1
+        await cancelScheduledLocalReminders()
+    }
+
+    func resume() async {
+        await replaceLocalReminders(storedLocalReminders())
     }
 
     func refreshLocalReminderState() async {
-        localReminders = Self.storedLocalReminders()
+        localReminders = storedLocalReminders()
     }
 
     func replaceLocalReminders(_ reminders: [BrewReminderSchedule]) async {
+        generation += 1
+        let expected = generation
         let normalized = reminders
             .map(\.normalized)
             .filter { !$0.weekdays.isEmpty }
 
         localReminders = normalized
-        Self.storeLocalReminders(normalized)
+        storeLocalReminders(normalized)
         await cancelScheduledLocalReminders()
 
         for reminder in normalized {
-            await schedule(reminder: reminder)
+            guard generation == expected else { return }
+            await schedule(reminder: reminder, generation: expected)
         }
     }
 
@@ -118,13 +140,14 @@ final class BrewReminderManager: ObservableObject {
         await replaceLocalReminders(localReminders.filter { $0.id != reminder.id })
     }
 
-    private func schedule(reminder: BrewReminderSchedule) async {
+    private func schedule(reminder: BrewReminderSchedule, generation expected: Int) async {
         let content = UNMutableNotificationContent()
         content.title = "Diald"
         content.body = "Log the morning cup before the variables evaporate."
         content.sound = .default
 
         for weekday in reminder.weekdays {
+            guard generation == expected else { return }
             var components = DateComponents()
             components.weekday = weekday
             components.hour = reminder.hour
@@ -137,6 +160,7 @@ final class BrewReminderManager: ObservableObject {
             )
             do {
                 try await notificationCenter.add(request)
+                if generation != expected { notificationCenter.removePendingNotificationRequests(withIdentifiers: [request.identifier]) }
             } catch {
                 Log.error(error, category: "notifications.local")
             }
@@ -155,16 +179,16 @@ final class BrewReminderManager: ObservableObject {
         "\(localReminderIdentifierPrefix)-\(reminderID.uuidString)-\(weekday)"
     }
 
-    private static func storedLocalReminders() -> [BrewReminderSchedule] {
-        guard let data = UserDefaults.standard.data(forKey: reminderStorageKey),
+    private func storedLocalReminders() -> [BrewReminderSchedule] {
+        guard let data = defaults.data(forKey: reminderStorageKey),
               let reminders = try? JSONDecoder().decode([BrewReminderSchedule].self, from: data) else {
             return []
         }
         return reminders.map(\.normalized)
     }
 
-    private static func storeLocalReminders(_ reminders: [BrewReminderSchedule]) {
+    private func storeLocalReminders(_ reminders: [BrewReminderSchedule]) {
         guard let data = try? JSONEncoder().encode(reminders) else { return }
-        UserDefaults.standard.set(data, forKey: reminderStorageKey)
+        defaults.set(data, forKey: reminderStorageKey)
     }
 }

@@ -16,6 +16,7 @@ struct RootView: View {
                     NavigationStack { SignInView() }
                 } else {
                     MainTabView()
+                    .id(services.auth.currentUserID)
                 }
             }
         }
