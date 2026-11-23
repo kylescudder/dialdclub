@@ -2,8 +2,8 @@
 
 Diald registers for remote notifications with the shared APNs gateway that the
 other iOS apps also use. The gateway contract (installation registration,
-account unbinding and `PushEvent v1`) is the same in every app; Deadwax Club's
-`docs/push-gateway.md` is the reference. Diald's application identifier is
+account unbinding and `PushEvent v1`) is the same in every app and every
+app's copy of this document must agree. Diald's application identifier is
 `diald`, and its APNs topic and bundle identifier are `club.diald`.
 
 ## Registration
