@@ -128,6 +128,9 @@ identical across all application repositories.
 
 ### Subscriptions
 
+Complimentary billing access follows `Scripts/SHARED_IOS_CORE.md`; see
+`docs/complimentary-access.md` for the administrator grant and revoke procedure.
+
 - `BillingRepository`, `SubscriptionAccessState` and `SubscriptionPaywallView` are the shared billing core (rules in `Scripts/SHARED_IOS_CORE.md`, tests in `SharedBillingTests`). Diald's values (`club.diald.supporter.monthly`, the verification message and paywall copy) live in `Diald/Billing/BillingAppConfiguration.swift`, and the paywall reads the lifetime extraction count through `AppServices.creationQuota` (`BrewsRepository`). StoreKit 2 is the authority for whether Apple considers the local subscription active. Local verification moves server-backed access to `.verifying`; only successful server confirmation moves it to `.active`/`isSubscribed`, and only then is the transaction finished. Revoked or expired `Transaction.updates` are mirrored to `/api/iap/transactions` so the server row stops granting access, finished once stored, and end access in-session.
 - Purchase calls include the signed-in user UUID as `appAccountToken`. Verified transactions are mirrored to `/api/iap/transactions`; App Store Server Notifications V2 update the same `iap_entitlements` row through `/api/iap/notifications`.
 - The entitlement row is authoritative only for server-backed database writes, and only when `verified_at`, the exact bundle/product/environment, current expiration, and non-revoked status were recorded by `record_verified_iap_entitlement`. Both API IAP paths use Apple's official server library and bundled Apple roots to verify the JWS certificate chain and signature before validating `bundleId`, environment, product ID, and mandatory `appAccountToken`. Never restore payload-only decoding or direct client writes. Keep purchase, restore, retry, manage-subscription, transaction finishing, and entitlement refresh paths aligned.

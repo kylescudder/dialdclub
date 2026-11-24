@@ -50,6 +50,13 @@
       "when": 1794665017161,
       "tag": "0006_thankful_rictor",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795513158227,
+      "tag": "0007_premium-access",
+      "breakpoints": true
     }
   ]
 }
