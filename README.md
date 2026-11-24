@@ -193,6 +193,9 @@ wait for Apple's processing of an earlier upload.
 
 ## Shared code
 
+Complimentary billing access follows `Scripts/SHARED_IOS_CORE.md`; see
+`docs/complimentary-access.md` for the administrator grant and revoke procedure.
+
 Diald keeps five sets of files byte-for-byte identical with the other iOS apps.
 CI fails if any of them drift:
 
