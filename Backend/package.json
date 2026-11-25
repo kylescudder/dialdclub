@@ -2,7 +2,7 @@
   "name": "@diald/backend",
   "private": true,
   "type": "module",
-  "packageManager": "bun@1.4.4",
+  "packageManager": "bun@1.4.5",
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
