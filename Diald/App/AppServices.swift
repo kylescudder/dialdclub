@@ -112,6 +112,7 @@ final class AppServices: ObservableObject {
         guard auth.state == state else { return }
         guard auth.canAccessMainApp, case let .signedIn(userID, _) = state else {
             push.sessionEnded()
+            Analytics.reset()
             billing.resetForSignOut()
             profile.stopWatching()
             beans.stopWatching()
@@ -122,6 +123,7 @@ final class AppServices: ObservableObject {
             return
         }
         let id = userID.uuidString.lowercased()
+        Analytics.identify(userID: id)
         profile.startWatching(userID: id)
         beans.startWatching(userID: id)
         brews.startWatching(userID: id)
