@@ -164,7 +164,7 @@ Complimentary billing access follows `Scripts/SHARED_IOS_CORE.md`; see
 
 ### Other notable wiring
 
-- `Log` (`Diald/Logging/Logger.swift`) is the OSLog/PostHog wrapper. Errors and warnings go to PostHog error tracking with the recent breadcrumbs; breadcrumbs and events stay on the device otherwise. PostHog is a no-op when `POSTHOG_PROJECT_TOKEN` is empty; keep repository and service errors going through `Log` rather than ad hoc prints.
+- `Log` (`Diald/Logging/Logger.swift`) is the OSLog/PostHog wrapper. Errors and warnings go to PostHog error tracking; breadcrumbs (and `Log.event`) become PostHog exception steps attached to every error and crash report, never sent alone. PostHog is a no-op when `POSTHOG_PROJECT_TOKEN` is empty; keep repository and service errors going through `Log` rather than ad hoc prints.
 - `Theme`, `Card`, `PrimaryButton`, `EmptyState` and `LoadingView` under `Diald/Components/` are the shared UI primitives. Reuse them before introducing one-off colors, spacing, or loading treatments. Diald's brand colors (`amber`, `blue`), loading animation and `Theme.CardStyle` (compact, bordered `Card`) live in `Theme+App.swift`; otherwise use the shared semantic colors (`textPrimary`, `textSecondary`, `accent`, `separator`).
 - The app and widget must retain the same `group.club.diald` app-group entitlement. The main app additionally has Sign in with Apple and APNs entitlements.
 - The app is iOS/iPadOS 17+, portrait-only on iPhone, and supports all standard orientations on iPad. `Info.plist` is committed (XcodeGen rewrites it with sorted keys); `project.yml` layers generated properties, secrets, URL schemes, and background modes onto it.
