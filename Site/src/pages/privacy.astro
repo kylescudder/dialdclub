@@ -44,6 +44,14 @@ import LegalArticle from "../components/LegalArticle.astro";
         count associated with your Diald account. Deleting an individual extraction
         does not reduce that lifetime count.
       </li>
+      <li>
+        <strong>Usage and diagnostics.</strong> The app sends PostHog usage
+        events, such as when the app is installed, opened or updated, and
+        reports of errors and crashes with the recent in-app steps that led to
+        them. These include your device model, iOS version, app version and,
+        while you are signed in, your account ID. We do not add your name or
+        email address to them.
+      </li>
     </ul>
 
     <h2>How we use your information</h2>
@@ -77,8 +85,9 @@ import LegalArticle from "../components/LegalArticle.astro";
       <li>
         <strong>With service providers.</strong> We use service providers to host
         and operate the app; Brevo for account confirmation and password reset emails;
-        Apple and Google for sign-in when selected; and Apple for purchases and
-        notifications. The replacement backend uses our hosted PostgreSQL database
+        Apple and Google for sign-in when selected; Apple for purchases and
+        notifications; and PostHog for app usage analytics and error and crash
+        reports. The replacement backend uses our hosted PostgreSQL database
         and self-hosted PowerSync for device synchronization.
       </li>
       <li>
